@@ -109,7 +109,7 @@ const selectS = { ...inputS, cursor:"pointer" } as React.CSSProperties;
 const btnPrimary = { background:`linear-gradient(135deg,${ORANGE},#A88A3D)`, color:"#fff", border:"none", padding:"12px 24px", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer", transition:"all 0.2s" };
 const btnSecondary = { background:"rgba(0,0,0,0.06)", color:"#1B2A4A", border:"1px solid rgba(0,0,0,0.12)", padding:"10px 20px", borderRadius:10, fontWeight:600, fontSize:13, cursor:"pointer" };
 const badge = (color: string) => ({ display:"inline-block", padding:"3px 10px", borderRadius:100, fontSize:11, fontWeight:700, background:`${color}22`, color });
-const label = { fontSize:12, fontWeight:600, color: '#475569', display:"block", marginBottom:6, letterSpacing:0.5, textTransform:"uppercase" } as React.CSSProperties;
+const label = { fontSize:12, fontWeight:600, color: '#1B2A4A', display:"block", marginBottom:6, letterSpacing:0.5, textTransform:"uppercase" } as React.CSSProperties;
 
 // ─── NAV ───
 function Nav({ page, setPage }: any) {
@@ -177,8 +177,8 @@ function DashboardPage({ participants, prices, tasks, leads }: any) {
           { label:"Tâches en cours", val:pendingTasks.length, sub:`/ ${tasks?.length || 0} total`, color:"#8E44AD", pct: tasks?.length ? (tasks.length - pendingTasks.length)/tasks.length*100 : 0 },
         ].map(k => (
           <div key={k.label} style={card}>
-            <div style={{ fontSize:11, color: '#475569', letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>{k.label}</div>
-            <div style={{ fontSize:28, fontWeight:800, color:"#1B2A4A" }}>{k.val} <span style={{ fontSize:12, fontWeight:400, color: '#475569' }}>{k.sub}</span></div>
+            <div style={{ fontSize:11, color: '#1B2A4A', letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>{k.label}</div>
+            <div style={{ fontSize:28, fontWeight:800, color:"#1B2A4A" }}>{k.val} <span style={{ fontSize:12, fontWeight:400, color: '#1B2A4A' }}>{k.sub}</span></div>
             <div style={{ marginTop:12, height:4, borderRadius:2, background:"rgba(0,0,0,0.08)" }}>
               <div style={{ height:"100%", borderRadius:2, background:k.color, width:`${Math.min(k.pct,100)}%`, transition:"width 0.8s" }} />
             </div>
@@ -197,15 +197,15 @@ function DashboardPage({ participants, prices, tasks, leads }: any) {
                 <span style={badge(s.color)}>{s.code}</span>
               </div>
               <div style={{ color:"#1B2A4A", fontWeight:700, fontSize:14, marginBottom:8 }}>{s.title}</div>
-              <div style={{ color: '#475569', fontSize:12, marginBottom:12 }}>{s.week}</div>
+              <div style={{ color: '#1B2A4A', fontSize:12, marginBottom:12 }}>{s.week}</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                <div><div style={{ fontSize:20, fontWeight:800, color:"#1B2A4A" }}>{sp.length}<span style={{ fontSize:11, color: '#475569' }}>/{s.seats}</span></div><div style={{ fontSize:10, color: '#475569' }}>Inscrits</div></div>
-                <div><div style={{ fontSize:20, fontWeight:800, color:"#27AE60" }}>{sc.length}</div><div style={{ fontSize:10, color: '#475569' }}>Confirmés</div></div>
+                <div><div style={{ fontSize:20, fontWeight:800, color:"#1B2A4A" }}>{sp.length}<span style={{ fontSize:11, color: '#1B2A4A' }}>/{s.seats}</span></div><div style={{ fontSize:10, color: '#1B2A4A' }}>Inscrits</div></div>
+                <div><div style={{ fontSize:20, fontWeight:800, color:"#27AE60" }}>{sc.length}</div><div style={{ fontSize:10, color: '#1B2A4A' }}>Confirmés</div></div>
               </div>
               <div style={{ marginTop:12, height:5, borderRadius:3, background:"rgba(0,0,0,0.08)" }}>
                 <div style={{ height:"100%", borderRadius:3, background:s.color, width:`${(sp.length/s.seats)*100}%` }} />
               </div>
-              <div style={{ fontSize:11, color: '#475569', marginTop:6 }}>{fmt(sc.reduce((a: number,p: any)=>a+(p.amount||0),0))} FCFA encaissé</div>
+              <div style={{ fontSize:11, color: '#1B2A4A', marginTop:6 }}>{fmt(sc.reduce((a: number,p: any)=>a+(p.amount||0),0))} FCFA encaissé</div>
             </div>
           );
         })}
@@ -290,9 +290,9 @@ function LeadsPage({ leads, refreshLeads }: any) {
                     <div style={{ color: "#1B2A4A", fontSize: 14, fontWeight: 600 }}>{l.nom}</div>
                     <button onClick={() => deleteLead(l.id)} style={{ background: "none", border: "none", color: "#E74C3C", cursor: "pointer", fontSize: 14 }}>🗑</button>
                   </div>
-                  <div style={{ color: '#475569', fontSize: 12, marginBottom: 4 }}>{l.entreprise || "—"}</div>
-                  <div style={{ color: '#475569', fontSize: 11, marginBottom: 8 }}>{l.source}</div>
-                  <div style={{ color: "rgba(0,0,0,0.8)", fontSize: 12, marginBottom: 12, fontStyle: "italic" }}>{l.notes || "—"}</div>
+                  <div style={{ color: '#1B2A4A', fontSize: 12, marginBottom: 4 }}>{l.entreprise || "—"}</div>
+                  <div style={{ color: '#1B2A4A', fontSize: 11, marginBottom: 8 }}>{l.source}</div>
+                  <div style={{ color: "#1B2A4A", fontSize: 12, marginBottom: 12, fontStyle: "italic" }}>{l.notes || "—"}</div>
                   <select value={l.status} onChange={e => updateStatus(l.id, e.target.value)} style={{ ...selectS, padding: "6px 10px", fontSize: 12 }}>
                     <option value="froid">Froid</option>
                     <option value="tiede">Tiède</option>
@@ -343,7 +343,7 @@ function SeoAgentPage() {
     <div>
       <h2 style={{ color:"#1B2A4A", fontSize:24, fontWeight:800, margin:"0 0 24px" }}>Agent SEO & Contenu</h2>
       <div style={{ ...card, marginBottom:24 }}>
-        <p style={{ color: '#475569', fontSize:14, marginBottom:16 }}>L'Agent SEO vous aide à générer des mots-clés, des idées d'articles et des structures de pages pour attirer plus de prospects organiques sur vos séminaires.</p>
+        <p style={{ color: '#1B2A4A', fontSize:14, marginBottom:16 }}>L'Agent SEO vous aide à générer des mots-clés, des idées d'articles et des structures de pages pour attirer plus de prospects organiques sur vos séminaires.</p>
         <div style={{ display:"flex", gap:12 }}>
           <input style={{ ...inputS, flex:1 }} value={topic} onChange={e => setTopic(e.target.value)} placeholder="Ex: Formation IA pour les Directeurs Financiers à Abidjan" />
           <button onClick={generateSEO} disabled={loading} style={{ ...btnPrimary, opacity: loading ? 0.7 : 1 }}>
@@ -354,7 +354,7 @@ function SeoAgentPage() {
       {result && (
         <div style={{ ...card, background:"rgba(0,0,0,0.02)", marginBottom: 24 }}>
           <h3 style={{ color:"#1B2A4A", fontSize:16, fontWeight:700, marginBottom:16 }}>Résultat SEO</h3>
-          <div style={{ color:"rgba(0,0,0,0.8)", fontSize:14, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{result}</div>
+          <div style={{ color: "#1B2A4A", fontSize:14, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{result}</div>
         </div>
       )}
       {history.length > 0 && (
@@ -363,7 +363,7 @@ function SeoAgentPage() {
           {history.map((h, i) => (
             <details key={i} style={{ ...card, marginBottom:8, cursor:"pointer" }}>
               <summary style={{ color:"#1B2A4A", fontSize:13, fontWeight:600 }}>{h.date} – {h.topic}</summary>
-              <div style={{ color: '#475569', fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
+              <div style={{ color: '#1B2A4A', fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
             </details>
           ))}
         </>
@@ -442,7 +442,7 @@ function FlyerPage() {
       
       <div style={{ background: "rgba(0,0,0,0.05)", padding: 16, borderRadius: 8, marginBottom: 24, display: "flex", gap: 16, alignItems: "center" }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: '#475569', fontSize: 12, marginBottom: 4 }}>URL de l'image personnalisée (optionnel)</label>
+          <label style={{ display: "block", color: '#1B2A4A', fontSize: 12, marginBottom: 4 }}>URL de l'image personnalisée (optionnel)</label>
           <input 
             type="text" 
             value={customImage} 
@@ -451,7 +451,7 @@ function FlyerPage() {
             style={{ ...inputS, width: "100%" }}
           />
         </div>
-        <p style={{ color: '#475569', fontSize:12, margin: 0, maxWidth: 300 }}>
+        <p style={{ color: '#1B2A4A', fontSize:12, margin: 0, maxWidth: 300 }}>
           Cliquez sur les boutons d'export ci-dessus pour générer une image ou un PDF parfaitement dimensionné (1000x1000).
         </p>
       </div>
@@ -486,7 +486,7 @@ function FlyerPage() {
             <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 600, color: "#1A2332", marginBottom: 12 }}>{data.subtitle}</div>
             
             {/* Target Audience */}
-            <div contentEditable suppressContentEditableWarning style={{ fontSize: 13, fontWeight: 500, color: "#475569", marginBottom: 20, lineHeight: 1.5, maxWidth: "90%" }}>
+            <div contentEditable suppressContentEditableWarning style={{ fontSize: 13, fontWeight: 500, color: "#1B2A4A", marginBottom: 20, lineHeight: 1.5, maxWidth: "90%" }}>
               Pour Managers, Dirigeants, Administrateurs, Consultants, Entrepreneurs, Cadres Supérieurs et Professionnels souhaitant accélérer leur transformation digitale et renforcer leurs décisions stratégiques.
             </div>
 
@@ -705,18 +705,18 @@ function InscriptionsPage({ participants, refreshParticipants }: any) {
       <div style={{ ...card, padding:0, overflow:"hidden" }}>
         <div style={{ display:"grid", gridTemplateColumns:"2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.08)" }}>
           {["Participant","Société / Fonction","Séminaire","Paiement","Montant","Statut",""].map(h => (
-            <div key={h} style={{ fontSize:10, color: '#475569', textTransform:"uppercase", letterSpacing:1, fontWeight:700 }}>{h}</div>
+            <div key={h} style={{ fontSize:10, color: '#1B2A4A', textTransform:"uppercase", letterSpacing:1, fontWeight:700 }}>{h}</div>
           ))}
         </div>
-        {filtered.length === 0 && <div style={{ padding:32, textAlign:"center", color: '#475569', fontSize:14 }}>Aucune inscription pour le moment</div>}
+        {filtered.length === 0 && <div style={{ padding:32, textAlign:"center", color: '#1B2A4A', fontSize:14 }}>Aucune inscription pour le moment</div>}
         {filtered.map((p: any, i: number) => {
           const s = SEMINARS.find(x => x.id === p.seminar);
           return (
             <div key={p.id} style={{ display:"grid", gridTemplateColumns:"2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding:"14px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", alignItems:"center" }}>
-              <div><div style={{ color:"#1B2A4A", fontSize:13, fontWeight:600 }}>{p.nom} {p.prenom}</div><div style={{ color: '#475569', fontSize:11 }}>{p.email}</div></div>
-              <div><div style={{ color: '#475569', fontSize:13 }}>{p.societe}</div><div style={{ color: '#475569', fontSize:11 }}>{p.fonction}</div></div>
+              <div><div style={{ color:"#1B2A4A", fontSize:13, fontWeight:600 }}>{p.nom} {p.prenom}</div><div style={{ color: '#1B2A4A', fontSize:11 }}>{p.email}</div></div>
+              <div><div style={{ color: '#1B2A4A', fontSize:13 }}>{p.societe}</div><div style={{ color: '#1B2A4A', fontSize:11 }}>{p.fonction}</div></div>
               <div style={{ fontSize:12, color:s?.color || "#fff", fontWeight:600 }}>{s?.code} {s?.icon}</div>
-              <div style={{ fontSize:12, color: '#475569', display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontSize:12, color: '#1B2A4A', display: "flex", alignItems: "center", gap: 8 }}>
                 {p.payment || "—"}
                 {p.tel && (
                   <a href={`https://wa.me/${p.tel.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: "#25D366", textDecoration: "none", display: "flex", alignItems: "center", background: "rgba(37, 211, 102, 0.1)", padding: "4px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
@@ -956,23 +956,23 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
       {/* TABLE */}
       <div style={{ ...card, padding: 0, overflow: "hidden" }}>
         <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.08)", background: "rgba(0,0,0,0.02)" }}>
-          <div style={{ fontSize:11, color: '#475569', textTransform:"uppercase", letterSpacing:1, fontWeight:700 }}>Catégorie</div>
-          <div style={{ fontSize:11, color: '#475569', textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Plan (Budget)</div>
-          <div style={{ fontSize:11, color: '#475569', textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Réel (Actuel)</div>
-          <div style={{ fontSize:11, color: '#475569', textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Écart</div>
+          <div style={{ fontSize:11, color: '#1B2A4A', textTransform:"uppercase", letterSpacing:1, fontWeight:700 }}>Catégorie</div>
+          <div style={{ fontSize:11, color: '#1B2A4A', textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Plan (Budget)</div>
+          <div style={{ fontSize:11, color: '#1B2A4A', textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Réel (Actuel)</div>
+          <div style={{ fontSize:11, color: '#1B2A4A', textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Écart</div>
         </div>
         
         {/* REVENUS */}
         <div style={{ padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", background: "rgba(39, 174, 96, 0.05)" }}>
           <div style={{ color:"#27AE60", fontSize:14, fontWeight:800, marginBottom: 8 }}>PRODUITS (REVENUS)</div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 4 }}>
-            <div style={{ color: '#475569', fontSize:13 }}>Tarif Standard ({fmt(prices.standard)})</div>
+            <div style={{ color: '#1B2A4A', fontSize:13 }}>Tarif Standard ({fmt(prices.standard)})</div>
             <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt(plan.revStandard)}</div>
             <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt(actual.revStandard)}</div>
             <div style={{ color: actual.revStandard - plan.revStandard >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(actual.revStandard - plan.revStandard)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 8 }}>
-            <div style={{ color: '#475569', fontSize:13 }}>Tarif Early Bird ({fmt(prices.earlyBird)})</div>
+            <div style={{ color: '#1B2A4A', fontSize:13 }}>Tarif Early Bird ({fmt(prices.earlyBird)})</div>
             <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt(plan.revEarlyBird)}</div>
             <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt(actual.revEarlyBird)}</div>
             <div style={{ color: actual.revEarlyBird - plan.revEarlyBird >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(actual.revEarlyBird - plan.revEarlyBird)}</div>
@@ -1003,8 +1003,8 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
             { k: 'commercialisation', l: 'Frais de commercialisation 10%' },
           ].map(item => (
             <div key={item.k} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
-              <div style={{ color: '#475569', fontSize:13 }}>{item.l}</div>
-              <div style={{ color: '#475569', fontSize:13, textAlign:"right" }}>{fmt((plan.charges as any)[item.k])}</div>
+              <div style={{ color: '#1B2A4A', fontSize:13 }}>{item.l}</div>
+              <div style={{ color: '#1B2A4A', fontSize:13, textAlign:"right" }}>{fmt((plan.charges as any)[item.k])}</div>
               <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt((actual.charges as any)[item.k])}</div>
               <div style={{ color: plan.charges[item.k as keyof typeof plan.charges] - actual.charges[item.k as keyof typeof actual.charges] >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>
                 {fmt(plan.charges[item.k as keyof typeof plan.charges] - actual.charges[item.k as keyof typeof actual.charges])}
@@ -1023,25 +1023,25 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
         <div style={{ padding:"12px 16px", background: "rgba(41, 128, 185, 0.05)" }}>
           <div style={{ color:"#2980B9", fontSize:14, fontWeight:800, marginBottom: 8 }}>RENTABILITÉ</div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
-            <div style={{ color: '#475569', fontSize:13 }}>Revenu prov</div>
+            <div style={{ color: '#1B2A4A', fontSize:13 }}>Revenu prov</div>
             <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt(plan.revenuProv)}</div>
             <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt(actual.revenuProv)}</div>
             <div style={{ color: actual.revenuProv - plan.revenuProv >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(actual.revenuProv - plan.revenuProv)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
-            <div style={{ color: '#475569', fontSize:13 }}>Imprevu 10%</div>
+            <div style={{ color: '#1B2A4A', fontSize:13 }}>Imprevu 10%</div>
             <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt(plan.imprevu)}</div>
             <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt(actual.imprevu)}</div>
             <div style={{ color: plan.imprevu - actual.imprevu >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(plan.imprevu - actual.imprevu)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
-            <div style={{ color:"rgba(0,0,0,0.9)", fontSize:13, fontWeight:600 }}>Sous total brut</div>
+            <div style={{ color: "#1B2A4A", fontSize:13, fontWeight:600 }}>Sous total brut</div>
             <div style={{ color:"#1B2A4A", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(plan.sousTotalBrut)}</div>
             <div style={{ color:"#1B2A4A", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(actual.sousTotalBrut)}</div>
             <div style={{ color: actual.sousTotalBrut - plan.sousTotalBrut >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(actual.sousTotalBrut - plan.sousTotalBrut)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
-            <div style={{ color: '#475569', fontSize:13 }}>TVA 18%</div>
+            <div style={{ color: '#1B2A4A', fontSize:13 }}>TVA 18%</div>
             <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt(plan.tva)}</div>
             <div style={{ color:"#1B2A4A", fontSize:13, textAlign:"right" }}>{fmt(actual.tva)}</div>
             <div style={{ color: plan.tva - actual.tva >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(plan.tva - actual.tva)}</div>
@@ -1118,8 +1118,8 @@ function ExpenseManager({ expenses, refreshExpenses }: any) {
           <div key={e.id} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 0.5fr", padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", alignItems:"center" }}>
             <div style={{ color:"#1B2A4A", fontSize:13, fontWeight:600 }}>{e.label}</div>
             <div style={{ color:"#E74C3C", fontSize:13, fontWeight:700 }}>{fmt(e.amount)} F</div>
-            <div style={{ color: '#475569', fontSize:12, textTransform:"capitalize" }}>{e.category}</div>
-            <div style={{ color: '#475569', fontSize:12 }}>{e.seminar === "all" ? "Général" : SEMINARS.find(s=>s.id===e.seminar)?.code}</div>
+            <div style={{ color: '#1B2A4A', fontSize:12, textTransform:"capitalize" }}>{e.category}</div>
+            <div style={{ color: '#1B2A4A', fontSize:12 }}>{e.seminar === "all" ? "Général" : SEMINARS.find(s=>s.id===e.seminar)?.code}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: e.paid ? "#27AE60" : "#F39C12", background: e.paid ? "rgba(39, 174, 96, 0.1)" : "rgba(243, 156, 18, 0.1)", padding: "4px 8px", borderRadius: 100 }}>{e.paid ? "Payé" : "En attente"}</span>
               <button onClick={() => deleteExpense(e.id)} style={{ background:"none", border:"none", color:"#E74C3C", cursor:"pointer", fontSize:16 }}>🗑</button>
@@ -1191,7 +1191,7 @@ function TasksPage({ tasks, refreshTasks }: any) {
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
               <div style={{ width:10, height:10, borderRadius:"50%", background:colors[status] }} />
               <span style={{ color:"#1B2A4A", fontSize:14, fontWeight:700 }}>{labels[status]}</span>
-              <span style={{ color: '#475569', fontSize:12 }}>({tasks.filter((t: any)=>t.status===status).length})</span>
+              <span style={{ color: '#1B2A4A', fontSize:12 }}>({tasks.filter((t: any)=>t.status===status).length})</span>
             </div>
             {tasks.filter((t: any) => t.status === status).map((t: any) => (
               <div key={t.id} style={{ ...card, marginBottom:8, borderLeft:`3px solid ${colors[status]}`, padding:16, transition:"all 0.2s" }}>
@@ -1202,7 +1202,7 @@ function TasksPage({ tasks, refreshTasks }: any) {
                     <button onClick={() => deleteTask(t.id)} style={{ background:"none", border:"none", color:"#E74C3C", cursor:"pointer", fontSize:14 }}>🗑</button>
                   </div>
                 </div>
-                <div style={{ display:"flex", gap:12, marginTop:8, fontSize:11, color: '#475569' }}>
+                <div style={{ display:"flex", gap:12, marginTop:8, fontSize:11, color: '#1B2A4A' }}>
                   <span>{TEAM.find(m=>m.id===t.owner)?.avatar} {TEAM.find(m=>m.id===t.owner)?.name}</span>
                   {t.deadline && <span>📅 {t.deadline}</span>}
                   {t.seminar !== "all" && <span style={{ color: SEMINARS.find(s=>s.id===t.seminar)?.color }}>{SEMINARS.find(s=>s.id===t.seminar)?.code}</span>}
@@ -1231,7 +1231,7 @@ function PricesPage({ prices, setPrices }: any) {
   return (
     <div>
       <h2 style={{ color:"#1B2A4A", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Gestion des tarifs</h2>
-      <p style={{ color: '#475569', fontSize:14, margin:"0 0 24px" }}>Ajustez les prix en temps réel. Les modifications s'appliquent immédiatement au tableau de bord et aux projections financières.</p>
+      <p style={{ color: '#1B2A4A', fontSize:14, margin:"0 0 24px" }}>Ajustez les prix en temps réel. Les modifications s'appliquent immédiatement au tableau de bord et aux projections financières.</p>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24 }}>
         <div style={card}>
           <h3 style={{ color:"#1B2A4A", fontSize:16, fontWeight:700, marginBottom:16 }}>Tarifs individuels</h3>
@@ -1243,7 +1243,7 @@ function PricesPage({ prices, setPrices }: any) {
             <div key={p.key} style={{ marginBottom:16 }}>
               <label style={label}>{p.label}</label>
               <input type="number" style={inputS} value={prices[p.key]} onChange={upd(p.key)} disabled={p.disabled} />
-              <div style={{ fontSize:11, color: '#475569', marginTop:4 }}>{p.desc}</div>
+              <div style={{ fontSize:11, color: '#1B2A4A', marginTop:4 }}>{p.desc}</div>
             </div>
           ))}
         </div>
@@ -1251,7 +1251,7 @@ function PricesPage({ prices, setPrices }: any) {
           <h3 style={{ color:"#1B2A4A", fontSize:16, fontWeight:700, marginBottom:16 }}>Rémunération & Budget</h3>
           <div style={{ marginTop:8, padding:16, background:"rgba(201,168,76,0.08)", borderRadius:10, border:`1px solid ${ORANGE}33` }}>
             <div style={{ color:ORANGE, fontSize:13, fontWeight:700 }}>Honoraires CABEXIA (Fixes)</div>
-            <div style={{ color: '#475569', fontSize:12, marginTop:8, lineHeight:1.8 }}>
+            <div style={{ color: '#1B2A4A', fontSize:12, marginTop:8, lineHeight:1.8 }}>
               Consultance présentiel : <strong style={{ color:"#1B2A4A" }}>1 050 000 FCFA</strong> / séminaire<br/>
               Consultance en ligne : <strong style={{ color:"#1B2A4A" }}>400 000 FCFA</strong> / séminaire<br/>
               Total CABEXIA : <strong style={{ color:"#1B2A4A" }}>1 450 000 FCFA</strong> / séminaire
@@ -1260,7 +1260,7 @@ function PricesPage({ prices, setPrices }: any) {
           <div style={{ marginTop:16, padding:16, background:"rgba(39,174,96,0.08)", borderRadius:10 }}>
             <div style={{ color:"#27AE60", fontSize:13, fontWeight:700, marginBottom:8 }}>Projection CA (objectif rempli)</div>
             <div style={{ color:"#1B2A4A", fontSize:20, fontWeight:800 }}>{fmt(SEMINARS.reduce((s,x) => s + x.seats, 0) * prices.standard)} FCFA</div>
-            <div style={{ color: '#475569', fontSize:11, marginTop:4 }}>{SEMINARS.reduce((s,x) => s + x.seats, 0)} participants × {fmt(prices.standard)} FCFA</div>
+            <div style={{ color: '#1B2A4A', fontSize:11, marginTop:4 }}>{SEMINARS.reduce((s,x) => s + x.seats, 0)} participants × {fmt(prices.standard)} FCFA</div>
           </div>
         </div>
       </div>
@@ -1335,7 +1335,7 @@ Réponds en français. Fournis un plan de prospection journalier avec:
   return (
     <div>
       <h2 style={{ color:"#1B2A4A", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Agent Commercial IA</h2>
-      <p style={{ color: '#475569', fontSize:14, margin:"0 0 24px" }}>Prospection automatisée : identification des meilleurs profils d'apprenants, scripts de vente et plans de contact personnalisés par séminaire.</p>
+      <p style={{ color: '#1B2A4A', fontSize:14, margin:"0 0 24px" }}>Prospection automatisée : identification des meilleurs profils d'apprenants, scripts de vente et plans de contact personnalisés par séminaire.</p>
 
       <div style={{ ...card, marginBottom:24, display:"flex", gap:12, alignItems:"end", flexWrap:"wrap" }}>
         <div style={{ flex:1, minWidth:200 }}>
@@ -1353,9 +1353,9 @@ Réponds en français. Fournis un plan de prospection journalier avec:
         <div style={{ ...card, marginBottom:24, borderLeft:`3px solid ${ORANGE}` }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
             <h3 style={{ color:"#1B2A4A", fontSize:16, fontWeight:700, margin:0 }}>📋 Plan de prospection – {SEMINARS.find(x=>x.id===seminar)?.code}</h3>
-            <span style={{ fontSize:11, color: '#475569' }}>{new Date().toLocaleString("fr-FR")}</span>
+            <span style={{ fontSize:11, color: '#1B2A4A' }}>{new Date().toLocaleString("fr-FR")}</span>
           </div>
-          <div style={{ color: '#475569', fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" }}>{result}</div>
+          <div style={{ color: '#1B2A4A', fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" }}>{result}</div>
         </div>
       )}
 
@@ -1365,7 +1365,7 @@ Réponds en français. Fournis un plan de prospection journalier avec:
           {history.map((h, i) => (
             <details key={i} style={{ ...card, marginBottom:8, cursor:"pointer" }}>
               <summary style={{ color:"#1B2A4A", fontSize:13, fontWeight:600 }}>{h.date} – {h.seminar} {h.title}</summary>
-              <div style={{ color: '#475569', fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
+              <div style={{ color: '#1B2A4A', fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
             </details>
           ))}
         </>
@@ -1419,7 +1419,7 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
   return (
     <div>
       <h2 style={{ color:"#1B2A4A", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Agent Recherche & Estimations</h2>
-      <p style={{ color: '#475569', fontSize:14, margin:"0 0 24px" }}>Recherche de prix en temps réel : billets d'avion, salles, traiteurs, hôtels et tout ce dont vous avez besoin pour le budget.</p>
+      <p style={{ color: '#1B2A4A', fontSize:14, margin:"0 0 24px" }}>Recherche de prix en temps réel : billets d'avion, salles, traiteurs, hôtels et tout ce dont vous avez besoin pour le budget.</p>
 
       <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
         {presets.map((p, i) => (
@@ -1442,9 +1442,9 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
         <div style={{ ...card, marginBottom:24, borderLeft:"3px solid #2980B9" }}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:12 }}>
             <h3 style={{ color:"#1B2A4A", fontSize:16, fontWeight:700, margin:0 }}>📊 Résultats de recherche</h3>
-            <span style={{ fontSize:11, color: '#475569' }}>{new Date().toLocaleString("fr-FR")}</span>
+            <span style={{ fontSize:11, color: '#1B2A4A' }}>{new Date().toLocaleString("fr-FR")}</span>
           </div>
-          <div style={{ color: '#475569', fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" }}>{result}</div>
+          <div style={{ color: '#1B2A4A', fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" }}>{result}</div>
         </div>
       )}
 
@@ -1454,7 +1454,7 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
           {history.map((h, i) => (
             <details key={i} style={{ ...card, marginBottom:8, cursor:"pointer" }}>
               <summary style={{ color:"#1B2A4A", fontSize:13, fontWeight:600 }}>{h.date} – {h.query.slice(0, 60)}...</summary>
-              <div style={{ color: '#475569', fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
+              <div style={{ color: '#1B2A4A', fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
             </details>
           ))}
         </>
@@ -1560,7 +1560,7 @@ export default function AdminDashboard() {
             <LogoRMK scale={0.8} variant="light" />
           </div>
           <h1 style={{ color: "#1B2A4A", fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Espace Administrateur</h1>
-          <p style={{ color: '#475569', fontSize: 14, marginBottom: 32 }}>Connectez-vous pour accéder au tableau de bord.</p>
+          <p style={{ color: '#1B2A4A', fontSize: 14, marginBottom: 32 }}>Connectez-vous pour accéder au tableau de bord.</p>
           
           <form onSubmit={handleLogin} style={{ width: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
             <input 
@@ -1604,7 +1604,7 @@ export default function AdminDashboard() {
       <main style={{ marginLeft:220, padding:"24px 32px", minHeight:"100vh" }}>
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(0,0,0,0.04)", padding: "8px 16px", borderRadius: 100 }}>
-            <span style={{ fontSize: 13, color: '#475569' }}>{user.email}</span>
+            <span style={{ fontSize: 13, color: '#1B2A4A' }}>{user.email}</span>
             <button onClick={handleLogout} style={{ background: "none", border: "none", color: ORANGE, cursor: "pointer", fontSize: 13, fontWeight: 700 }}>Déconnexion</button>
           </div>
         </div>
