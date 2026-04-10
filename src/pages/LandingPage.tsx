@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
+import { LogoRMK } from "../components/LogoRMK";
 
 const SEMINARS = [
   {
@@ -121,7 +122,7 @@ function useInView(threshold = 0.15) {
   return [ref, visible] as const;
 }
 
-import { LogoRMK } from "../components/LogoRMK";
+
 
 const fmt = (n: number) => n.toLocaleString("fr-FR");
 
@@ -473,55 +474,80 @@ function PricingPage({ setPage, setSelectedSem }: any) {
 
 function InscriptionPage({ selectedSem }: any) {
   const [form, setForm] = useState({ nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [prices] = useLocalStorage("rmk_prices", { standard: 600000, earlyBird: 540000, discountPct: 10 });
   
-  const upd = (k: string) => (e: any) => setForm({ ...form, [k]: e.target.value });
+  const upd = (k: string) => (e: any) => {
+    setForm({ ...form, [k]: e.target.value });
+    if (errors[k]) setErrors({ ...errors, [k]: "" });
+  };
   const inputStyle = { width: "100%", padding: "14px 16px", borderRadius: 10, border: "1px solid #E2E8F0", fontSize: 15, fontFamily: "inherit", background: "#F8FAFC", outline: "none", boxSizing: "border-box", transition: "border 0.2s" } as React.CSSProperties;
+  const errorStyle = { fontSize: 12, color: "#E74C3C", marginTop: 4, fontWeight: 600 } as React.CSSProperties;
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.nom.trim()) errs.nom = "Le nom est obligatoire";
+    if (!form.prenom.trim()) errs.prenom = "Le prénom est obligatoire";
+    if (!form.email.trim()) {
+      errs.email = "L'email est obligatoire";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      errs.email = "Format d'email invalide";
+    }
+    if (form.tel && !/^[+]?[\d\s()-]{8,20}$/.test(form.tel.trim())) {
+      errs.tel = "Format de téléphone invalide (ex: +225 07 00 00 00 00)";
+    }
+    if (!form.societe.trim()) errs.societe = "La société est obligatoire";
+    if (!form.fonction.trim()) errs.fonction = "La fonction est obligatoire";
+    if (!form.seminaire) errs.seminaire = "Veuillez choisir un séminaire";
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
   const handleSubmit = async () => {
-    if (form.nom && form.email && form.seminaire) {
-      setIsSubmitting(true);
-      const isEarlyBird = new Date() <= EARLY_BIRD_DEADLINE;
-      const amount = isEarlyBird ? prices.earlyBird : prices.standard;
+    if (!validate()) return;
+    
+    setIsSubmitting(true);
+    const isEarlyBird = new Date() <= EARLY_BIRD_DEADLINE;
+    const amount = isEarlyBird ? prices.earlyBird : prices.standard;
+    
+    const newParticipant = {
+      nom: form.nom.trim(),
+      prenom: form.prenom.trim(),
+      email: form.email.trim().toLowerCase(),
+      tel: form.tel.trim(),
+      societe: form.societe.trim(),
+      fonction: form.fonction.trim(),
+      seminar: form.seminaire,
+      amount: amount,
+      status: "pending",
+      payment: "",
+      notes: form.message.trim()
+    };
+    
+    try {
+      const { error: dbError } = await supabase.from('participants').insert([newParticipant]);
+      if (dbError) throw dbError;
       
-      const newParticipant = {
-        nom: form.nom,
-        prenom: form.prenom,
-        email: form.email,
-        tel: form.tel,
-        societe: form.societe,
-        fonction: form.fonction,
-        seminar: form.seminaire,
-        amount: amount,
-        status: "pending",
-        payment: "",
-        notes: form.message
-      };
-      
+      // Send notifications
       try {
-        await supabase.from('participants').insert([newParticipant]);
-        
-        // Send notifications
-        try {
-          await fetch('/api/notify-registration', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newParticipant)
-          });
-        } catch (notifyError) {
-          console.error("Failed to send notifications:", notifyError);
-          // We don't block the user if notifications fail, they are already registered
-        }
-
-        setSubmitted(true);
-      } catch (error) {
-        console.error("Error saving participant:", error);
-        alert("Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
-      } finally {
-        setIsSubmitting(false);
+        await fetch('/api/notify-registration', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newParticipant)
+        });
+      } catch (notifyError) {
+        console.error("Failed to send notifications:", notifyError);
+        // We don't block the user if notifications fail, they are already registered
       }
+
+      setSubmitted(true);
+    } catch (error) {
+      console.error("Error saving participant:", error);
+      alert("Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -546,23 +572,24 @@ function InscriptionPage({ selectedSem }: any) {
         </div>
         <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 20, padding: 36, border: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Nom *</label><input style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: "rgba(255,255,255,0.1)"}} value={form.nom} onChange={upd("nom")} placeholder="Votre nom" /></div>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Prénom *</label><input style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: "rgba(255,255,255,0.1)"}} value={form.prenom} onChange={upd("prenom")} placeholder="Votre prénom" /></div>
+            <div><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Nom *</label><input id="field-nom" style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: errors.nom ? "#E74C3C" : "rgba(255,255,255,0.1)"}} value={form.nom} onChange={upd("nom")} placeholder="Votre nom" />{errors.nom && <div style={errorStyle}>{errors.nom}</div>}</div>
+            <div><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Prénom *</label><input id="field-prenom" style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: errors.prenom ? "#E74C3C" : "rgba(255,255,255,0.1)"}} value={form.prenom} onChange={upd("prenom")} placeholder="Votre prénom" />{errors.prenom && <div style={errorStyle}>{errors.prenom}</div>}</div>
           </div>
-          <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Email professionnel *</label><input type="email" style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: "rgba(255,255,255,0.1)"}} value={form.email} onChange={upd("email")} placeholder="email@entreprise.com" /></div>
-          <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence)</label><input style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: "rgba(255,255,255,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 XX XX XX XX" /></div>
+          <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Email professionnel *</label><input id="field-email" type="email" style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: errors.email ? "#E74C3C" : "rgba(255,255,255,0.1)"}} value={form.email} onChange={upd("email")} placeholder="email@entreprise.com" />{errors.email && <div style={errorStyle}>{errors.email}</div>}</div>
+          <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence)</label><input id="field-tel" style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: errors.tel ? "#E74C3C" : "rgba(255,255,255,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 XX XX XX XX" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Société *</label><input style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: "rgba(255,255,255,0.1)"}} value={form.societe} onChange={upd("societe")} placeholder="Nom de l'entreprise" /></div>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Fonction *</label><input style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: "rgba(255,255,255,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." /></div>
+            <div><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Société *</label><input id="field-societe" style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: errors.societe ? "#E74C3C" : "rgba(255,255,255,0.1)"}} value={form.societe} onChange={upd("societe")} placeholder="Nom de l'entreprise" />{errors.societe && <div style={errorStyle}>{errors.societe}</div>}</div>
+            <div><label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Fonction *</label><input id="field-fonction" style={{...inputStyle, background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: errors.fonction ? "#E74C3C" : "rgba(255,255,255,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." />{errors.fonction && <div style={errorStyle}>{errors.fonction}</div>}</div>
           </div>
           <div style={{ marginTop: 16 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Séminaire souhaité *</label>
-            <select style={{ ...inputStyle, cursor: "pointer", background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: "rgba(255,255,255,0.1)" }} value={form.seminaire} onChange={upd("seminaire")}>
+            <select id="field-seminaire" style={{ ...inputStyle, cursor: "pointer", background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: errors.seminaire ? "#E74C3C" : "rgba(255,255,255,0.1)" }} value={form.seminaire} onChange={upd("seminaire")}>
               <option value="" style={{ color: "#000" }}>-- Choisir un séminaire --</option>
               {SEMINARS.map((s) => <option key={s.id} value={s.id} style={{ color: "#000" }}>{s.code} – {s.title} ({s.week})</option>)}
               <option value="pack2" style={{ color: "#000" }}>📦 Pack 2 séminaires (au choix)</option>
               <option value="pack4" style={{ color: "#000" }}>📦 Pack 4 séminaires (-20%)</option>
             </select>
+            {errors.seminaire && <div style={errorStyle}>{errors.seminaire}</div>}
           </div>
           <div style={{ marginTop: 16 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.8)", display: "block", marginBottom: 6 }}>Message (optionnel)</label>

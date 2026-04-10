@@ -12,12 +12,19 @@ dotenv.config();
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = 8080;
 
-  app.use(cors());
+  app.use(cors({
+    origin: process.env.APP_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+  }));
   app.use(express.json());
 
-  const ai = new GoogleGenAI({ apiKey: "dummy_key_that_is_long_enough_to_pass_validation_1234567890" });
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  if (!geminiApiKey) {
+    console.warn('⚠️  GEMINI_API_KEY is not set. AI features will not work.');
+  }
+  const ai = new GoogleGenAI({ apiKey: geminiApiKey || 'missing_key' });
 
   app.post('/api/notify-registration', async (req, res) => {
     try {
@@ -58,14 +65,7 @@ async function startServer() {
     }
   });
 
-  app.get('/api/debug/env', (req, res) => {
-    res.json({ 
-      keys: Object.keys(process.env),
-      keyValue: process.env.GEMINI_API_KEY,
-      nextKeyValue: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
-      appUrl: process.env.APP_URL
-    });
-  });
+  // Debug endpoint removed — was leaking environment variables
 
   // PROBLÈME 1 : SÉCURITÉ — Clé API exposée côté client
   app.post('/api/ai/generate', async (req, res) => {
