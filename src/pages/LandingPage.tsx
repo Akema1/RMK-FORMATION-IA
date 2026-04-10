@@ -233,11 +233,11 @@ function Hero({ setPage }: { setPage: (p: string) => void }) {
   return (
     <section style={{
       minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
-      background: "linear-gradient(170deg, #FAF9F6 0%, #1B2A4A 40%, #FAF9F6 100%)",
+      background: "#FAF9F6",
       position: "relative", overflow: "hidden", padding: "120px 24px 60px",
     }}>
-      <div style={{ position: "absolute", top: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%)" }} />
-      <div style={{ position: "absolute", bottom: "15%", left: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(39,174,96,0.06) 0%, transparent 70%)" }} />
+      <div style={{ position: "absolute", top: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.15) 0%, transparent 70%)" }} />
+      <div style={{ position: "absolute", bottom: "15%", left: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(15,23,42,0.1) 0%, transparent 70%)" }} />
       
       <div style={{ maxWidth: 800, textAlign: "center", position: "relative", zIndex: 1 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 100, padding: "6px 20px", marginBottom: 32 }}>

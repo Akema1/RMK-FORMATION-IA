@@ -126,7 +126,7 @@ export default function ClientPortal() {
               value={email} 
               onChange={e => setEmail(e.target.value)} 
               placeholder="votre.email@entreprise.com" 
-              style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.15)', background: 'rgba(0,0,0,0.3)', color: '#0a0a0a', fontSize: 16, outline: 'none', transition: 'border 0.2s' }}
+              style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.15)', background: '#FFFFFF', color: '#0a0a0a', fontSize: 16, outline: 'none', transition: 'border 0.2s' }}
               onKeyDown={e => e.key === 'Enter' && searchParticipant()}
             />
             <button 
@@ -160,7 +160,7 @@ export default function ClientPortal() {
     <div style={{ minHeight: '100vh', background: '#FAF9F6', color: '#0a0a0a', fontFamily: "'DM Sans', sans-serif", display: 'flex' }}>
       {/* ─── SIDEBAR (Desktop) ─── */}
       <aside style={{
-        width: 260, background: 'rgba(0,0,0,0.3)', borderRight: '1px solid rgba(0,0,0,0.08)',
+        width: 260, background: '#FFFFFF', borderRight: '1px solid rgba(0,0,0,0.08)',
         display: 'flex', flexDirection: 'column', padding: '24px 0', flexShrink: 0,
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
       }} className="portal-sidebar">
@@ -244,6 +244,15 @@ export default function ClientPortal() {
 
       {/* ─── MAIN CONTENT ─── */}
       <main className="portal-main" style={{ flex: 1, marginLeft: 260, padding: '40px 48px', minHeight: '100vh', overflowY: 'auto' }}>
+
+              {/* NOTIFICATION BAREER (DATE CHANGES) */}
+        <div style={{ background: 'rgba(231, 76, 60, 0.1)', border: '1px solid rgba(231, 76, 60, 0.3)', borderRadius: 12, padding: '16px 20px', marginBottom: 32, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 24 }}>📅</span>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#E74C3C' }}>ALERTE DE CALENDRIER</div>
+            <div style={{ fontSize: 13, color: '#0F172A' }}>Attention : Veuillez vérifier les dates de vos sessions dans l'onglet 'Programme' suite à de récentes mises à jour.</div>
+          </div>
+        </div>
 
         {/* ─── TAB: OVERVIEW ─── */}
         {activeTab === 'overview' && (
@@ -589,7 +598,7 @@ export default function ClientPortal() {
                       <span style={{ fontSize: 28 }}>🌊</span>
                       <span style={{ fontSize: 18, fontWeight: 700, color: '#00BFA5' }}>Wave</span>
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#0a0a0a', marginBottom: 8 }}>+225 07 00 00 00 00</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: '#0a0a0a', marginBottom: 8 }}>+225 07 02 61 15 82</div>
                     <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>Envoyez le montant exact et transmettez la capture de reçu via WhatsApp.</div>
                   </div>
                   <div style={{ background: 'rgba(255,102,0,0.1)', border: '1px solid rgba(255,102,0,0.3)', borderRadius: 14, padding: 24 }}>
@@ -597,7 +606,7 @@ export default function ClientPortal() {
                       <span style={{ fontSize: 28 }}>🟧</span>
                       <span style={{ fontSize: 18, fontWeight: 700, color: '#FF6600' }}>Orange Money</span>
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#0a0a0a', marginBottom: 8 }}>+225 07 00 00 00 00</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: '#0a0a0a', marginBottom: 8 }}>+225 07 02 61 15 82</div>
                     <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>Envoyez le montant exact et transmettez la capture de reçu via WhatsApp.</div>
                   </div>
                   <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 14, padding: 24 }}>
@@ -611,7 +620,7 @@ export default function ClientPortal() {
 
                 <div style={{ marginTop: 28, padding: 20, background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 12, textAlign: 'center' }}>
                   <div style={{ fontSize: 14, color: 'rgba(0,0,0,0.7)', marginBottom: 8 }}>📱 Envoyez votre reçu par WhatsApp à :</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#27AE60' }}>+225 07 00 00 00 00</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#27AE60' }}>+225 07 02 61 15 82</div>
                   <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.4)', marginTop: 6 }}>Votre statut sera mis à jour sous 2h après réception du reçu.</div>
                 </div>
               </div>

@@ -104,10 +104,10 @@ import { LogoRMK } from "../components/LogoRMK";
 
 const ORANGE = "#C9A84C";
 const card = { background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 16, padding: 24 };
-const inputS = { width:"100%", padding:"12px 14px", borderRadius:10, border:"1px solid rgba(0,0,0,0.12)", fontSize:14, fontFamily:"inherit", background:"rgba(0,0,0,0.06)", color:"#fff", outline:"none", boxSizing:"border-box" } as React.CSSProperties;
+const inputS = { width:"100%", padding:"12px 14px", borderRadius:10, border:"1px solid rgba(0,0,0,0.12)", fontSize:14, fontFamily:"inherit", background:"rgba(0,0,0,0.06)", color:"#0F172A", outline:"none", boxSizing:"border-box" } as React.CSSProperties;
 const selectS = { ...inputS, cursor:"pointer" } as React.CSSProperties;
-const btnPrimary = { background:`linear-gradient(135deg,${ORANGE},#D4580F)`, color:"#fff", border:"none", padding:"12px 24px", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer", transition:"all 0.2s" };
-const btnSecondary = { background:"rgba(0,0,0,0.06)", color:"#fff", border:"1px solid rgba(0,0,0,0.12)", padding:"10px 20px", borderRadius:10, fontWeight:600, fontSize:13, cursor:"pointer" };
+const btnPrimary = { background:`linear-gradient(135deg,${ORANGE},#A88A3D)`, color:"#fff", border:"none", padding:"12px 24px", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer", transition:"all 0.2s" };
+const btnSecondary = { background:"rgba(0,0,0,0.06)", color:"#0F172A", border:"1px solid rgba(0,0,0,0.12)", padding:"10px 20px", borderRadius:10, fontWeight:600, fontSize:13, cursor:"pointer" };
 const badge = (color: string) => ({ display:"inline-block", padding:"3px 10px", borderRadius:100, fontSize:11, fontWeight:700, background:`${color}22`, color });
 const label = { fontSize:12, fontWeight:600, color:"rgba(0,0,0,0.5)", display:"block", marginBottom:6, letterSpacing:0.5, textTransform:"uppercase" } as React.CSSProperties;
 
@@ -126,12 +126,12 @@ function Nav({ page, setPage }: any) {
     { key:"flyer", label:"Flyer", icon:"📄" },
   ];
   return (
-    <nav style={{ position:"fixed", top:0, left:0, bottom:0, width:220, background:"rgba(11,17,32,0.98)", borderRight:"1px solid rgba(0,0,0,0.06)", zIndex:100, display:"flex", flexDirection:"column", padding:"16px 0", overflowY:"auto" }}>
+    <nav style={{ position:"fixed", top:0, left:0, bottom:0, width:220, background:"#FFFFFF", borderRight:"1px solid rgba(0,0,0,0.06)", zIndex:100, display:"flex", flexDirection:"column", padding:"16px 0", overflowY:"auto" }}>
       <div style={{ padding:"8px 20px 24px", borderBottom:"1px solid rgba(0,0,0,0.06)", marginBottom:8 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, cursor: "pointer" }} onClick={() => navigate('/')}>
           <LogoRMK scale={0.4} variant="light" />
-          <div><div style={{ color:"#fff", fontWeight:700, fontSize:14 }}>RMK <span style={{ color:ORANGE }}>×</span> CABEXIA</div>
-          <div style={{ color:"rgba(0,0,0,0.35)", fontSize:10, letterSpacing:1 }}>ADMIN · MAI 2026</div></div>
+          <div><div style={{ color:"#0F172A", fontWeight:700, fontSize:14 }}>RMK <span style={{ color:ORANGE }}>×</span> CABEXIA</div>
+          <div style={{ color:"rgba(15,23,42,0.5)", fontSize:10, letterSpacing:1 }}>ADMIN · MAI 2026</div></div>
         </div>
       </div>
       {tabs.map(t => (
@@ -147,7 +147,7 @@ function Nav({ page, setPage }: any) {
         {TEAM.map(m => (
           <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 0" }}>
             <span style={{ fontSize:18 }}>{m.avatar}</span>
-            <div><div style={{ color:"#fff", fontSize:12, fontWeight:600 }}>{m.name}</div><div style={{ color:"rgba(0,0,0,0.35)", fontSize:10 }}>{m.role.split("+")[0].trim()}</div></div>
+            <div><div style={{ color:"#0F172A", fontSize:12, fontWeight:600 }}>{m.name}</div><div style={{ color:"rgba(15,23,42,0.5)", fontSize:10 }}>{m.role.split("+")[0].trim()}</div></div>
           </div>
         ))}
       </div>
@@ -166,7 +166,7 @@ function DashboardPage({ participants, prices, tasks, leads }: any) {
   
   return (
     <div>
-      <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 24px" }}>Tableau de bord complet</h2>
+      <h2 style={{ color:"#0F172A", fontSize:24, fontWeight:800, margin:"0 0 24px" }}>Tableau de bord complet</h2>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:16, marginBottom:32 }}>
         {[
           { label:"Inscrits", val:participants.length, sub:`/ ${SEMINARS.reduce((s,x)=>s+x.seats,0)} places`, color:ORANGE, pct:participants.length/SEMINARS.reduce((s,x)=>s+x.seats,0)*100 },
@@ -178,14 +178,14 @@ function DashboardPage({ participants, prices, tasks, leads }: any) {
         ].map(k => (
           <div key={k.label} style={card}>
             <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>{k.label}</div>
-            <div style={{ fontSize:28, fontWeight:800, color:"#fff" }}>{k.val} <span style={{ fontSize:12, fontWeight:400, color:"rgba(0,0,0,0.3)" }}>{k.sub}</span></div>
+            <div style={{ fontSize:28, fontWeight:800, color:"#0F172A" }}>{k.val} <span style={{ fontSize:12, fontWeight:400, color:"rgba(0,0,0,0.3)" }}>{k.sub}</span></div>
             <div style={{ marginTop:12, height:4, borderRadius:2, background:"rgba(0,0,0,0.08)" }}>
               <div style={{ height:"100%", borderRadius:2, background:k.color, width:`${Math.min(k.pct,100)}%`, transition:"width 0.8s" }} />
             </div>
           </div>
         ))}
       </div>
-      <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Par séminaire</h3>
+      <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, marginBottom:16 }}>Par séminaire</h3>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:16 }}>
         {SEMINARS.map(s => {
           const sp = participants.filter((p: any) => p.seminar === s.id);
@@ -196,10 +196,10 @@ function DashboardPage({ participants, prices, tasks, leads }: any) {
                 <span style={{ fontSize:22 }}>{s.icon}</span>
                 <span style={badge(s.color)}>{s.code}</span>
               </div>
-              <div style={{ color:"#fff", fontWeight:700, fontSize:14, marginBottom:8 }}>{s.title}</div>
+              <div style={{ color:"#0F172A", fontWeight:700, fontSize:14, marginBottom:8 }}>{s.title}</div>
               <div style={{ color:"rgba(0,0,0,0.4)", fontSize:12, marginBottom:12 }}>{s.week}</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                <div><div style={{ fontSize:20, fontWeight:800, color:"#fff" }}>{sp.length}<span style={{ fontSize:11, color:"rgba(0,0,0,0.3)" }}>/{s.seats}</span></div><div style={{ fontSize:10, color:"rgba(0,0,0,0.4)" }}>Inscrits</div></div>
+                <div><div style={{ fontSize:20, fontWeight:800, color:"#0F172A" }}>{sp.length}<span style={{ fontSize:11, color:"rgba(0,0,0,0.3)" }}>/{s.seats}</span></div><div style={{ fontSize:10, color:"rgba(0,0,0,0.4)" }}>Inscrits</div></div>
                 <div><div style={{ fontSize:20, fontWeight:800, color:"#27AE60" }}>{sc.length}</div><div style={{ fontSize:10, color:"rgba(0,0,0,0.4)" }}>Confirmés</div></div>
               </div>
               <div style={{ marginTop:12, height:5, borderRadius:3, background:"rgba(0,0,0,0.08)" }}>
@@ -249,9 +249,9 @@ function LeadsPage({ leads, refreshLeads }: any) {
 
   return (
     <div>
-      <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 24px" }}>Gestion des Leads & Prospects</h2>
+      <h2 style={{ color:"#0F172A", fontSize:24, fontWeight:800, margin:"0 0 24px" }}>Gestion des Leads & Prospects</h2>
       <div style={{ ...card, marginBottom:24 }}>
-        <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Ajouter un prospect</h3>
+        <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, marginBottom:16 }}>Ajouter un prospect</h3>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(150px, 1fr))", gap:12 }}>
           <div><label style={label}>Nom / Contact *</label><input style={inputS} value={form.nom} onChange={upd("nom")} placeholder="Nom" /></div>
           <div><label style={label}>Entreprise</label><input style={inputS} value={form.entreprise} onChange={upd("entreprise")} placeholder="Société" /></div>
@@ -282,12 +282,12 @@ function LeadsPage({ leads, refreshLeads }: any) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, overflowX: "auto", paddingBottom: 16 }}>
         {columns.map(col => (
           <div key={col.id} style={{ ...card, padding: 16, background: "rgba(0,0,0,0.02)", minWidth: 250 }}>
-            <h4 style={{ color: "#0a0a0a", fontSize: 14, fontWeight: 700, marginBottom: 16, borderBottom: `2px solid ${statusColors[col.id]}`, paddingBottom: 8 }}>{col.label}</h4>
+            <h4 style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, marginBottom: 16, borderBottom: `2px solid ${statusColors[col.id]}`, paddingBottom: 8 }}>{col.label}</h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {leads.filter((l: any) => l.status === col.id).map((l: any) => (
                 <div key={l.id} style={{ background: "rgba(0,0,0,0.05)", padding: 12, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <div style={{ color: "#0a0a0a", fontSize: 14, fontWeight: 600 }}>{l.nom}</div>
+                    <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 600 }}>{l.nom}</div>
                     <button onClick={() => deleteLead(l.id)} style={{ background: "none", border: "none", color: "#E74C3C", cursor: "pointer", fontSize: 14 }}>🗑</button>
                   </div>
                   <div style={{ color: "rgba(0,0,0,0.6)", fontSize: 12, marginBottom: 4 }}>{l.entreprise || "—"}</div>
@@ -341,7 +341,7 @@ function SeoAgentPage() {
 
   return (
     <div>
-      <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 24px" }}>Agent SEO & Contenu</h2>
+      <h2 style={{ color:"#0F172A", fontSize:24, fontWeight:800, margin:"0 0 24px" }}>Agent SEO & Contenu</h2>
       <div style={{ ...card, marginBottom:24 }}>
         <p style={{ color:"rgba(0,0,0,0.6)", fontSize:14, marginBottom:16 }}>L'Agent SEO vous aide à générer des mots-clés, des idées d'articles et des structures de pages pour attirer plus de prospects organiques sur vos séminaires.</p>
         <div style={{ display:"flex", gap:12 }}>
@@ -353,16 +353,16 @@ function SeoAgentPage() {
       </div>
       {result && (
         <div style={{ ...card, background:"rgba(0,0,0,0.02)", marginBottom: 24 }}>
-          <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Résultat SEO</h3>
+          <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, marginBottom:16 }}>Résultat SEO</h3>
           <div style={{ color:"rgba(0,0,0,0.8)", fontSize:14, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{result}</div>
         </div>
       )}
       {history.length > 0 && (
         <>
-          <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:12 }}>Historique SEO</h3>
+          <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, marginBottom:12 }}>Historique SEO</h3>
           {history.map((h, i) => (
             <details key={i} style={{ ...card, marginBottom:8, cursor:"pointer" }}>
-              <summary style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{h.date} – {h.topic}</summary>
+              <summary style={{ color:"#0F172A", fontSize:13, fontWeight:600 }}>{h.date} – {h.topic}</summary>
               <div style={{ color:"rgba(0,0,0,0.6)", fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
             </details>
           ))}
@@ -430,7 +430,7 @@ function FlyerPage() {
   return (
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
-        <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:0 }}>Générateur de Flyer Individuel</h2>
+        <h2 style={{ color:"#0F172A", fontSize:24, fontWeight:800, margin:0 }}>Générateur de Flyer Individuel</h2>
         <div style={{ display: "flex", gap: 12 }}>
           <select style={{ ...selectS, width: "auto" }} value={flyerId} onChange={e => setFlyerId(e.target.value)}>
             {SEMINARS.map(sem => <option key={sem.id} value={sem.id}>{sem.code} - {sem.title}</option>)}
@@ -480,8 +480,8 @@ function FlyerPage() {
             </div>
 
             {/* Titles */}
-            <div contentEditable suppressContentEditableWarning style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontSize: 28, color: "#0a0a0a", marginBottom: -5 }}>Atelier de Formation</div>
-            <div contentEditable suppressContentEditableWarning style={{ fontSize: 42, fontWeight: 900, color: "#0a0a0a", letterSpacing: 2, lineHeight: 1, textShadow: "2px 2px 4px rgba(0,0,0,0.5)" }}>INTELLIGENCE</div>
+            <div contentEditable suppressContentEditableWarning style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontSize: 28, color: "#0F172A", marginBottom: -5 }}>Atelier de Formation</div>
+            <div contentEditable suppressContentEditableWarning style={{ fontSize: 42, fontWeight: 900, color: "#0F172A", letterSpacing: 2, lineHeight: 1, textShadow: "2px 2px 4px rgba(0,0,0,0.5)" }}>INTELLIGENCE</div>
             <div contentEditable suppressContentEditableWarning style={{ fontSize: 24, fontWeight: 700, color: "#60E0E0", letterSpacing: 8, marginBottom: 16, textShadow: "1px 1px 2px rgba(0,0,0,0.5)" }}>ARTIFICIELLE</div>
             <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 600, color: "#1A2332", marginBottom: 12 }}>{data.subtitle}</div>
             
@@ -498,7 +498,7 @@ function FlyerPage() {
             {/* Bullets */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
               {data.bullets.map((b: string, i: number) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 16, fontWeight: 600, color: "#0a0a0a" }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 16, fontWeight: 600, color: "#0F172A" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60E0E0" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                   <span contentEditable suppressContentEditableWarning>{b}</span>
                 </div>
@@ -506,7 +506,7 @@ function FlyerPage() {
             </div>
 
             {/* Format */}
-            <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 700, color: "#0a0a0a", fontStyle: "italic", marginBottom: 24 }}>
+            <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", fontStyle: "italic", marginBottom: 24 }}>
               3 Sessions présentielles + 2 en ligne
             </div>
 
@@ -515,14 +515,14 @@ function FlyerPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#60E0E0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                 <div>
-                  <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 800, color: "#0a0a0a" }}>Hôtel Movenpick</div>
+                  <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 800, color: "#0F172A" }}>Hôtel Movenpick</div>
                   <div contentEditable suppressContentEditableWarning style={{ fontSize: 16, color: "#1A2332" }}>Abidjan-Côte d'Ivoire</div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#60E0E0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                 <div>
-                  <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 800, color: "#0a0a0a" }}>{s.week}</div>
+                  <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 800, color: "#0F172A" }}>{s.week}</div>
                   <div contentEditable suppressContentEditableWarning style={{ fontSize: 16, color: "#1A2332" }}>(+ dates sessions sectorielles)</div>
                 </div>
               </div>
@@ -650,13 +650,13 @@ function InscriptionsPage({ participants, refreshParticipants }: any) {
   return (
     <div>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, flexWrap:"wrap", gap:12 }}>
-        <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:0 }}>Gestion des inscriptions</h2>
+        <h2 style={{ color:"#0F172A", fontSize:24, fontWeight:800, margin:0 }}>Gestion des inscriptions</h2>
         <button onClick={() => setShowForm(!showForm)} style={btnPrimary}>{showForm ? "✕ Fermer" : "+ Nouvelle inscription"}</button>
       </div>
 
       {showForm && (
         <div style={{ ...card, marginBottom:24, borderLeft:`3px solid ${ORANGE}` }}>
-          <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Ajouter un participant</h3>
+          <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, marginBottom:16 }}>Ajouter un participant</h3>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             <div><label style={label}>Nom *</label><input style={inputS} value={form.nom} onChange={upd("nom")} placeholder="Nom" /></div>
             <div><label style={label}>Prénom</label><input style={inputS} value={form.prenom} onChange={upd("prenom")} placeholder="Prénom" /></div>
@@ -713,7 +713,7 @@ function InscriptionsPage({ participants, refreshParticipants }: any) {
           const s = SEMINARS.find(x => x.id === p.seminar);
           return (
             <div key={p.id} style={{ display:"grid", gridTemplateColumns:"2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding:"14px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", alignItems:"center" }}>
-              <div><div style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{p.nom} {p.prenom}</div><div style={{ color:"rgba(0,0,0,0.4)", fontSize:11 }}>{p.email}</div></div>
+              <div><div style={{ color:"#0F172A", fontSize:13, fontWeight:600 }}>{p.nom} {p.prenom}</div><div style={{ color:"rgba(0,0,0,0.4)", fontSize:11 }}>{p.email}</div></div>
               <div><div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>{p.societe}</div><div style={{ color:"rgba(0,0,0,0.4)", fontSize:11 }}>{p.fonction}</div></div>
               <div style={{ fontSize:12, color:s?.color || "#fff", fontWeight:600 }}>{s?.code} {s?.icon}</div>
               <div style={{ fontSize:12, color:"rgba(0,0,0,0.5)", display: "flex", alignItems: "center", gap: 8 }}>
@@ -725,7 +725,7 @@ function InscriptionsPage({ participants, refreshParticipants }: any) {
                   </a>
                 )}
               </div>
-              <div style={{ fontSize:13, color:"#fff", fontWeight:600 }}>{fmt(p.amount)} F</div>
+              <div style={{ fontSize:13, color:"#0F172A", fontWeight:600 }}>{fmt(p.amount)} F</div>
               <div>
                 <select value={p.status} onChange={e => updateStatus(p.id, e.target.value)} style={{ background:`${statusColors[p.status]}22`, color:statusColors[p.status], border:"none", borderRadius:100, padding:"4px 10px", fontSize:11, fontWeight:700, cursor:"pointer" }}>
                   <option value="pending">En attente</option>
@@ -927,7 +927,7 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:0 }}>Gestion Financière</h2>
+        <h2 style={{ color:"#0F172A", fontSize:24, fontWeight:800, margin:0 }}>Gestion Financière</h2>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={exportPDF} style={{ ...btnPrimary, background: "#27AE60", marginRight: 16 }}>📄 Exporter PDF</button>
           <button onClick={() => setView("global")} style={{ ...btnSecondary, background: view === "global" ? `${ORANGE}22` : undefined, color: view === "global" ? ORANGE : "rgba(0,0,0,0.5)" }}>Vue Globale</button>
@@ -939,7 +939,7 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
 
       {/* GRAPH */}
       <div style={{ ...card, marginBottom: 24, height: 300 }}>
-        <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Comparatif Plan vs Réel ({view === "global" ? "Tous les séminaires" : SEMINARS.find(s=>s.id===view)?.title})</h3>
+        <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, marginBottom:16 }}>Comparatif Plan vs Réel ({view === "global" ? "Tous les séminaires" : SEMINARS.find(s=>s.id===view)?.title})</h3>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
@@ -967,20 +967,20 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
           <div style={{ color:"#27AE60", fontSize:14, fontWeight:800, marginBottom: 8 }}>PRODUITS (REVENUS)</div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 4 }}>
             <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>Tarif Standard ({fmt(prices.standard)})</div>
-            <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(plan.revStandard)}</div>
-            <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(actual.revStandard)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt(plan.revStandard)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt(actual.revStandard)}</div>
             <div style={{ color: actual.revStandard - plan.revStandard >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(actual.revStandard - plan.revStandard)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 8 }}>
             <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>Tarif Early Bird ({fmt(prices.earlyBird)})</div>
-            <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(plan.revEarlyBird)}</div>
-            <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(actual.revEarlyBird)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt(plan.revEarlyBird)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt(actual.revEarlyBird)}</div>
             <div style={{ color: actual.revEarlyBird - plan.revEarlyBird >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(actual.revEarlyBird - plan.revEarlyBird)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", borderTop:"1px solid rgba(39, 174, 96, 0.2)", paddingTop: 8 }}>
-            <div style={{ color:"#fff", fontSize:13, fontWeight:700 }}>Total Revenus</div>
-            <div style={{ color:"#fff", fontSize:13, fontWeight:700, textAlign:"right" }}>{fmt(plan.totalRevenus)}</div>
-            <div style={{ color:"#fff", fontSize:13, fontWeight:700, textAlign:"right" }}>{fmt(actual.totalRevenus)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, fontWeight:700 }}>Total Revenus</div>
+            <div style={{ color:"#0F172A", fontSize:13, fontWeight:700, textAlign:"right" }}>{fmt(plan.totalRevenus)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, fontWeight:700, textAlign:"right" }}>{fmt(actual.totalRevenus)}</div>
             <div style={{ color: actual.totalRevenus - plan.totalRevenus >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, fontWeight:700, textAlign:"right" }}>{fmt(actual.totalRevenus - plan.totalRevenus)}</div>
           </div>
         </div>
@@ -1005,16 +1005,16 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
             <div key={item.k} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
               <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>{item.l}</div>
               <div style={{ color:"rgba(0,0,0,0.5)", fontSize:13, textAlign:"right" }}>{fmt((plan.charges as any)[item.k])}</div>
-              <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt((actual.charges as any)[item.k])}</div>
+              <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt((actual.charges as any)[item.k])}</div>
               <div style={{ color: plan.charges[item.k as keyof typeof plan.charges] - actual.charges[item.k as keyof typeof actual.charges] >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>
                 {fmt(plan.charges[item.k as keyof typeof plan.charges] - actual.charges[item.k as keyof typeof actual.charges])}
               </div>
             </div>
           ))}
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", borderTop:"1px solid rgba(231, 76, 60, 0.2)", paddingTop: 8, marginTop: 8 }}>
-            <div style={{ color:"#fff", fontSize:13, fontWeight:700 }}>Total Charges</div>
-            <div style={{ color:"#fff", fontSize:13, fontWeight:700, textAlign:"right" }}>{fmt(plan.totalCharges)}</div>
-            <div style={{ color:"#fff", fontSize:13, fontWeight:700, textAlign:"right" }}>{fmt(actual.totalCharges)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, fontWeight:700 }}>Total Charges</div>
+            <div style={{ color:"#0F172A", fontSize:13, fontWeight:700, textAlign:"right" }}>{fmt(plan.totalCharges)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, fontWeight:700, textAlign:"right" }}>{fmt(actual.totalCharges)}</div>
             <div style={{ color: plan.totalCharges - actual.totalCharges >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, fontWeight:700, textAlign:"right" }}>{fmt(plan.totalCharges - actual.totalCharges)}</div>
           </div>
         </div>
@@ -1024,32 +1024,32 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
           <div style={{ color:"#2980B9", fontSize:14, fontWeight:800, marginBottom: 8 }}>RENTABILITÉ</div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
             <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>Revenu prov</div>
-            <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(plan.revenuProv)}</div>
-            <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(actual.revenuProv)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt(plan.revenuProv)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt(actual.revenuProv)}</div>
             <div style={{ color: actual.revenuProv - plan.revenuProv >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(actual.revenuProv - plan.revenuProv)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
             <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>Imprevu 10%</div>
-            <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(plan.imprevu)}</div>
-            <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(actual.imprevu)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt(plan.imprevu)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt(actual.imprevu)}</div>
             <div style={{ color: plan.imprevu - actual.imprevu >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(plan.imprevu - actual.imprevu)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
             <div style={{ color:"rgba(0,0,0,0.9)", fontSize:13, fontWeight:600 }}>Sous total brut</div>
-            <div style={{ color:"#fff", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(plan.sousTotalBrut)}</div>
-            <div style={{ color:"#fff", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(actual.sousTotalBrut)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(plan.sousTotalBrut)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(actual.sousTotalBrut)}</div>
             <div style={{ color: actual.sousTotalBrut - plan.sousTotalBrut >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(actual.sousTotalBrut - plan.sousTotalBrut)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
             <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>TVA 18%</div>
-            <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(plan.tva)}</div>
-            <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(actual.tva)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt(plan.tva)}</div>
+            <div style={{ color:"#0F172A", fontSize:13, textAlign:"right" }}>{fmt(actual.tva)}</div>
             <div style={{ color: plan.tva - actual.tva >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(plan.tva - actual.tva)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", borderTop:"1px solid rgba(41, 128, 185, 0.3)", paddingTop: 12, marginTop: 8 }}>
-            <div style={{ color:"#fff", fontSize:16, fontWeight:800 }}>BÉNÉFICE NET</div>
-            <div style={{ color:"#fff", fontSize:16, fontWeight:800, textAlign:"right" }}>{fmt(plan.net)}</div>
-            <div style={{ color:"#fff", fontSize:16, fontWeight:800, textAlign:"right" }}>{fmt(actual.net)}</div>
+            <div style={{ color:"#0F172A", fontSize:16, fontWeight:800 }}>BÉNÉFICE NET</div>
+            <div style={{ color:"#0F172A", fontSize:16, fontWeight:800, textAlign:"right" }}>{fmt(plan.net)}</div>
+            <div style={{ color:"#0F172A", fontSize:16, fontWeight:800, textAlign:"right" }}>{fmt(actual.net)}</div>
             <div style={{ color: actual.net - plan.net >= 0 ? "#27AE60" : "#E74C3C", fontSize:16, fontWeight:800, textAlign:"right" }}>{fmt(actual.net - plan.net)}</div>
           </div>
         </div>
@@ -1081,7 +1081,7 @@ function ExpenseManager({ expenses, refreshExpenses }: any) {
 
   return (
     <div style={{ marginTop: 32 }}>
-      <h3 style={{ color:"#fff", fontSize:20, fontWeight:800, marginBottom:16 }}>Saisie des Dépenses (Réel)</h3>
+      <h3 style={{ color:"#0F172A", fontSize:20, fontWeight:800, marginBottom:16 }}>Saisie des Dépenses (Réel)</h3>
       <div style={{ ...card, marginBottom:24 }}>
         <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr auto auto", gap:12, alignItems:"end" }}>
           <div><label style={label}>Libellé *</label><input style={inputS} value={form.label} onChange={upd("label")} placeholder="Ex: Location salle..." /></div>
@@ -1105,7 +1105,7 @@ function ExpenseManager({ expenses, refreshExpenses }: any) {
             </select>
           </div>
           <div style={{ paddingBottom: 12 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#0a0a0a", fontSize: 13, cursor: "pointer" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#0F172A", fontSize: 13, cursor: "pointer" }}>
               <input type="checkbox" checked={form.paid} onChange={upd("paid")} /> Payé
             </label>
           </div>
@@ -1116,7 +1116,7 @@ function ExpenseManager({ expenses, refreshExpenses }: any) {
       <div style={{ ...card, padding:0, overflow:"hidden" }}>
         {expenses.map((e: any) => (
           <div key={e.id} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 0.5fr", padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", alignItems:"center" }}>
-            <div style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{e.label}</div>
+            <div style={{ color:"#0F172A", fontSize:13, fontWeight:600 }}>{e.label}</div>
             <div style={{ color:"#E74C3C", fontSize:13, fontWeight:700 }}>{fmt(e.amount)} F</div>
             <div style={{ color:"rgba(0,0,0,0.5)", fontSize:12, textTransform:"capitalize" }}>{e.category}</div>
             <div style={{ color:"rgba(0,0,0,0.5)", fontSize:12 }}>{e.seminar === "all" ? "Général" : SEMINARS.find(s=>s.id===e.seminar)?.code}</div>
@@ -1158,7 +1158,7 @@ function TasksPage({ tasks, refreshTasks }: any) {
 
   return (
     <div>
-      <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 24px" }}>Gestion des tâches</h2>
+      <h2 style={{ color:"#0F172A", fontSize:24, fontWeight:800, margin:"0 0 24px" }}>Gestion des tâches</h2>
       <div style={{ ...card, marginBottom:24 }}>
         <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 1fr auto", gap:10, alignItems:"end" }}>
           <div><label style={label}>Tâche *</label><input style={inputS} value={newTask.task} onChange={e => setNewTask({...newTask, task:e.target.value})} placeholder="Description..." /></div>
@@ -1190,13 +1190,13 @@ function TasksPage({ tasks, refreshTasks }: any) {
           <div key={status}>
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
               <div style={{ width:10, height:10, borderRadius:"50%", background:colors[status] }} />
-              <span style={{ color:"#fff", fontSize:14, fontWeight:700 }}>{labels[status]}</span>
+              <span style={{ color:"#0F172A", fontSize:14, fontWeight:700 }}>{labels[status]}</span>
               <span style={{ color:"rgba(0,0,0,0.3)", fontSize:12 }}>({tasks.filter((t: any)=>t.status===status).length})</span>
             </div>
             {tasks.filter((t: any) => t.status === status).map((t: any) => (
               <div key={t.id} style={{ ...card, marginBottom:8, borderLeft:`3px solid ${colors[status]}`, padding:16, transition:"all 0.2s" }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"start" }}>
-                  <div onClick={() => cycle(t.id, t.status)} style={{ color:"#fff", fontSize:13, fontWeight:600, flex:1, cursor:"pointer" }}>{t.task}</div>
+                  <div onClick={() => cycle(t.id, t.status)} style={{ color:"#0F172A", fontSize:13, fontWeight:600, flex:1, cursor:"pointer" }}>{t.task}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ ...badge(pColors[t.priority]), fontSize:9, flexShrink:0 }}>{t.priority}</span>
                     <button onClick={() => deleteTask(t.id)} style={{ background:"none", border:"none", color:"#E74C3C", cursor:"pointer", fontSize:14 }}>🗑</button>
@@ -1230,11 +1230,11 @@ function PricesPage({ prices, setPrices }: any) {
   };
   return (
     <div>
-      <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Gestion des tarifs</h2>
+      <h2 style={{ color:"#0F172A", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Gestion des tarifs</h2>
       <p style={{ color:"rgba(0,0,0,0.4)", fontSize:14, margin:"0 0 24px" }}>Ajustez les prix en temps réel. Les modifications s'appliquent immédiatement au tableau de bord et aux projections financières.</p>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24 }}>
         <div style={card}>
-          <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Tarifs individuels</h3>
+          <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, marginBottom:16 }}>Tarifs individuels</h3>
           {[
             { key:"standard", label:"Tarif standard (5 jours hybride)", desc:"Prix plein par personne" },
             { key:"discountPct", label:"Pourcentage de remise Early Bird (%)", desc:"Ex: 10 pour 10%" },
@@ -1248,18 +1248,18 @@ function PricesPage({ prices, setPrices }: any) {
           ))}
         </div>
         <div style={card}>
-          <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Rémunération & Budget</h3>
+          <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, marginBottom:16 }}>Rémunération & Budget</h3>
           <div style={{ marginTop:8, padding:16, background:"rgba(201,168,76,0.08)", borderRadius:10, border:`1px solid ${ORANGE}33` }}>
             <div style={{ color:ORANGE, fontSize:13, fontWeight:700 }}>Honoraires CABEXIA (Fixes)</div>
             <div style={{ color:"rgba(0,0,0,0.6)", fontSize:12, marginTop:8, lineHeight:1.8 }}>
-              Consultance présentiel : <strong style={{ color:"#fff" }}>1 050 000 FCFA</strong> / séminaire<br/>
-              Consultance en ligne : <strong style={{ color:"#fff" }}>400 000 FCFA</strong> / séminaire<br/>
-              Total CABEXIA : <strong style={{ color:"#fff" }}>1 450 000 FCFA</strong> / séminaire
+              Consultance présentiel : <strong style={{ color:"#0F172A" }}>1 050 000 FCFA</strong> / séminaire<br/>
+              Consultance en ligne : <strong style={{ color:"#0F172A" }}>400 000 FCFA</strong> / séminaire<br/>
+              Total CABEXIA : <strong style={{ color:"#0F172A" }}>1 450 000 FCFA</strong> / séminaire
             </div>
           </div>
           <div style={{ marginTop:16, padding:16, background:"rgba(39,174,96,0.08)", borderRadius:10 }}>
             <div style={{ color:"#27AE60", fontSize:13, fontWeight:700, marginBottom:8 }}>Projection CA (objectif rempli)</div>
-            <div style={{ color:"#fff", fontSize:20, fontWeight:800 }}>{fmt(SEMINARS.reduce((s,x) => s + x.seats, 0) * prices.standard)} FCFA</div>
+            <div style={{ color:"#0F172A", fontSize:20, fontWeight:800 }}>{fmt(SEMINARS.reduce((s,x) => s + x.seats, 0) * prices.standard)} FCFA</div>
             <div style={{ color:"rgba(0,0,0,0.4)", fontSize:11, marginTop:4 }}>{SEMINARS.reduce((s,x) => s + x.seats, 0)} participants × {fmt(prices.standard)} FCFA</div>
           </div>
         </div>
@@ -1334,7 +1334,7 @@ Réponds en français. Fournis un plan de prospection journalier avec:
 
   return (
     <div>
-      <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Agent Commercial IA</h2>
+      <h2 style={{ color:"#0F172A", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Agent Commercial IA</h2>
       <p style={{ color:"rgba(0,0,0,0.4)", fontSize:14, margin:"0 0 24px" }}>Prospection automatisée : identification des meilleurs profils d'apprenants, scripts de vente et plans de contact personnalisés par séminaire.</p>
 
       <div style={{ ...card, marginBottom:24, display:"flex", gap:12, alignItems:"end", flexWrap:"wrap" }}>
@@ -1352,7 +1352,7 @@ Réponds en français. Fournis un plan de prospection journalier avec:
       {result && (
         <div style={{ ...card, marginBottom:24, borderLeft:`3px solid ${ORANGE}` }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-            <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, margin:0 }}>📋 Plan de prospection – {SEMINARS.find(x=>x.id===seminar)?.code}</h3>
+            <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, margin:0 }}>📋 Plan de prospection – {SEMINARS.find(x=>x.id===seminar)?.code}</h3>
             <span style={{ fontSize:11, color:"rgba(0,0,0,0.3)" }}>{new Date().toLocaleString("fr-FR")}</span>
           </div>
           <div style={{ color:"rgba(0,0,0,0.75)", fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" }}>{result}</div>
@@ -1361,10 +1361,10 @@ Réponds en français. Fournis un plan de prospection journalier avec:
 
       {history.length > 0 && (
         <>
-          <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:12 }}>Historique des recherches</h3>
+          <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, marginBottom:12 }}>Historique des recherches</h3>
           {history.map((h, i) => (
             <details key={i} style={{ ...card, marginBottom:8, cursor:"pointer" }}>
-              <summary style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{h.date} – {h.seminar} {h.title}</summary>
+              <summary style={{ color:"#0F172A", fontSize:13, fontWeight:600 }}>{h.date} – {h.seminar} {h.title}</summary>
               <div style={{ color:"rgba(0,0,0,0.6)", fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
             </details>
           ))}
@@ -1418,7 +1418,7 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
 
   return (
     <div>
-      <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Agent Recherche & Estimations</h2>
+      <h2 style={{ color:"#0F172A", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Agent Recherche & Estimations</h2>
       <p style={{ color:"rgba(0,0,0,0.4)", fontSize:14, margin:"0 0 24px" }}>Recherche de prix en temps réel : billets d'avion, salles, traiteurs, hôtels et tout ce dont vous avez besoin pour le budget.</p>
 
       <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
@@ -1441,7 +1441,7 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
       {result && (
         <div style={{ ...card, marginBottom:24, borderLeft:"3px solid #2980B9" }}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:12 }}>
-            <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, margin:0 }}>📊 Résultats de recherche</h3>
+            <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, margin:0 }}>📊 Résultats de recherche</h3>
             <span style={{ fontSize:11, color:"rgba(0,0,0,0.3)" }}>{new Date().toLocaleString("fr-FR")}</span>
           </div>
           <div style={{ color:"rgba(0,0,0,0.75)", fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" }}>{result}</div>
@@ -1450,10 +1450,10 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
 
       {history.length > 0 && (
         <>
-          <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:12 }}>Historique des recherches</h3>
+          <h3 style={{ color:"#0F172A", fontSize:16, fontWeight:700, marginBottom:12 }}>Historique des recherches</h3>
           {history.map((h, i) => (
             <details key={i} style={{ ...card, marginBottom:8, cursor:"pointer" }}>
-              <summary style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{h.date} – {h.query.slice(0, 60)}...</summary>
+              <summary style={{ color:"#0F172A", fontSize:13, fontWeight:600 }}>{h.date} – {h.query.slice(0, 60)}...</summary>
               <div style={{ color:"rgba(0,0,0,0.6)", fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
             </details>
           ))}
@@ -1559,7 +1559,7 @@ export default function AdminDashboard() {
           <div style={{ marginBottom: 24 }}>
             <LogoRMK scale={0.8} variant="light" />
           </div>
-          <h1 style={{ color: "#0a0a0a", fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Espace Administrateur</h1>
+          <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Espace Administrateur</h1>
           <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 14, marginBottom: 32 }}>Connectez-vous pour accéder au tableau de bord.</p>
           
           <form onSubmit={handleLogin} style={{ width: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1568,14 +1568,14 @@ export default function AdminDashboard() {
               placeholder="Adresse email" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: "100%", padding: "14px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", background: "rgba(0,0,0,0.05)", color: "#0a0a0a", outline: "none" }}
+              style={{ width: "100%", padding: "14px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", background: "rgba(0,0,0,0.05)", color: "#0F172A", outline: "none" }}
             />
             <input 
               type="password" 
               placeholder="Mot de passe" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{ width: "100%", padding: "14px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", background: "rgba(0,0,0,0.05)", color: "#0a0a0a", outline: "none" }}
+              style={{ width: "100%", padding: "14px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", background: "rgba(0,0,0,0.05)", color: "#0F172A", outline: "none" }}
             />
             {loginError && <div style={{ color: "#E74C3C", fontSize: 13, marginTop: -8 }}>{loginError}</div>}
             
@@ -1589,7 +1589,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div style={{ fontFamily:"'DM Sans','Segoe UI',sans-serif", background:NAVY, minHeight:"100vh", color:"#fff" }}>
+    <div style={{ fontFamily:"'DM Sans','Segoe UI',sans-serif", background:NAVY, minHeight:"100vh", color:"#0F172A" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         * { box-sizing:border-box; margin:0; }
