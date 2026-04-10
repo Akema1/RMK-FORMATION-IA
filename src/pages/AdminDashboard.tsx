@@ -11,7 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 // ─── DATA & CONFIG ───
 const SEMINARS = [
-  { id:"s1", code:"S1", title:"IA Stratégique pour Dirigeants", week:"5–9 Mai 2026", icon:"👔", color:"#E8651A", seats:20, targets:["DG","CEO","DGA","Directeurs de département","Cadres dirigeants"], sectors:["Banque","Assurance","Télécoms","Énergie","Distribution","Industrie"] },
+  { id:"s1", code:"S1", title:"IA Stratégique pour Dirigeants", week:"5–9 Mai 2026", icon:"👔", color:"#C9A84C", seats:20, targets:["DG","CEO","DGA","Directeurs de département","Cadres dirigeants"], sectors:["Banque","Assurance","Télécoms","Énergie","Distribution","Industrie"] },
   { id:"s2", code:"S2", title:"IA appliquée à la Finance", week:"12–16 Mai 2026", icon:"📊", color:"#27AE60", seats:20, targets:["DAF","Analystes financiers","Trésoriers","Risk Managers","Contrôleurs de gestion"], sectors:["Banques (SGBCI, SIB, BICICI, Ecobank)","Assurances","SGI","Microfinance","BCEAO/BRVM"] },
   { id:"s3", code:"S3", title:"IA pour les Notaires", week:"19–23 Mai 2026", icon:"⚖️", color:"#2980B9", seats:15, targets:["Notaires","Clercs de notaires","Collaborateurs d'études","Juristes immobilier"], sectors:["Études notariales Abidjan","Études notariales hors Abidjan","Cabinets juridiques"] },
   { id:"s4", code:"S4", title:"IA pour les Ressources Humaines", week:"26–30 Mai 2026", icon:"🤝", color:"#F39C12", seats:15, targets:["DRH","Responsables RH","Chargés de recrutement","Responsables formation","Managers"], sectors:["Multinationales CI","Grandes entreprises locales","Secteur public","ONG internationales"] },
@@ -75,7 +75,7 @@ async function callGemini(systemPrompt: string, userPrompt: string, useSearch = 
 const NAVY = "#0F172A";
 import { LogoRMK } from "../components/LogoRMK";
 
-const ORANGE = "#E8651A";
+const ORANGE = "#C9A84C";
 const card = { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 24 };
 const inputS = { width:"100%", padding:"12px 14px", borderRadius:10, border:"1px solid rgba(255,255,255,0.12)", fontSize:14, fontFamily:"inherit", background:"rgba(255,255,255,0.06)", color:"#fff", outline:"none", boxSizing:"border-box" } as React.CSSProperties;
 const selectS = { ...inputS, cursor:"pointer" } as React.CSSProperties;
@@ -110,7 +110,7 @@ function Nav({ page, setPage }: any) {
       {tabs.map(t => (
         <button key={t.key} onClick={() => setPage(t.key)} style={{
           display:"flex", alignItems:"center", gap:10, padding:"11px 20px", margin:"2px 8px",
-          background: page===t.key ? "rgba(232,101,26,0.12)" : "transparent",
+          background: page===t.key ? "rgba(201,168,76,0.12)" : "transparent",
           border:"none", borderRadius:10, cursor:"pointer", fontSize:13, fontWeight: page===t.key ? 700 : 500,
           color: page===t.key ? ORANGE : "rgba(255,255,255,0.55)", transition:"all 0.2s", textAlign:"left",
           borderLeft: page===t.key ? `3px solid ${ORANGE}` : "3px solid transparent",
@@ -445,7 +445,7 @@ function FlyerPage() {
             {/* Logos */}
             <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
               <LogoRMK scale={1} />
-              <span style={{ fontSize:24, color:"#E8651A" }}>×</span>
+              <span style={{ fontSize:24, color:"#C9A84C" }}>×</span>
               <div style={{ color: "#60E0E0", fontSize: 28, fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                 CABEXIA
@@ -921,7 +921,7 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
             <Tooltip formatter={(value: number) => `${fmt(value)} FCFA`} contentStyle={{ backgroundColor: '#0F172A', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
             <Legend />
             <Bar dataKey="Plan" fill="#2980B9" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Réel" fill="#E8651A" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Réel" fill="#C9A84C" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -1222,7 +1222,7 @@ function PricesPage({ prices, setPrices }: any) {
         </div>
         <div style={card}>
           <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Rémunération & Budget</h3>
-          <div style={{ marginTop:8, padding:16, background:"rgba(232,101,26,0.08)", borderRadius:10, border:`1px solid ${ORANGE}33` }}>
+          <div style={{ marginTop:8, padding:16, background:"rgba(201,168,76,0.08)", borderRadius:10, border:`1px solid ${ORANGE}33` }}>
             <div style={{ color:ORANGE, fontSize:13, fontWeight:700 }}>Honoraires CABEXIA (Fixes)</div>
             <div style={{ color:"rgba(255,255,255,0.6)", fontSize:12, marginTop:8, lineHeight:1.8 }}>
               Consultance présentiel : <strong style={{ color:"#fff" }}>1 050 000 FCFA</strong> / séminaire<br/>

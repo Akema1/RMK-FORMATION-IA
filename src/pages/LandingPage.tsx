@@ -14,8 +14,8 @@ const SEMINARS = [
     dates: { start: "2026-05-05", presentiel: "Lun 5 – Mer 7 Mai", online: "Jeu 8 – Ven 9 Mai" },
     target: "DG, CEO, Cadres dirigeants, Directeurs de département",
     seats: 20,
-    color: "#E8651A",
-    gradient: "linear-gradient(135deg, #E8651A 0%, #F4A261 100%)",
+    color: "#C9A84C",
+    gradient: "linear-gradient(135deg, #C9A84C 0%, #D4B865 100%)",
     icon: "👔",
     highlights: [
       "Comprendre les transformations économiques liées à l'IA",
@@ -147,14 +147,14 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
     <nav style={{
       position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
       background: scrolled ? "rgba(15,23,42,0.97)" : "rgba(15,23,42,0.85)",
-      backdropFilter: "blur(20px)", borderBottom: scrolled ? "1px solid rgba(232,101,26,0.3)" : "none",
+      backdropFilter: "blur(20px)", borderBottom: scrolled ? "1px solid rgba(201,168,76,0.3)" : "none",
       transition: "all 0.4s ease",
     }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => { setPage("home"); window.scrollTo(0, 0); }}>
           <LogoRMK scale={0.5} />
           <div>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, letterSpacing: 0.5, lineHeight: 1.1 }}>RMK <span style={{ color: "#E8651A" }}>×</span> CABEXIA</div>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 15, letterSpacing: 0.5, lineHeight: 1.1 }}>RMK <span style={{ color: "#C9A84C" }}>×</span> CABEXIA</div>
             <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase" }}>Formation IA · Abidjan</div>
           </div>
         </div>
@@ -162,8 +162,8 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
           {links.map((l) => (
             <button key={l.key} onClick={() => { setPage(l.key); setMobileOpen(false); window.scrollTo(0, 0); }}
               style={{
-                background: page === l.key ? "rgba(232,101,26,0.15)" : "transparent",
-                border: "none", color: page === l.key ? "#E8651A" : "rgba(255,255,255,0.7)",
+                background: page === l.key ? "rgba(201,168,76,0.15)" : "transparent",
+                border: "none", color: page === l.key ? "#C9A84C" : "rgba(255,255,255,0.7)",
                 padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
                 transition: "all 0.2s", letterSpacing: 0.3,
               }}>{l.label}</button>
@@ -191,7 +191,7 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
         <div style={{ background: "rgba(15,23,42,0.98)", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 8 }}>
           {links.map((l) => (
             <button key={l.key} onClick={() => { setPage(l.key); setMobileOpen(false); window.scrollTo(0, 0); }}
-              style={{ background: page === l.key ? "rgba(232,101,26,0.15)" : "transparent", border: "none", color: page === l.key ? "#E8651A" : "#fff", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
+              style={{ background: page === l.key ? "rgba(201,168,76,0.15)" : "transparent", border: "none", color: page === l.key ? "#C9A84C" : "#fff", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
               {l.label}
             </button>
           ))}
@@ -221,7 +221,7 @@ function CountdownBlock() {
     <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
       {units.map((u) => (
         <div key={u.label} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "16px 20px", minWidth: 80, textAlign: "center", backdropFilter: "blur(10px)" }}>
-          <div style={{ fontSize: 32, fontWeight: 800, color: "#E8651A", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{String(u.val).padStart(2, "0")}</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: "#C9A84C", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{String(u.val).padStart(2, "0")}</div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 2, marginTop: 4 }}>{u.label}</div>
         </div>
       ))}
@@ -236,18 +236,18 @@ function Hero({ setPage }: { setPage: (p: string) => void }) {
       background: "linear-gradient(170deg, #0F172A 0%, #1B2A4A 40%, #0F172A 100%)",
       position: "relative", overflow: "hidden", padding: "120px 24px 60px",
     }}>
-      <div style={{ position: "absolute", top: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(232,101,26,0.08) 0%, transparent 70%)" }} />
+      <div style={{ position: "absolute", top: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%)" }} />
       <div style={{ position: "absolute", bottom: "15%", left: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(39,174,96,0.06) 0%, transparent 70%)" }} />
       
       <div style={{ maxWidth: 800, textAlign: "center", position: "relative", zIndex: 1 }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(232,101,26,0.1)", border: "1px solid rgba(232,101,26,0.25)", borderRadius: 100, padding: "6px 20px", marginBottom: 32 }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 100, padding: "6px 20px", marginBottom: 32 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#27AE60", animation: "pulse 2s infinite" }} />
-          <span style={{ color: "#E8651A", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>MAI 2026 · ABIDJAN · 4 SÉMINAIRES</span>
+          <span style={{ color: "#C9A84C", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>MAI 2026 · ABIDJAN · 4 SÉMINAIRES</span>
         </div>
         
         <h1 style={{ fontSize: "clamp(36px, 6vw, 64px)", fontWeight: 800, color: "#fff", lineHeight: 1.08, margin: "0 0 16px", letterSpacing: -1 }}>
           L'Intelligence Artificielle<br />
-          <span style={{ background: "linear-gradient(90deg, #E8651A, #F4A261)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          <span style={{ background: "linear-gradient(90deg, #C9A84C, #D4B865)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             au Service de Votre Métier
           </span>
         </h1>
@@ -256,14 +256,14 @@ function Hero({ setPage }: { setPage: (p: string) => void }) {
           Formations exécutives en IA générative pour Managers, Dirigeants, Administrateurs, Consultants, Entrepreneurs, Cadres Supérieurs et Professionnels souhaitant accélérer leur transformation digitale et renforcer leurs décisions stratégiques.
         </p>
         <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", margin: "0 0 40px" }}>
-          Organisé par <strong style={{ color: "rgba(255,255,255,0.7)" }}>RMK Conseils</strong> · Formation délivrée par <strong style={{ color: "#E8651A" }}>CABEXIA</strong>
+          Organisé par <strong style={{ color: "rgba(255,255,255,0.7)" }}>RMK Conseils</strong> · Formation délivrée par <strong style={{ color: "#C9A84C" }}>CABEXIA</strong>
         </p>
         
         <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap", marginBottom: 48 }}>
           <button onClick={() => { setPage("inscription"); window.scrollTo(0, 0); }} style={{
-            background: "linear-gradient(135deg, #E8651A, #D4580F)", color: "#fff", border: "none",
+            background: "linear-gradient(135deg, #C9A84C, #A88A3D)", color: "#fff", border: "none",
             padding: "16px 36px", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: "pointer",
-            boxShadow: "0 4px 24px rgba(232,101,26,0.4)", transition: "all 0.3s", letterSpacing: 0.5,
+            boxShadow: "0 4px 24px rgba(201,168,76,0.4)", transition: "all 0.3s", letterSpacing: 0.5,
           }}>S'inscrire maintenant</button>
           <button onClick={() => { setPage("seminaires"); window.scrollTo(0, 0); }} style={{
             background: "rgba(255,255,255,0.06)", color: "#fff", border: "1px solid rgba(255,255,255,0.15)",
@@ -304,7 +304,7 @@ function FormatSection() {
     <section ref={ref} style={{ background: "#0F172A", padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
       <div style={{ maxWidth: 900, margin: "0 auto", opacity: vis ? 1 : 0, transform: vis ? "none" : "translateY(30px)", transition: "all 0.8s ease" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ color: "#E8651A", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Format Hybride</div>
+          <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Format Hybride</div>
           <h2 style={{ fontSize: 36, fontWeight: 800, color: "#fff", margin: 0 }}>5 jours qui transforment votre pratique</h2>
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 16, marginTop: 12 }}>Le meilleur du présentiel et du distanciel, combinés pour un impact maximal.</p>
         </div>
@@ -315,7 +315,7 @@ function FormatSection() {
                 <span style={{ fontSize: 32 }}>{s.icon}</span>
                 <div>
                   <div style={{ fontWeight: 800, color: "#fff", fontSize: 18 }}>{s.day}</div>
-                  <div style={{ color: "#E8651A", fontWeight: 700, fontSize: 13, letterSpacing: 1 }}>{s.mode.toUpperCase()}</div>
+                  <div style={{ color: "#C9A84C", fontWeight: 700, fontSize: 13, letterSpacing: 1 }}>{s.mode.toUpperCase()}</div>
                 </div>
               </div>
               <p style={{ color: "rgba(255,255,255,0.6)", lineHeight: 1.7, margin: 0, fontSize: 15 }}>{s.desc}</p>
@@ -330,7 +330,7 @@ function FormatSection() {
             { n: "80%", l: "Pratique" },
           ].map((k) => (
             <div key={k.l} style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 36, fontWeight: 800, color: "#E8651A" }}>{k.n}</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: "#C9A84C" }}>{k.n}</div>
               <div style={{ fontSize: 12, color: "#64748B", letterSpacing: 1, textTransform: "uppercase" }}>{k.l}</div>
             </div>
           ))}
@@ -414,7 +414,7 @@ function SeminarsPage({ setPage, setSelectedSem }: any) {
     <section style={{ background: "#0F172A", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ color: "#E8651A", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Programme Complet</div>
+          <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Programme Complet</div>
           <h2 style={{ fontSize: 40, fontWeight: 800, color: "#fff", margin: "0 0 12px" }}>4 Séminaires, 4 Expertises</h2>
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 16 }}>Chaque séminaire : 3 jours présentiel à Abidjan + 2 sessions en ligne de 4h · Formation délivrée par CABEXIA</p>
         </div>
@@ -439,14 +439,14 @@ function PricingPage({ setPage, setSelectedSem }: any) {
     <section style={{ background: "linear-gradient(170deg, #0F172A, #1B2A4A)", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
       <div ref={ref} style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", opacity: vis ? 1 : 0, transform: vis ? "none" : "translateY(30px)", transition: "all 0.8s" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div style={{ color: "#E8651A", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Tarifs</div>
+          <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Tarifs</div>
           <h2 style={{ fontSize: 40, fontWeight: 800, color: "#fff", margin: "0 0 12px" }}>Investissez dans votre avenir</h2>
           <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 16 }}>Tarif identique pour les 4 séminaires · Formation complète 5 jours hybride</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, alignItems: "start" }}>
           {offers.map((o, i) => (
             <div key={i} style={{
-              background: o.primary ? "linear-gradient(170deg, #E8651A, #D4580F)" : "rgba(255,255,255,0.04)",
+              background: o.primary ? "linear-gradient(170deg, #C9A84C, #A88A3D)" : "rgba(255,255,255,0.04)",
               border: o.primary ? "none" : "1px solid rgba(255,255,255,0.1)", borderRadius: 20, padding: 32,
               position: "relative", transform: o.primary ? "scale(1.03)" : "none",
             }}>
@@ -461,8 +461,8 @@ function PricingPage({ setPage, setSelectedSem }: any) {
               ))}
               <button onClick={() => { setPage("inscription"); window.scrollTo(0, 0); }} style={{
                 width: "100%", marginTop: 24, padding: "14px 0", borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: "pointer", transition: "all 0.3s",
-                background: o.primary ? "#fff" : "rgba(232,101,26,0.2)", color: o.primary ? "#E8651A" : "#E8651A",
-                border: o.primary ? "none" : "1px solid rgba(232,101,26,0.3)",
+                background: o.primary ? "#fff" : "rgba(201,168,76,0.2)", color: o.primary ? "#C9A84C" : "#C9A84C",
+                border: o.primary ? "none" : "1px solid rgba(201,168,76,0.3)",
               }}>{o.cta}</button>
             </div>
           ))}
@@ -557,7 +557,7 @@ function InscriptionPage({ selectedSem }: any) {
         <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
         <h2 style={{ fontSize: 32, fontWeight: 800, color: "#fff", marginBottom: 12 }}>Demande envoyée !</h2>
         <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 16, lineHeight: 1.7 }}>Merci {form.prenom}. L'équipe RMK vous contactera sous 24h pour confirmer votre inscription et les modalités de paiement.</p>
-        <p style={{ color: "#E8651A", fontWeight: 600, fontSize: 14, marginTop: 16 }}>Vous recevrez un email de confirmation à {form.email}</p>
+        <p style={{ color: "#C9A84C", fontWeight: 600, fontSize: 14, marginTop: 16 }}>Vous recevrez un email de confirmation à {form.email}</p>
       </div>
     </section>
   );
@@ -566,7 +566,7 @@ function InscriptionPage({ selectedSem }: any) {
     <section style={{ minHeight: "100vh", background: "#0F172A", paddingTop: 100, paddingBottom: 80 }}>
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ color: "#E8651A", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Inscription</div>
+          <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Inscription</div>
           <h2 style={{ fontSize: 36, fontWeight: 800, color: "#fff", margin: "0 0 8px" }}>Réservez votre place</h2>
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 15 }}>Sélection exclusive par séminaire · Inscription confirmée après validation du paiement</p>
         </div>
@@ -596,14 +596,14 @@ function InscriptionPage({ selectedSem }: any) {
             <textarea style={{ ...inputStyle, minHeight: 80, resize: "vertical", background: "rgba(255,255,255,0.05)", color: "#fff", borderColor: "rgba(255,255,255,0.1)" }} value={form.message} onChange={upd("message")} placeholder="Besoins spécifiques, questions..." />
           </div>
           
-          <div style={{ marginTop: 20, padding: 16, background: "rgba(232,101,26,0.1)", borderRadius: 10, border: "1px solid rgba(232,101,26,0.3)" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#E8651A" }}>🔥 Offre Early Bird : -10% avant le 30 avril 2026</div>
+          <div style={{ marginTop: 20, padding: 16, background: "rgba(201,168,76,0.1)", borderRadius: 10, border: "1px solid rgba(201,168,76,0.3)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#C9A84C" }}>🔥 Offre Early Bird : -10% avant le 30 avril 2026</div>
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 4 }}>Payez {fmt(prices?.earlyBird || EARLY_BIRD_PRICE)} FCFA au lieu de {fmt(prices?.standard || PRICE)} FCFA · Économisez {fmt((prices?.standard || PRICE) - (prices?.earlyBird || EARLY_BIRD_PRICE))} FCFA</div>
           </div>
           
           <button onClick={handleSubmit} disabled={isSubmitting} style={{
-            width: "100%", marginTop: 24, padding: "16px 0", borderRadius: 12, background: isSubmitting ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #E8651A, #D4580F)",
-            color: isSubmitting ? "rgba(255,255,255,0.5)" : "#fff", border: "none", fontSize: 16, fontWeight: 700, cursor: isSubmitting ? "not-allowed" : "pointer", boxShadow: isSubmitting ? "none" : "0 4px 24px rgba(232,101,26,0.3)",
+            width: "100%", marginTop: 24, padding: "16px 0", borderRadius: 12, background: isSubmitting ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #C9A84C, #A88A3D)",
+            color: isSubmitting ? "rgba(255,255,255,0.5)" : "#fff", border: "none", fontSize: 16, fontWeight: 700, cursor: isSubmitting ? "not-allowed" : "pointer", boxShadow: isSubmitting ? "none" : "0 4px 24px rgba(201,168,76,0.3)",
           }}>{isSubmitting ? "Envoi en cours..." : "Envoyer ma demande d'inscription"}</button>
           <p style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 12 }}>En soumettant ce formulaire, vous serez contacté par l'équipe RMK pour finaliser votre inscription.</p>
         </div>
@@ -621,7 +621,7 @@ function Footer({ setPage }: any) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <LogoRMK scale={0.5} />
-              <span style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>RMK <span style={{ color: "#E8651A" }}>×</span> CABEXIA</span>
+              <span style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>RMK <span style={{ color: "#C9A84C" }}>×</span> CABEXIA</span>
             </div>
             <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.7 }}>Organisé par RMK à Abidjan. Formations délivrées par CABEXIA, Cabinet d'Expertise en Intelligence Artificielle.</p>
           </div>
@@ -678,7 +678,7 @@ export default function LandingPage() {
         html { scroll-behavior: smooth; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        input:focus, select:focus, textarea:focus { border-color: #E8651A !important; box-shadow: 0 0 0 3px rgba(232,101,26,0.1); }
+        input:focus, select:focus, textarea:focus { border-color: #C9A84C !important; box-shadow: 0 0 0 3px rgba(201,168,76,0.1); }
         button:hover { opacity: 0.92; transform: translateY(-1px); }
         @media (max-width: 768px) {
           .nav-desktop { display: none !important; }
@@ -697,7 +697,7 @@ export default function LandingPage() {
           <section style={{ background: "#0F172A", padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
             <div style={{ maxWidth: 1100, margin: "0 auto" }}>
               <div style={{ textAlign: "center", marginBottom: 48 }}>
-                <div style={{ color: "#E8651A", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Séminaires</div>
+                <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Séminaires</div>
                 <h2 style={{ fontSize: 36, fontWeight: 800, color: "#fff", margin: 0 }}>Choisissez votre séminaire</h2>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: 24 }}>
@@ -707,11 +707,11 @@ export default function LandingPage() {
               </div>
             </div>
           </section>
-          <section style={{ background: "linear-gradient(135deg, #E8651A, #D4580F)", padding: "64px 24px", textAlign: "center" }}>
+          <section style={{ background: "linear-gradient(135deg, #C9A84C, #A88A3D)", padding: "64px 24px", textAlign: "center" }}>
             <h2 style={{ fontSize: 32, fontWeight: 800, color: "#fff", marginBottom: 16 }}>Prêt à maîtriser l'IA ?</h2>
             <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 16, marginBottom: 32, maxWidth: 500, margin: "0 auto 32px" }}>Les dirigeants qui maîtrisent l'intelligence artificielle remplaceront ceux qui ne la maîtrisent pas.</p>
             <button onClick={() => { setPage("inscription"); window.scrollTo(0, 0); }} style={{
-              background: "#fff", color: "#E8651A", border: "none", padding: "16px 40px",
+              background: "#fff", color: "#C9A84C", border: "none", padding: "16px 40px",
               borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 24px rgba(0,0,0,0.15)",
             }}>S'inscrire maintenant →</button>
           </section>

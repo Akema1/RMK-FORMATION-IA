@@ -17,10 +17,10 @@ export default function NotFound() {
       <button
         onClick={() => navigate('/')}
         style={{
-          background: 'linear-gradient(135deg, #E8651A, #D4580F)',
+          background: 'linear-gradient(135deg, #C9A84C, #D4580F)',
           color: '#fff', border: 'none', padding: '14px 32px',
           borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(232,101,26,0.3)',
+          boxShadow: '0 4px 20px rgba(201,168,76,0.3)',
         }}
       >
         Retourner à l'accueil →
