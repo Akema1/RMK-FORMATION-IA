@@ -72,7 +72,7 @@ async function callGemini(systemPrompt: string, userPrompt: string, useSearch = 
 }
 
 // ─── STYLES ───
-const NAVY = "#0F172A";
+const NAVY = "#1A2332";
 import { LogoRMK } from "../components/LogoRMK";
 
 const ORANGE = "#C9A84C";
@@ -102,7 +102,7 @@ function Nav({ page, setPage }: any) {
     <nav style={{ position:"fixed", top:0, left:0, bottom:0, width:220, background:"rgba(11,17,32,0.98)", borderRight:"1px solid rgba(255,255,255,0.06)", zIndex:100, display:"flex", flexDirection:"column", padding:"16px 0", overflowY:"auto" }}>
       <div style={{ padding:"8px 20px 24px", borderBottom:"1px solid rgba(255,255,255,0.06)", marginBottom:8 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, cursor: "pointer" }} onClick={() => navigate('/')}>
-          <LogoRMK scale={0.4} />
+          <LogoRMK scale={0.4} variant="dark" />
           <div><div style={{ color:"#fff", fontWeight:700, fontSize:14 }}>RMK <span style={{ color:ORANGE }}>×</span> CABEXIA</div>
           <div style={{ color:"rgba(255,255,255,0.35)", fontSize:10, letterSpacing:1 }}>ADMIN · MAI 2026</div></div>
         </div>
@@ -444,7 +444,7 @@ function FlyerPage() {
             
             {/* Logos */}
             <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
-              <LogoRMK scale={1} />
+              <LogoRMK scale={1} variant="dark" />
               <span style={{ fontSize:24, color:"#C9A84C" }}>×</span>
               <div style={{ color: "#60E0E0", fontSize: 28, fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
@@ -1530,7 +1530,7 @@ export default function AdminDashboard() {
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: NAVY }}>
         <div style={{ ...card, textAlign: "center", maxWidth: 400, width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ marginBottom: 24 }}>
-            <LogoRMK scale={0.8} />
+            <LogoRMK scale={0.8} variant="dark" />
           </div>
           <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Espace Administrateur</h1>
           <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, marginBottom: 32 }}>Connectez-vous pour accéder au tableau de bord.</p>

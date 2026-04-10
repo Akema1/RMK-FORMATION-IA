@@ -110,10 +110,10 @@ export default function ClientPortal() {
   // ─── LOGIN SCREEN ───
   if (!participant) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0F172A', color: '#fff', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ minHeight: '100vh', background: '#1A2332', color: '#fff', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ maxWidth: 460, width: '100%', background: 'rgba(255,255,255,0.05)', padding: '48px 40px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
           <div style={{ textAlign: 'center', marginBottom: 32, display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <LogoRMK scale={0.8} />
+            <LogoRMK scale={0.8} variant="dark" />
             <div style={{ color: '#C9A84C', fontSize: 10, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase', marginTop: 12 }}>Portail Client</div>
           </div>
 
@@ -157,7 +157,7 @@ export default function ClientPortal() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0F172A', color: '#fff', fontFamily: "'DM Sans', sans-serif", display: 'flex' }}>
+    <div style={{ minHeight: '100vh', background: '#1A2332', color: '#fff', fontFamily: "'DM Sans', sans-serif", display: 'flex' }}>
       {/* ─── SIDEBAR (Desktop) ─── */}
       <aside style={{
         width: 260, background: 'rgba(0,0,0,0.3)', borderRight: '1px solid rgba(255,255,255,0.08)',
@@ -165,7 +165,7 @@ export default function ClientPortal() {
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
       }} className="portal-sidebar">
         <div style={{ padding: '0 24px', marginBottom: 32, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <LogoRMK scale={0.5} />
+          <LogoRMK scale={0.5} variant="dark" />
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>RMK × CABEXIA</div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Portail Client</div>
@@ -206,7 +206,7 @@ export default function ClientPortal() {
         alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <LogoRMK scale={0.35} />
+          <LogoRMK scale={0.35} variant="dark" />
           <span style={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>Mon Espace</span>
         </div>
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 22, cursor: 'pointer' }}>

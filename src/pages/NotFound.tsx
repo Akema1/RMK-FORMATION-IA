@@ -6,7 +6,7 @@ export default function NotFound() {
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      background: '#0F172A', color: '#fff', fontFamily: "'DM Sans', sans-serif",
+      background: '#1A2332', color: '#fff', fontFamily: "'DM Sans', sans-serif",
       padding: 24, textAlign: 'center',
     }}>
       <div style={{ fontSize: 80, marginBottom: 16, opacity: 0.3 }}>404</div>
@@ -17,7 +17,7 @@ export default function NotFound() {
       <button
         onClick={() => navigate('/')}
         style={{
-          background: 'linear-gradient(135deg, #C9A84C, #D4580F)',
+          background: 'linear-gradient(135deg, #C9A84C, #A88A3D)',
           color: '#fff', border: 'none', padding: '14px 32px',
           borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer',
           boxShadow: '0 4px 20px rgba(201,168,76,0.3)',
