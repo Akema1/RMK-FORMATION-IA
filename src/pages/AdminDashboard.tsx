@@ -11,11 +11,38 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 // ─── DATA & CONFIG ───
 const SEMINARS = [
-  { id:"s1", code:"S1", title:"IA Stratégique pour Dirigeants", week:"5–9 Mai 2026", icon:"👔", color:"#C9A84C", seats:20, targets:["DG","CEO","DGA","Directeurs de département","Cadres dirigeants"], sectors:["Banque","Assurance","Télécoms","Énergie","Distribution","Industrie"] },
-  { id:"s2", code:"S2", title:"IA appliquée à la Finance", week:"12–16 Mai 2026", icon:"📊", color:"#27AE60", seats:20, targets:["DAF","Analystes financiers","Trésoriers","Risk Managers","Contrôleurs de gestion"], sectors:["Banques (SGBCI, SIB, BICICI, Ecobank)","Assurances","SGI","Microfinance","BCEAO/BRVM"] },
-  { id:"s3", code:"S3", title:"IA pour les Notaires", week:"19–23 Mai 2026", icon:"⚖️", color:"#2980B9", seats:15, targets:["Notaires","Clercs de notaires","Collaborateurs d'études","Juristes immobilier"], sectors:["Études notariales Abidjan","Études notariales hors Abidjan","Cabinets juridiques"] },
-  { id:"s4", code:"S4", title:"IA pour les Ressources Humaines", week:"26–30 Mai 2026", icon:"🤝", color:"#F39C12", seats:15, targets:["DRH","Responsables RH","Chargés de recrutement","Responsables formation","Managers"], sectors:["Multinationales CI","Grandes entreprises locales","Secteur public","ONG internationales"] },
+  { id:"s1", code:"S1", title:"IA Stratégique pour Dirigeants", week:"12–16 Mai 2026", icon:"👔", color:"#C9A84C", seats:20, targets:["DG","CEO","DGA","Directeurs de département","Cadres dirigeants"], sectors:["Banque","Assurance","Télécoms","Énergie","Distribution","Industrie"] },
+  { id:"s2", code:"S2", title:"IA appliquée à la Finance", week:"19–23 Mai 2026", icon:"📊", color:"#27AE60", seats:20, targets:["DAF","Analystes financiers","Trésoriers","Risk Managers","Contrôleurs de gestion"], sectors:["Banques (SGBCI, SIB, BICICI, Ecobank)","Assurances","SGI","Microfinance","BCEAO/BRVM"] },
+  { id:"s3", code:"S3", title:"IA pour les Notaires", week:"26–30 Mai 2026", icon:"⚖️", color:"#2980B9", seats:15, targets:["Notaires","Clercs de notaires","Collaborateurs d'études","Juristes immobilier"], sectors:["Études notariales Abidjan","Études notariales hors Abidjan","Cabinets juridiques"] },
+  { id:"s4", code:"S4", title:"IA pour les Ressources Humaines", week:"2–6 Juin 2026", icon:"🤝", color:"#F39C12", seats:15, targets:["DRH","Responsables RH","Chargés de recrutement","Responsables formation","Managers"], sectors:["Multinationales CI","Grandes entreprises locales","Secteur public","ONG internationales"] },
 ];
+
+const FLYER_DATA: any = {
+  s1: {
+    subtitle: "IAG Stratégique pour Dirigeants & Managers",
+    highlight: "Maîtrisez l'IA pour accélérer la transformation et renforcer vos décisions stratégiques.",
+    bullets: ["Prompting de Haut Niveau & Cas Pratiques", "Automatisation des Processus Métiers", "Analyse de Données et Aide à la Décision", "Éthique, Sécurité et Gouvernance d'IA"],
+    image: "https://images.unsplash.com/photo-1531384441138-2736e62e0919?auto=format&fit=crop&w=800&q=80"
+  },
+  s2: {
+    subtitle: "Générative appliquée à la Finance",
+    highlight: "Optimisez vos analyses financières et automatisez vos reportings avec l'IA.",
+    bullets: ["Analyse prédictive et gestion des risques", "Automatisation des tâches chronophages", "Précision et conformité accrues", "Modélisation financière assistée par l'IA"],
+    image: "https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?auto=format&fit=crop&w=800&q=80"
+  },
+  s3: {
+    subtitle: "Générative pour les Notaires",
+    highlight: "Sécurisez vos actes et gagnez un temps précieux dans la rédaction juridique.",
+    bullets: ["Rédaction d'actes assistée par l'IA", "Recherche jurisprudentielle accélérée", "Sécurité et confidentialité des données", "Optimisation du traitement des dossiers"],
+    image: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&w=800&q=80"
+  },
+  s4: {
+    subtitle: "Générative pour les Ressources Humaines",
+    highlight: "Révolutionnez le recrutement et la gestion des talents grâce l'IA.",
+    bullets: ["Sourcing et tri de CV automatisés", "Analyse du climat social", "Parcours de formation personnalisés", "Optimisation de la marque employeur"],
+    image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=800&q=80"
+  }
+};
 
 const DEFAULT_PRICES = { standard: 600000, earlyBird: 540000, discountPct: 10 };
 const TEAM = [
@@ -72,17 +99,17 @@ async function callGemini(systemPrompt: string, userPrompt: string, useSearch = 
 }
 
 // ─── STYLES ───
-const NAVY = "#1A2332";
+const NAVY = "#FAF9F6";
 import { LogoRMK } from "../components/LogoRMK";
 
 const ORANGE = "#C9A84C";
-const card = { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 24 };
-const inputS = { width:"100%", padding:"12px 14px", borderRadius:10, border:"1px solid rgba(255,255,255,0.12)", fontSize:14, fontFamily:"inherit", background:"rgba(255,255,255,0.06)", color:"#fff", outline:"none", boxSizing:"border-box" } as React.CSSProperties;
+const card = { background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 16, padding: 24 };
+const inputS = { width:"100%", padding:"12px 14px", borderRadius:10, border:"1px solid rgba(0,0,0,0.12)", fontSize:14, fontFamily:"inherit", background:"rgba(0,0,0,0.06)", color:"#fff", outline:"none", boxSizing:"border-box" } as React.CSSProperties;
 const selectS = { ...inputS, cursor:"pointer" } as React.CSSProperties;
 const btnPrimary = { background:`linear-gradient(135deg,${ORANGE},#D4580F)`, color:"#fff", border:"none", padding:"12px 24px", borderRadius:10, fontWeight:700, fontSize:14, cursor:"pointer", transition:"all 0.2s" };
-const btnSecondary = { background:"rgba(255,255,255,0.06)", color:"#fff", border:"1px solid rgba(255,255,255,0.12)", padding:"10px 20px", borderRadius:10, fontWeight:600, fontSize:13, cursor:"pointer" };
+const btnSecondary = { background:"rgba(0,0,0,0.06)", color:"#fff", border:"1px solid rgba(0,0,0,0.12)", padding:"10px 20px", borderRadius:10, fontWeight:600, fontSize:13, cursor:"pointer" };
 const badge = (color: string) => ({ display:"inline-block", padding:"3px 10px", borderRadius:100, fontSize:11, fontWeight:700, background:`${color}22`, color });
-const label = { fontSize:12, fontWeight:600, color:"rgba(255,255,255,0.5)", display:"block", marginBottom:6, letterSpacing:0.5, textTransform:"uppercase" } as React.CSSProperties;
+const label = { fontSize:12, fontWeight:600, color:"rgba(0,0,0,0.5)", display:"block", marginBottom:6, letterSpacing:0.5, textTransform:"uppercase" } as React.CSSProperties;
 
 // ─── NAV ───
 function Nav({ page, setPage }: any) {
@@ -99,12 +126,12 @@ function Nav({ page, setPage }: any) {
     { key:"flyer", label:"Flyer", icon:"📄" },
   ];
   return (
-    <nav style={{ position:"fixed", top:0, left:0, bottom:0, width:220, background:"rgba(11,17,32,0.98)", borderRight:"1px solid rgba(255,255,255,0.06)", zIndex:100, display:"flex", flexDirection:"column", padding:"16px 0", overflowY:"auto" }}>
-      <div style={{ padding:"8px 20px 24px", borderBottom:"1px solid rgba(255,255,255,0.06)", marginBottom:8 }}>
+    <nav style={{ position:"fixed", top:0, left:0, bottom:0, width:220, background:"rgba(11,17,32,0.98)", borderRight:"1px solid rgba(0,0,0,0.06)", zIndex:100, display:"flex", flexDirection:"column", padding:"16px 0", overflowY:"auto" }}>
+      <div style={{ padding:"8px 20px 24px", borderBottom:"1px solid rgba(0,0,0,0.06)", marginBottom:8 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, cursor: "pointer" }} onClick={() => navigate('/')}>
-          <LogoRMK scale={0.4} variant="dark" />
+          <LogoRMK scale={0.4} variant="light" />
           <div><div style={{ color:"#fff", fontWeight:700, fontSize:14 }}>RMK <span style={{ color:ORANGE }}>×</span> CABEXIA</div>
-          <div style={{ color:"rgba(255,255,255,0.35)", fontSize:10, letterSpacing:1 }}>ADMIN · MAI 2026</div></div>
+          <div style={{ color:"rgba(0,0,0,0.35)", fontSize:10, letterSpacing:1 }}>ADMIN · MAI 2026</div></div>
         </div>
       </div>
       {tabs.map(t => (
@@ -112,15 +139,15 @@ function Nav({ page, setPage }: any) {
           display:"flex", alignItems:"center", gap:10, padding:"11px 20px", margin:"2px 8px",
           background: page===t.key ? "rgba(201,168,76,0.12)" : "transparent",
           border:"none", borderRadius:10, cursor:"pointer", fontSize:13, fontWeight: page===t.key ? 700 : 500,
-          color: page===t.key ? ORANGE : "rgba(255,255,255,0.55)", transition:"all 0.2s", textAlign:"left",
+          color: page===t.key ? ORANGE : "rgba(0,0,0,0.55)", transition:"all 0.2s", textAlign:"left",
           borderLeft: page===t.key ? `3px solid ${ORANGE}` : "3px solid transparent",
         }}><span style={{ fontSize:16 }}>{t.icon}</span> {t.label}</button>
       ))}
-      <div style={{ marginTop:"auto", padding:"16px 20px", borderTop:"1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ marginTop:"auto", padding:"16px 20px", borderTop:"1px solid rgba(0,0,0,0.06)" }}>
         {TEAM.map(m => (
           <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 0" }}>
             <span style={{ fontSize:18 }}>{m.avatar}</span>
-            <div><div style={{ color:"#fff", fontSize:12, fontWeight:600 }}>{m.name}</div><div style={{ color:"rgba(255,255,255,0.35)", fontSize:10 }}>{m.role.split("+")[0].trim()}</div></div>
+            <div><div style={{ color:"#fff", fontSize:12, fontWeight:600 }}>{m.name}</div><div style={{ color:"rgba(0,0,0,0.35)", fontSize:10 }}>{m.role.split("+")[0].trim()}</div></div>
           </div>
         ))}
       </div>
@@ -150,9 +177,9 @@ function DashboardPage({ participants, prices, tasks, leads }: any) {
           { label:"Tâches en cours", val:pendingTasks.length, sub:`/ ${tasks?.length || 0} total`, color:"#8E44AD", pct: tasks?.length ? (tasks.length - pendingTasks.length)/tasks.length*100 : 0 },
         ].map(k => (
           <div key={k.label} style={card}>
-            <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>{k.label}</div>
-            <div style={{ fontSize:28, fontWeight:800, color:"#fff" }}>{k.val} <span style={{ fontSize:12, fontWeight:400, color:"rgba(255,255,255,0.3)" }}>{k.sub}</span></div>
-            <div style={{ marginTop:12, height:4, borderRadius:2, background:"rgba(255,255,255,0.08)" }}>
+            <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", letterSpacing:1, textTransform:"uppercase", marginBottom:8 }}>{k.label}</div>
+            <div style={{ fontSize:28, fontWeight:800, color:"#fff" }}>{k.val} <span style={{ fontSize:12, fontWeight:400, color:"rgba(0,0,0,0.3)" }}>{k.sub}</span></div>
+            <div style={{ marginTop:12, height:4, borderRadius:2, background:"rgba(0,0,0,0.08)" }}>
               <div style={{ height:"100%", borderRadius:2, background:k.color, width:`${Math.min(k.pct,100)}%`, transition:"width 0.8s" }} />
             </div>
           </div>
@@ -170,15 +197,15 @@ function DashboardPage({ participants, prices, tasks, leads }: any) {
                 <span style={badge(s.color)}>{s.code}</span>
               </div>
               <div style={{ color:"#fff", fontWeight:700, fontSize:14, marginBottom:8 }}>{s.title}</div>
-              <div style={{ color:"rgba(255,255,255,0.4)", fontSize:12, marginBottom:12 }}>{s.week}</div>
+              <div style={{ color:"rgba(0,0,0,0.4)", fontSize:12, marginBottom:12 }}>{s.week}</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                <div><div style={{ fontSize:20, fontWeight:800, color:"#fff" }}>{sp.length}<span style={{ fontSize:11, color:"rgba(255,255,255,0.3)" }}>/{s.seats}</span></div><div style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>Inscrits</div></div>
-                <div><div style={{ fontSize:20, fontWeight:800, color:"#27AE60" }}>{sc.length}</div><div style={{ fontSize:10, color:"rgba(255,255,255,0.4)" }}>Confirmés</div></div>
+                <div><div style={{ fontSize:20, fontWeight:800, color:"#fff" }}>{sp.length}<span style={{ fontSize:11, color:"rgba(0,0,0,0.3)" }}>/{s.seats}</span></div><div style={{ fontSize:10, color:"rgba(0,0,0,0.4)" }}>Inscrits</div></div>
+                <div><div style={{ fontSize:20, fontWeight:800, color:"#27AE60" }}>{sc.length}</div><div style={{ fontSize:10, color:"rgba(0,0,0,0.4)" }}>Confirmés</div></div>
               </div>
-              <div style={{ marginTop:12, height:5, borderRadius:3, background:"rgba(255,255,255,0.08)" }}>
+              <div style={{ marginTop:12, height:5, borderRadius:3, background:"rgba(0,0,0,0.08)" }}>
                 <div style={{ height:"100%", borderRadius:3, background:s.color, width:`${(sp.length/s.seats)*100}%` }} />
               </div>
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", marginTop:6 }}>{fmt(sc.reduce((a: number,p: any)=>a+(p.amount||0),0))} FCFA encaissé</div>
+              <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", marginTop:6 }}>{fmt(sc.reduce((a: number,p: any)=>a+(p.amount||0),0))} FCFA encaissé</div>
             </div>
           );
         })}
@@ -254,18 +281,18 @@ function LeadsPage({ leads, refreshLeads }: any) {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 16, overflowX: "auto", paddingBottom: 16 }}>
         {columns.map(col => (
-          <div key={col.id} style={{ ...card, padding: 16, background: "rgba(255,255,255,0.02)", minWidth: 250 }}>
-            <h4 style={{ color: "#fff", fontSize: 14, fontWeight: 700, marginBottom: 16, borderBottom: `2px solid ${statusColors[col.id]}`, paddingBottom: 8 }}>{col.label}</h4>
+          <div key={col.id} style={{ ...card, padding: 16, background: "rgba(0,0,0,0.02)", minWidth: 250 }}>
+            <h4 style={{ color: "#0a0a0a", fontSize: 14, fontWeight: 700, marginBottom: 16, borderBottom: `2px solid ${statusColors[col.id]}`, paddingBottom: 8 }}>{col.label}</h4>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {leads.filter((l: any) => l.status === col.id).map((l: any) => (
-                <div key={l.id} style={{ background: "rgba(255,255,255,0.05)", padding: 12, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div key={l.id} style={{ background: "rgba(0,0,0,0.05)", padding: 12, borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>{l.nom}</div>
+                    <div style={{ color: "#0a0a0a", fontSize: 14, fontWeight: 600 }}>{l.nom}</div>
                     <button onClick={() => deleteLead(l.id)} style={{ background: "none", border: "none", color: "#E74C3C", cursor: "pointer", fontSize: 14 }}>🗑</button>
                   </div>
-                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginBottom: 4 }}>{l.entreprise || "—"}</div>
-                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, marginBottom: 8 }}>{l.source}</div>
-                  <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginBottom: 12, fontStyle: "italic" }}>{l.notes || "—"}</div>
+                  <div style={{ color: "rgba(0,0,0,0.6)", fontSize: 12, marginBottom: 4 }}>{l.entreprise || "—"}</div>
+                  <div style={{ color: "rgba(0,0,0,0.4)", fontSize: 11, marginBottom: 8 }}>{l.source}</div>
+                  <div style={{ color: "rgba(0,0,0,0.8)", fontSize: 12, marginBottom: 12, fontStyle: "italic" }}>{l.notes || "—"}</div>
                   <select value={l.status} onChange={e => updateStatus(l.id, e.target.value)} style={{ ...selectS, padding: "6px 10px", fontSize: 12 }}>
                     <option value="froid">Froid</option>
                     <option value="tiede">Tiède</option>
@@ -316,7 +343,7 @@ function SeoAgentPage() {
     <div>
       <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 24px" }}>Agent SEO & Contenu</h2>
       <div style={{ ...card, marginBottom:24 }}>
-        <p style={{ color:"rgba(255,255,255,0.6)", fontSize:14, marginBottom:16 }}>L'Agent SEO vous aide à générer des mots-clés, des idées d'articles et des structures de pages pour attirer plus de prospects organiques sur vos séminaires.</p>
+        <p style={{ color:"rgba(0,0,0,0.6)", fontSize:14, marginBottom:16 }}>L'Agent SEO vous aide à générer des mots-clés, des idées d'articles et des structures de pages pour attirer plus de prospects organiques sur vos séminaires.</p>
         <div style={{ display:"flex", gap:12 }}>
           <input style={{ ...inputS, flex:1 }} value={topic} onChange={e => setTopic(e.target.value)} placeholder="Ex: Formation IA pour les Directeurs Financiers à Abidjan" />
           <button onClick={generateSEO} disabled={loading} style={{ ...btnPrimary, opacity: loading ? 0.7 : 1 }}>
@@ -325,9 +352,9 @@ function SeoAgentPage() {
         </div>
       </div>
       {result && (
-        <div style={{ ...card, background:"rgba(255,255,255,0.02)", marginBottom: 24 }}>
+        <div style={{ ...card, background:"rgba(0,0,0,0.02)", marginBottom: 24 }}>
           <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Résultat SEO</h3>
-          <div style={{ color:"rgba(255,255,255,0.8)", fontSize:14, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{result}</div>
+          <div style={{ color:"rgba(0,0,0,0.8)", fontSize:14, lineHeight:1.6, whiteSpace:"pre-wrap" }}>{result}</div>
         </div>
       )}
       {history.length > 0 && (
@@ -336,7 +363,7 @@ function SeoAgentPage() {
           {history.map((h, i) => (
             <details key={i} style={{ ...card, marginBottom:8, cursor:"pointer" }}>
               <summary style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{h.date} – {h.topic}</summary>
-              <div style={{ color:"rgba(255,255,255,0.6)", fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
+              <div style={{ color:"rgba(0,0,0,0.6)", fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
             </details>
           ))}
         </>
@@ -413,9 +440,9 @@ function FlyerPage() {
         </div>
       </div>
       
-      <div style={{ background: "rgba(255,255,255,0.05)", padding: 16, borderRadius: 8, marginBottom: 24, display: "flex", gap: 16, alignItems: "center" }}>
+      <div style={{ background: "rgba(0,0,0,0.05)", padding: 16, borderRadius: 8, marginBottom: 24, display: "flex", gap: 16, alignItems: "center" }}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: "block", color: "rgba(255,255,255,0.6)", fontSize: 12, marginBottom: 4 }}>URL de l'image personnalisée (optionnel)</label>
+          <label style={{ display: "block", color: "rgba(0,0,0,0.6)", fontSize: 12, marginBottom: 4 }}>URL de l'image personnalisée (optionnel)</label>
           <input 
             type="text" 
             value={customImage} 
@@ -424,13 +451,13 @@ function FlyerPage() {
             style={{ ...inputS, width: "100%" }}
           />
         </div>
-        <p style={{ color:"rgba(255,255,255,0.6)", fontSize:12, margin: 0, maxWidth: 300 }}>
+        <p style={{ color:"rgba(0,0,0,0.6)", fontSize:12, margin: 0, maxWidth: 300 }}>
           Cliquez sur les boutons d'export ci-dessus pour générer une image ou un PDF parfaitement dimensionné (1000x1000).
         </p>
       </div>
       
       <div style={{ display: "flex", justifyContent: "center" }}>
-        <div ref={flyerRef} className="printable-flyer" style={{ width: 1000, height: 1000, background: "#11112B", position: "relative", overflow: "hidden", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 20px 50px rgba(0,0,0,0.5)", borderRadius: 8 }}>
+        <div ref={flyerRef} className="printable-flyer" style={{ width: 1000, height: 1000, background: "#FAF9F6", position: "relative", overflow: "hidden", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 20px 50px rgba(0,0,0,0.5)", borderRadius: 8 }}>
           
           {/* Background decorations */}
           <div style={{ position: "absolute", top: -150, left: -150, width: 400, height: 400, background: "radial-gradient(circle, rgba(96,224,224,0.15) 0%, rgba(0,0,0,0) 70%)" }} />
@@ -444,7 +471,7 @@ function FlyerPage() {
             
             {/* Logos */}
             <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
-              <LogoRMK scale={1} variant="dark" />
+              <LogoRMK scale={1} variant="light" />
               <span style={{ fontSize:24, color:"#C9A84C" }}>×</span>
               <div style={{ color: "#60E0E0", fontSize: 28, fontWeight: 900, display: "flex", alignItems: "center", gap: 8 }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
@@ -453,33 +480,33 @@ function FlyerPage() {
             </div>
 
             {/* Titles */}
-            <div style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontSize: 28, color: "#fff", marginBottom: -5 }}>Atelier de Formation</div>
-            <div style={{ fontSize: 42, fontWeight: 900, color: "#fff", letterSpacing: 2, lineHeight: 1, textShadow: "2px 2px 4px rgba(0,0,0,0.5)" }}>INTELLIGENCE</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: "#60E0E0", letterSpacing: 8, marginBottom: 16, textShadow: "1px 1px 2px rgba(0,0,0,0.5)" }}>ARTIFICIELLE</div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: "#E2E8F0", marginBottom: 12 }}>{data.subtitle}</div>
+            <div contentEditable suppressContentEditableWarning style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontSize: 28, color: "#0a0a0a", marginBottom: -5 }}>Atelier de Formation</div>
+            <div contentEditable suppressContentEditableWarning style={{ fontSize: 42, fontWeight: 900, color: "#0a0a0a", letterSpacing: 2, lineHeight: 1, textShadow: "2px 2px 4px rgba(0,0,0,0.5)" }}>INTELLIGENCE</div>
+            <div contentEditable suppressContentEditableWarning style={{ fontSize: 24, fontWeight: 700, color: "#60E0E0", letterSpacing: 8, marginBottom: 16, textShadow: "1px 1px 2px rgba(0,0,0,0.5)" }}>ARTIFICIELLE</div>
+            <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 600, color: "#1A2332", marginBottom: 12 }}>{data.subtitle}</div>
             
             {/* Target Audience */}
-            <div style={{ fontSize: 13, fontWeight: 500, color: "#CBD5E1", marginBottom: 20, lineHeight: 1.5, maxWidth: "90%" }}>
+            <div contentEditable suppressContentEditableWarning style={{ fontSize: 13, fontWeight: 500, color: "#475569", marginBottom: 20, lineHeight: 1.5, maxWidth: "90%" }}>
               Pour Managers, Dirigeants, Administrateurs, Consultants, Entrepreneurs, Cadres Supérieurs et Professionnels souhaitant accélérer leur transformation digitale et renforcer leurs décisions stratégiques.
             </div>
 
             {/* Highlight Box */}
-            <div style={{ background: "#60E0E0", color: "#0F172A", padding: "16px 30px", fontSize: 16, fontWeight: 800, borderRadius: "0 20px 20px 0", marginLeft: -50, paddingLeft: 50, marginBottom: 20, boxShadow: "0 10px 20px rgba(0,0,0,0.2)" }}>
+            <div contentEditable suppressContentEditableWarning style={{ background: "#60E0E0", color: "#0F172A", padding: "16px 30px", fontSize: 16, fontWeight: 800, borderRadius: "0 20px 20px 0", marginLeft: -50, paddingLeft: 50, marginBottom: 20, boxShadow: "0 10px 20px rgba(0,0,0,0.2)" }}>
               {data.highlight}
             </div>
 
             {/* Bullets */}
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
               {data.bullets.map((b: string, i: number) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 16, fontWeight: 600, color: "#fff" }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 16, fontWeight: 600, color: "#0a0a0a" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60E0E0" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                  {b}
+                  <span contentEditable suppressContentEditableWarning>{b}</span>
                 </div>
               ))}
             </div>
 
             {/* Format */}
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", fontStyle: "italic", marginBottom: 24 }}>
+            <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 700, color: "#0a0a0a", fontStyle: "italic", marginBottom: 24 }}>
               3 Sessions présentielles + 2 en ligne
             </div>
 
@@ -488,15 +515,15 @@ function FlyerPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#60E0E0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>Hôtel Movenpick</div>
-                  <div style={{ fontSize: 16, color: "#E2E8F0" }}>Abidjan-Côte d'Ivoire</div>
+                  <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 800, color: "#0a0a0a" }}>Hôtel Movenpick</div>
+                  <div contentEditable suppressContentEditableWarning style={{ fontSize: 16, color: "#1A2332" }}>Abidjan-Côte d'Ivoire</div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#60E0E0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{s.week}</div>
-                  <div style={{ fontSize: 16, color: "#E2E8F0" }}>(+ dates sessions sectorielles)</div>
+                  <div contentEditable suppressContentEditableWarning style={{ fontSize: 18, fontWeight: 800, color: "#0a0a0a" }}>{s.week}</div>
+                  <div contentEditable suppressContentEditableWarning style={{ fontSize: 16, color: "#1A2332" }}>(+ dates sessions sectorielles)</div>
                 </div>
               </div>
             </div>
@@ -524,7 +551,7 @@ function FlyerPage() {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#0F172A", fontSize: 16, fontWeight: 700 }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-              contact@rmk-conseils.com
+              rkedem@rmkconsulting.pro
             </div>
           </div>
         </div>
@@ -668,28 +695,28 @@ function InscriptionsPage({ participants, refreshParticipants }: any) {
       )}
 
       <div style={{ display:"flex", gap:6, marginBottom:16, flexWrap:"wrap" }}>
-        <button onClick={() => setFilter("all")} style={{ ...btnSecondary, background: filter==="all" ? `${ORANGE}22` : undefined, color: filter==="all" ? ORANGE : "rgba(255,255,255,0.5)" }}>Tous ({participants.length})</button>
+        <button onClick={() => setFilter("all")} style={{ ...btnSecondary, background: filter==="all" ? `${ORANGE}22` : undefined, color: filter==="all" ? ORANGE : "rgba(0,0,0,0.5)" }}>Tous ({participants.length})</button>
         {SEMINARS.map(s => {
           const c = participants.filter((p: any) => p.seminar === s.id).length;
-          return <button key={s.id} onClick={() => setFilter(s.id)} style={{ ...btnSecondary, background: filter===s.id ? `${s.color}22` : undefined, color: filter===s.id ? s.color : "rgba(255,255,255,0.5)", borderColor: filter===s.id ? `${s.color}44` : undefined }}>{s.code} ({c})</button>;
+          return <button key={s.id} onClick={() => setFilter(s.id)} style={{ ...btnSecondary, background: filter===s.id ? `${s.color}22` : undefined, color: filter===s.id ? s.color : "rgba(0,0,0,0.5)", borderColor: filter===s.id ? `${s.color}44` : undefined }}>{s.code} ({c})</button>;
         })}
       </div>
 
       <div style={{ ...card, padding:0, overflow:"hidden" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.08)" }}>
           {["Participant","Société / Fonction","Séminaire","Paiement","Montant","Statut",""].map(h => (
-            <div key={h} style={{ fontSize:10, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:1, fontWeight:700 }}>{h}</div>
+            <div key={h} style={{ fontSize:10, color:"rgba(0,0,0,0.4)", textTransform:"uppercase", letterSpacing:1, fontWeight:700 }}>{h}</div>
           ))}
         </div>
-        {filtered.length === 0 && <div style={{ padding:32, textAlign:"center", color:"rgba(255,255,255,0.3)", fontSize:14 }}>Aucune inscription pour le moment</div>}
+        {filtered.length === 0 && <div style={{ padding:32, textAlign:"center", color:"rgba(0,0,0,0.3)", fontSize:14 }}>Aucune inscription pour le moment</div>}
         {filtered.map((p: any, i: number) => {
           const s = SEMINARS.find(x => x.id === p.seminar);
           return (
-            <div key={p.id} style={{ display:"grid", gridTemplateColumns:"2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding:"14px 16px", borderBottom:"1px solid rgba(255,255,255,0.04)", alignItems:"center" }}>
-              <div><div style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{p.nom} {p.prenom}</div><div style={{ color:"rgba(255,255,255,0.4)", fontSize:11 }}>{p.email}</div></div>
-              <div><div style={{ color:"rgba(255,255,255,0.7)", fontSize:13 }}>{p.societe}</div><div style={{ color:"rgba(255,255,255,0.4)", fontSize:11 }}>{p.fonction}</div></div>
+            <div key={p.id} style={{ display:"grid", gridTemplateColumns:"2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding:"14px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", alignItems:"center" }}>
+              <div><div style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{p.nom} {p.prenom}</div><div style={{ color:"rgba(0,0,0,0.4)", fontSize:11 }}>{p.email}</div></div>
+              <div><div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>{p.societe}</div><div style={{ color:"rgba(0,0,0,0.4)", fontSize:11 }}>{p.fonction}</div></div>
               <div style={{ fontSize:12, color:s?.color || "#fff", fontWeight:600 }}>{s?.code} {s?.icon}</div>
-              <div style={{ fontSize:12, color:"rgba(255,255,255,0.5)", display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontSize:12, color:"rgba(0,0,0,0.5)", display: "flex", alignItems: "center", gap: 8 }}>
                 {p.payment || "—"}
                 {p.tel && (
                   <a href={`https://wa.me/${p.tel.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" style={{ color: "#25D366", textDecoration: "none", display: "flex", alignItems: "center", background: "rgba(37, 211, 102, 0.1)", padding: "4px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
@@ -903,9 +930,9 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
         <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:0 }}>Gestion Financière</h2>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={exportPDF} style={{ ...btnPrimary, background: "#27AE60", marginRight: 16 }}>📄 Exporter PDF</button>
-          <button onClick={() => setView("global")} style={{ ...btnSecondary, background: view === "global" ? `${ORANGE}22` : undefined, color: view === "global" ? ORANGE : "rgba(255,255,255,0.5)" }}>Vue Globale</button>
+          <button onClick={() => setView("global")} style={{ ...btnSecondary, background: view === "global" ? `${ORANGE}22` : undefined, color: view === "global" ? ORANGE : "rgba(0,0,0,0.5)" }}>Vue Globale</button>
           {SEMINARS.map(s => (
-            <button key={s.id} onClick={() => setView(s.id)} style={{ ...btnSecondary, background: view === s.id ? `${s.color}22` : undefined, color: view === s.id ? s.color : "rgba(255,255,255,0.5)" }}>{s.code}</button>
+            <button key={s.id} onClick={() => setView(s.id)} style={{ ...btnSecondary, background: view === s.id ? `${s.color}22` : undefined, color: view === s.id ? s.color : "rgba(0,0,0,0.5)" }}>{s.code}</button>
           ))}
         </div>
       </div>
@@ -915,10 +942,10 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
         <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Comparatif Plan vs Réel ({view === "global" ? "Tous les séminaires" : SEMINARS.find(s=>s.id===view)?.title})</h3>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-            <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" />
-            <YAxis stroke="rgba(255,255,255,0.5)" tickFormatter={(value) => `${value / 1000000}M`} />
-            <Tooltip formatter={(value: number) => `${fmt(value)} FCFA`} contentStyle={{ backgroundColor: '#0F172A', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+            <XAxis dataKey="name" stroke="rgba(0,0,0,0.5)" />
+            <YAxis stroke="rgba(0,0,0,0.5)" tickFormatter={(value) => `${value / 1000000}M`} />
+            <Tooltip formatter={(value: number) => `${fmt(value)} FCFA`} contentStyle={{ backgroundColor: '#0F172A', borderColor: 'rgba(0,0,0,0.1)', color: '#0a0a0a' }} />
             <Legend />
             <Bar dataKey="Plan" fill="#2980B9" radius={[4, 4, 0, 0]} />
             <Bar dataKey="Réel" fill="#C9A84C" radius={[4, 4, 0, 0]} />
@@ -928,24 +955,24 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
 
       {/* TABLE */}
       <div style={{ ...card, padding: 0, overflow: "hidden" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)" }}>
-          <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:1, fontWeight:700 }}>Catégorie</div>
-          <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Plan (Budget)</div>
-          <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Réel (Actuel)</div>
-          <div style={{ fontSize:11, color:"rgba(255,255,255,0.4)", textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Écart</div>
+        <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.08)", background: "rgba(0,0,0,0.02)" }}>
+          <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", textTransform:"uppercase", letterSpacing:1, fontWeight:700 }}>Catégorie</div>
+          <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Plan (Budget)</div>
+          <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Réel (Actuel)</div>
+          <div style={{ fontSize:11, color:"rgba(0,0,0,0.4)", textTransform:"uppercase", letterSpacing:1, fontWeight:700, textAlign:"right" }}>Écart</div>
         </div>
         
         {/* REVENUS */}
-        <div style={{ padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.04)", background: "rgba(39, 174, 96, 0.05)" }}>
+        <div style={{ padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", background: "rgba(39, 174, 96, 0.05)" }}>
           <div style={{ color:"#27AE60", fontSize:14, fontWeight:800, marginBottom: 8 }}>PRODUITS (REVENUS)</div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 4 }}>
-            <div style={{ color:"rgba(255,255,255,0.7)", fontSize:13 }}>Tarif Standard ({fmt(prices.standard)})</div>
+            <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>Tarif Standard ({fmt(prices.standard)})</div>
             <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(plan.revStandard)}</div>
             <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(actual.revStandard)}</div>
             <div style={{ color: actual.revStandard - plan.revStandard >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(actual.revStandard - plan.revStandard)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 8 }}>
-            <div style={{ color:"rgba(255,255,255,0.7)", fontSize:13 }}>Tarif Early Bird ({fmt(prices.earlyBird)})</div>
+            <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>Tarif Early Bird ({fmt(prices.earlyBird)})</div>
             <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(plan.revEarlyBird)}</div>
             <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(actual.revEarlyBird)}</div>
             <div style={{ color: actual.revEarlyBird - plan.revEarlyBird >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(actual.revEarlyBird - plan.revEarlyBird)}</div>
@@ -959,7 +986,7 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
         </div>
 
         {/* CHARGES */}
-        <div style={{ padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
+        <div style={{ padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)" }}>
           <div style={{ color:"#E74C3C", fontSize:14, fontWeight:800, marginBottom: 8 }}>CHARGES (DÉPENSES)</div>
           {[
             { k: 'consultance_pres', l: 'Frais Consultance en presentiel' },
@@ -976,8 +1003,8 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
             { k: 'commercialisation', l: 'Frais de commercialisation 10%' },
           ].map(item => (
             <div key={item.k} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
-              <div style={{ color:"rgba(255,255,255,0.7)", fontSize:13 }}>{item.l}</div>
-              <div style={{ color:"rgba(255,255,255,0.5)", fontSize:13, textAlign:"right" }}>{fmt((plan.charges as any)[item.k])}</div>
+              <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>{item.l}</div>
+              <div style={{ color:"rgba(0,0,0,0.5)", fontSize:13, textAlign:"right" }}>{fmt((plan.charges as any)[item.k])}</div>
               <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt((actual.charges as any)[item.k])}</div>
               <div style={{ color: plan.charges[item.k as keyof typeof plan.charges] - actual.charges[item.k as keyof typeof actual.charges] >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>
                 {fmt(plan.charges[item.k as keyof typeof plan.charges] - actual.charges[item.k as keyof typeof actual.charges])}
@@ -996,25 +1023,25 @@ function FinancePage({ participants, prices, expenses, refreshExpenses }: any) {
         <div style={{ padding:"12px 16px", background: "rgba(41, 128, 185, 0.05)" }}>
           <div style={{ color:"#2980B9", fontSize:14, fontWeight:800, marginBottom: 8 }}>RENTABILITÉ</div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
-            <div style={{ color:"rgba(255,255,255,0.7)", fontSize:13 }}>Revenu prov</div>
+            <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>Revenu prov</div>
             <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(plan.revenuProv)}</div>
             <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(actual.revenuProv)}</div>
             <div style={{ color: actual.revenuProv - plan.revenuProv >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(actual.revenuProv - plan.revenuProv)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
-            <div style={{ color:"rgba(255,255,255,0.7)", fontSize:13 }}>Imprevu 10%</div>
+            <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>Imprevu 10%</div>
             <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(plan.imprevu)}</div>
             <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(actual.imprevu)}</div>
             <div style={{ color: plan.imprevu - actual.imprevu >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(plan.imprevu - actual.imprevu)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
-            <div style={{ color:"rgba(255,255,255,0.9)", fontSize:13, fontWeight:600 }}>Sous total brut</div>
+            <div style={{ color:"rgba(0,0,0,0.9)", fontSize:13, fontWeight:600 }}>Sous total brut</div>
             <div style={{ color:"#fff", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(plan.sousTotalBrut)}</div>
             <div style={{ color:"#fff", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(actual.sousTotalBrut)}</div>
             <div style={{ color: actual.sousTotalBrut - plan.sousTotalBrut >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, fontWeight:600, textAlign:"right" }}>{fmt(actual.sousTotalBrut - plan.sousTotalBrut)}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr", marginBottom: 6 }}>
-            <div style={{ color:"rgba(255,255,255,0.7)", fontSize:13 }}>TVA 18%</div>
+            <div style={{ color:"rgba(0,0,0,0.7)", fontSize:13 }}>TVA 18%</div>
             <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(plan.tva)}</div>
             <div style={{ color:"#fff", fontSize:13, textAlign:"right" }}>{fmt(actual.tva)}</div>
             <div style={{ color: plan.tva - actual.tva >= 0 ? "#27AE60" : "#E74C3C", fontSize:13, textAlign:"right" }}>{fmt(plan.tva - actual.tva)}</div>
@@ -1078,7 +1105,7 @@ function ExpenseManager({ expenses, refreshExpenses }: any) {
             </select>
           </div>
           <div style={{ paddingBottom: 12 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff", fontSize: 13, cursor: "pointer" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#0a0a0a", fontSize: 13, cursor: "pointer" }}>
               <input type="checkbox" checked={form.paid} onChange={upd("paid")} /> Payé
             </label>
           </div>
@@ -1088,11 +1115,11 @@ function ExpenseManager({ expenses, refreshExpenses }: any) {
 
       <div style={{ ...card, padding:0, overflow:"hidden" }}>
         {expenses.map((e: any) => (
-          <div key={e.id} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 0.5fr", padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.04)", alignItems:"center" }}>
+          <div key={e.id} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 0.5fr", padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", alignItems:"center" }}>
             <div style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{e.label}</div>
             <div style={{ color:"#E74C3C", fontSize:13, fontWeight:700 }}>{fmt(e.amount)} F</div>
-            <div style={{ color:"rgba(255,255,255,0.5)", fontSize:12, textTransform:"capitalize" }}>{e.category}</div>
-            <div style={{ color:"rgba(255,255,255,0.5)", fontSize:12 }}>{e.seminar === "all" ? "Général" : SEMINARS.find(s=>s.id===e.seminar)?.code}</div>
+            <div style={{ color:"rgba(0,0,0,0.5)", fontSize:12, textTransform:"capitalize" }}>{e.category}</div>
+            <div style={{ color:"rgba(0,0,0,0.5)", fontSize:12 }}>{e.seminar === "all" ? "Général" : SEMINARS.find(s=>s.id===e.seminar)?.code}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: e.paid ? "#27AE60" : "#F39C12", background: e.paid ? "rgba(39, 174, 96, 0.1)" : "rgba(243, 156, 18, 0.1)", padding: "4px 8px", borderRadius: 100 }}>{e.paid ? "Payé" : "En attente"}</span>
               <button onClick={() => deleteExpense(e.id)} style={{ background:"none", border:"none", color:"#E74C3C", cursor:"pointer", fontSize:16 }}>🗑</button>
@@ -1164,7 +1191,7 @@ function TasksPage({ tasks, refreshTasks }: any) {
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
               <div style={{ width:10, height:10, borderRadius:"50%", background:colors[status] }} />
               <span style={{ color:"#fff", fontSize:14, fontWeight:700 }}>{labels[status]}</span>
-              <span style={{ color:"rgba(255,255,255,0.3)", fontSize:12 }}>({tasks.filter((t: any)=>t.status===status).length})</span>
+              <span style={{ color:"rgba(0,0,0,0.3)", fontSize:12 }}>({tasks.filter((t: any)=>t.status===status).length})</span>
             </div>
             {tasks.filter((t: any) => t.status === status).map((t: any) => (
               <div key={t.id} style={{ ...card, marginBottom:8, borderLeft:`3px solid ${colors[status]}`, padding:16, transition:"all 0.2s" }}>
@@ -1175,7 +1202,7 @@ function TasksPage({ tasks, refreshTasks }: any) {
                     <button onClick={() => deleteTask(t.id)} style={{ background:"none", border:"none", color:"#E74C3C", cursor:"pointer", fontSize:14 }}>🗑</button>
                   </div>
                 </div>
-                <div style={{ display:"flex", gap:12, marginTop:8, fontSize:11, color:"rgba(255,255,255,0.4)" }}>
+                <div style={{ display:"flex", gap:12, marginTop:8, fontSize:11, color:"rgba(0,0,0,0.4)" }}>
                   <span>{TEAM.find(m=>m.id===t.owner)?.avatar} {TEAM.find(m=>m.id===t.owner)?.name}</span>
                   {t.deadline && <span>📅 {t.deadline}</span>}
                   {t.seminar !== "all" && <span style={{ color: SEMINARS.find(s=>s.id===t.seminar)?.color }}>{SEMINARS.find(s=>s.id===t.seminar)?.code}</span>}
@@ -1204,7 +1231,7 @@ function PricesPage({ prices, setPrices }: any) {
   return (
     <div>
       <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Gestion des tarifs</h2>
-      <p style={{ color:"rgba(255,255,255,0.4)", fontSize:14, margin:"0 0 24px" }}>Ajustez les prix en temps réel. Les modifications s'appliquent immédiatement au tableau de bord et aux projections financières.</p>
+      <p style={{ color:"rgba(0,0,0,0.4)", fontSize:14, margin:"0 0 24px" }}>Ajustez les prix en temps réel. Les modifications s'appliquent immédiatement au tableau de bord et aux projections financières.</p>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24 }}>
         <div style={card}>
           <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Tarifs individuels</h3>
@@ -1216,7 +1243,7 @@ function PricesPage({ prices, setPrices }: any) {
             <div key={p.key} style={{ marginBottom:16 }}>
               <label style={label}>{p.label}</label>
               <input type="number" style={inputS} value={prices[p.key]} onChange={upd(p.key)} disabled={p.disabled} />
-              <div style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginTop:4 }}>{p.desc}</div>
+              <div style={{ fontSize:11, color:"rgba(0,0,0,0.3)", marginTop:4 }}>{p.desc}</div>
             </div>
           ))}
         </div>
@@ -1224,7 +1251,7 @@ function PricesPage({ prices, setPrices }: any) {
           <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, marginBottom:16 }}>Rémunération & Budget</h3>
           <div style={{ marginTop:8, padding:16, background:"rgba(201,168,76,0.08)", borderRadius:10, border:`1px solid ${ORANGE}33` }}>
             <div style={{ color:ORANGE, fontSize:13, fontWeight:700 }}>Honoraires CABEXIA (Fixes)</div>
-            <div style={{ color:"rgba(255,255,255,0.6)", fontSize:12, marginTop:8, lineHeight:1.8 }}>
+            <div style={{ color:"rgba(0,0,0,0.6)", fontSize:12, marginTop:8, lineHeight:1.8 }}>
               Consultance présentiel : <strong style={{ color:"#fff" }}>1 050 000 FCFA</strong> / séminaire<br/>
               Consultance en ligne : <strong style={{ color:"#fff" }}>400 000 FCFA</strong> / séminaire<br/>
               Total CABEXIA : <strong style={{ color:"#fff" }}>1 450 000 FCFA</strong> / séminaire
@@ -1233,7 +1260,7 @@ function PricesPage({ prices, setPrices }: any) {
           <div style={{ marginTop:16, padding:16, background:"rgba(39,174,96,0.08)", borderRadius:10 }}>
             <div style={{ color:"#27AE60", fontSize:13, fontWeight:700, marginBottom:8 }}>Projection CA (objectif rempli)</div>
             <div style={{ color:"#fff", fontSize:20, fontWeight:800 }}>{fmt(SEMINARS.reduce((s,x) => s + x.seats, 0) * prices.standard)} FCFA</div>
-            <div style={{ color:"rgba(255,255,255,0.4)", fontSize:11, marginTop:4 }}>{SEMINARS.reduce((s,x) => s + x.seats, 0)} participants × {fmt(prices.standard)} FCFA</div>
+            <div style={{ color:"rgba(0,0,0,0.4)", fontSize:11, marginTop:4 }}>{SEMINARS.reduce((s,x) => s + x.seats, 0)} participants × {fmt(prices.standard)} FCFA</div>
           </div>
         </div>
       </div>
@@ -1308,7 +1335,7 @@ Réponds en français. Fournis un plan de prospection journalier avec:
   return (
     <div>
       <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Agent Commercial IA</h2>
-      <p style={{ color:"rgba(255,255,255,0.4)", fontSize:14, margin:"0 0 24px" }}>Prospection automatisée : identification des meilleurs profils d'apprenants, scripts de vente et plans de contact personnalisés par séminaire.</p>
+      <p style={{ color:"rgba(0,0,0,0.4)", fontSize:14, margin:"0 0 24px" }}>Prospection automatisée : identification des meilleurs profils d'apprenants, scripts de vente et plans de contact personnalisés par séminaire.</p>
 
       <div style={{ ...card, marginBottom:24, display:"flex", gap:12, alignItems:"end", flexWrap:"wrap" }}>
         <div style={{ flex:1, minWidth:200 }}>
@@ -1326,9 +1353,9 @@ Réponds en français. Fournis un plan de prospection journalier avec:
         <div style={{ ...card, marginBottom:24, borderLeft:`3px solid ${ORANGE}` }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
             <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, margin:0 }}>📋 Plan de prospection – {SEMINARS.find(x=>x.id===seminar)?.code}</h3>
-            <span style={{ fontSize:11, color:"rgba(255,255,255,0.3)" }}>{new Date().toLocaleString("fr-FR")}</span>
+            <span style={{ fontSize:11, color:"rgba(0,0,0,0.3)" }}>{new Date().toLocaleString("fr-FR")}</span>
           </div>
-          <div style={{ color:"rgba(255,255,255,0.75)", fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" }}>{result}</div>
+          <div style={{ color:"rgba(0,0,0,0.75)", fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" }}>{result}</div>
         </div>
       )}
 
@@ -1338,7 +1365,7 @@ Réponds en français. Fournis un plan de prospection journalier avec:
           {history.map((h, i) => (
             <details key={i} style={{ ...card, marginBottom:8, cursor:"pointer" }}>
               <summary style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{h.date} – {h.seminar} {h.title}</summary>
-              <div style={{ color:"rgba(255,255,255,0.6)", fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
+              <div style={{ color:"rgba(0,0,0,0.6)", fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
             </details>
           ))}
         </>
@@ -1392,7 +1419,7 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
   return (
     <div>
       <h2 style={{ color:"#fff", fontSize:24, fontWeight:800, margin:"0 0 8px" }}>Agent Recherche & Estimations</h2>
-      <p style={{ color:"rgba(255,255,255,0.4)", fontSize:14, margin:"0 0 24px" }}>Recherche de prix en temps réel : billets d'avion, salles, traiteurs, hôtels et tout ce dont vous avez besoin pour le budget.</p>
+      <p style={{ color:"rgba(0,0,0,0.4)", fontSize:14, margin:"0 0 24px" }}>Recherche de prix en temps réel : billets d'avion, salles, traiteurs, hôtels et tout ce dont vous avez besoin pour le budget.</p>
 
       <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:16 }}>
         {presets.map((p, i) => (
@@ -1415,9 +1442,9 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
         <div style={{ ...card, marginBottom:24, borderLeft:"3px solid #2980B9" }}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:12 }}>
             <h3 style={{ color:"#fff", fontSize:16, fontWeight:700, margin:0 }}>📊 Résultats de recherche</h3>
-            <span style={{ fontSize:11, color:"rgba(255,255,255,0.3)" }}>{new Date().toLocaleString("fr-FR")}</span>
+            <span style={{ fontSize:11, color:"rgba(0,0,0,0.3)" }}>{new Date().toLocaleString("fr-FR")}</span>
           </div>
-          <div style={{ color:"rgba(255,255,255,0.75)", fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" }}>{result}</div>
+          <div style={{ color:"rgba(0,0,0,0.75)", fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" }}>{result}</div>
         </div>
       )}
 
@@ -1427,7 +1454,7 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
           {history.map((h, i) => (
             <details key={i} style={{ ...card, marginBottom:8, cursor:"pointer" }}>
               <summary style={{ color:"#fff", fontSize:13, fontWeight:600 }}>{h.date} – {h.query.slice(0, 60)}...</summary>
-              <div style={{ color:"rgba(255,255,255,0.6)", fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
+              <div style={{ color:"rgba(0,0,0,0.6)", fontSize:13, lineHeight:1.7, marginTop:12, whiteSpace:"pre-wrap" }}>{h.result}</div>
             </details>
           ))}
         </>
@@ -1530,10 +1557,10 @@ export default function AdminDashboard() {
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: NAVY }}>
         <div style={{ ...card, textAlign: "center", maxWidth: 400, width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ marginBottom: 24 }}>
-            <LogoRMK scale={0.8} variant="dark" />
+            <LogoRMK scale={0.8} variant="light" />
           </div>
-          <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Espace Administrateur</h1>
-          <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, marginBottom: 32 }}>Connectez-vous pour accéder au tableau de bord.</p>
+          <h1 style={{ color: "#0a0a0a", fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Espace Administrateur</h1>
+          <p style={{ color: "rgba(0,0,0,0.6)", fontSize: 14, marginBottom: 32 }}>Connectez-vous pour accéder au tableau de bord.</p>
           
           <form onSubmit={handleLogin} style={{ width: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
             <input 
@@ -1541,14 +1568,14 @@ export default function AdminDashboard() {
               placeholder="Adresse email" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: "100%", padding: "14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#fff", outline: "none" }}
+              style={{ width: "100%", padding: "14px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", background: "rgba(0,0,0,0.05)", color: "#0a0a0a", outline: "none" }}
             />
             <input 
               type="password" 
               placeholder="Mot de passe" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{ width: "100%", padding: "14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#fff", outline: "none" }}
+              style={{ width: "100%", padding: "14px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)", background: "rgba(0,0,0,0.05)", color: "#0a0a0a", outline: "none" }}
             />
             {loginError && <div style={{ color: "#E74C3C", fontSize: 13, marginTop: -8 }}>{loginError}</div>}
             
@@ -1567,7 +1594,7 @@ export default function AdminDashboard() {
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         * { box-sizing:border-box; margin:0; }
         ::-webkit-scrollbar { width:6px; }
-        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:3px; }
+        ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.1); border-radius:3px; }
         input:focus, select:focus, textarea:focus { border-color:${ORANGE} !important; box-shadow:0 0 0 2px ${ORANGE}22; }
         details > summary { list-style:none; }
         details > summary::-webkit-details-marker { display:none; }
@@ -1576,8 +1603,8 @@ export default function AdminDashboard() {
       <Nav page={page} setPage={setPage} />
       <main style={{ marginLeft:220, padding:"24px 32px", minHeight:"100vh" }}>
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.04)", padding: "8px 16px", borderRadius: 100 }}>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>{user.email}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(0,0,0,0.04)", padding: "8px 16px", borderRadius: 100 }}>
+            <span style={{ fontSize: 13, color: "rgba(0,0,0,0.7)" }}>{user.email}</span>
             <button onClick={handleLogout} style={{ background: "none", border: "none", color: ORANGE, cursor: "pointer", fontSize: 13, fontWeight: 700 }}>Déconnexion</button>
           </div>
         </div>
@@ -1586,13 +1613,13 @@ export default function AdminDashboard() {
             <style>{`@keyframes skeleton-pulse { 0%, 100% { opacity: 0.04; } 50% { opacity: 0.08; } }`}</style>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
               {[1,2,3,4].map(i => (
-                <div key={i} style={{ ...card, height: 100, background: "rgba(255,255,255,0.04)", animation: `skeleton-pulse 1.5s ease-in-out infinite ${i * 0.15}s` }} />
+                <div key={i} style={{ ...card, height: 100, background: "rgba(0,0,0,0.04)", animation: `skeleton-pulse 1.5s ease-in-out infinite ${i * 0.15}s` }} />
               ))}
             </div>
-            <div style={{ ...card, height: 300, background: "rgba(255,255,255,0.04)", animation: "skeleton-pulse 1.5s ease-in-out infinite 0.6s", marginBottom: 24 }} />
+            <div style={{ ...card, height: 300, background: "rgba(0,0,0,0.04)", animation: "skeleton-pulse 1.5s ease-in-out infinite 0.6s", marginBottom: 24 }} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div style={{ ...card, height: 200, background: "rgba(255,255,255,0.04)", animation: "skeleton-pulse 1.5s ease-in-out infinite 0.8s" }} />
-              <div style={{ ...card, height: 200, background: "rgba(255,255,255,0.04)", animation: "skeleton-pulse 1.5s ease-in-out infinite 1s" }} />
+              <div style={{ ...card, height: 200, background: "rgba(0,0,0,0.04)", animation: "skeleton-pulse 1.5s ease-in-out infinite 0.8s" }} />
+              <div style={{ ...card, height: 200, background: "rgba(0,0,0,0.04)", animation: "skeleton-pulse 1.5s ease-in-out infinite 1s" }} />
             </div>
           </div>
         ) : (
