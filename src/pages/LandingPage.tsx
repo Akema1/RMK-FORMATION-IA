@@ -240,7 +240,8 @@ function Hero({ setPage }: { setPage: (p: string) => void }) {
       <div style={{ position: "absolute", bottom: "15%", left: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(27,42,74,0.1) 0%, transparent 70%)" }} />
       
       <div style={{ maxWidth: 800, textAlign: "center", position: "relative", zIndex: 1 }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 100, padding: "6px 20px", marginBottom: 32 }}>
+        <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}><LogoRMK scale={1.8} variant="light" /></div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 100, padding: "6px 20px", marginBottom: 32 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#27AE60", animation: "pulse 2s infinite" }} />
           <span style={{ color: "#C9A84C", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>MAI 2026 · ABIDJAN · 4 SÉMINAIRES</span>
         </div>

@@ -25,7 +25,7 @@ export function LogoRMK({
   const h = 80 * scale;
   const letterColor = variant === 'dark' ? '#FFFFFF' : '#0A0A0A';
   const goldColor = '#C9A84C';
-  const conseilsColor = variant === 'dark' ? 'rgba(255,255,255,0.7)' : '#3A3A3A';
+  const conseilsColor = '#C9A84C';
 
   return (
     <svg 
@@ -70,7 +70,7 @@ export function LogoRMK({
       {/* CONSEILS — Elegant wide-tracked small caps */}
       <text 
         x="56" 
-        y="50" 
+        y="76" 
         fontFamily="'Cormorant Garamond', 'Times New Roman', serif" 
         fontSize="7.5" 
         fontWeight="500"
