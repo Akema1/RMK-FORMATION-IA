@@ -110,7 +110,7 @@ export default function ClientPortal() {
   // ─── LOGIN SCREEN ───
   if (!participant) {
     return (
-      <div style={{ minHeight: '100vh', background: '#FAF9F6', color: '#0a0a0a', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ minHeight: '100vh', background: '#FAF9F6', color: '#1B2A4A', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ maxWidth: 460, width: '100%', background: 'rgba(0,0,0,0.05)', padding: '48px 40px', borderRadius: 20, border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
           <div style={{ textAlign: 'center', marginBottom: 32, display: "flex", flexDirection: "column", alignItems: "center" }}>
             <LogoRMK scale={0.8} variant="light" />
@@ -118,7 +118,7 @@ export default function ClientPortal() {
           </div>
 
           <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, textAlign: 'center' }}>Mon Espace Formation</h2>
-          <p style={{ color: 'rgba(0,0,0,0.5)', fontSize: 14, textAlign: 'center', marginBottom: 28, lineHeight: 1.5 }}>Entrez l'adresse email utilisée lors de votre inscription pour accéder à vos documents.</p>
+          <p style={{ color: '#475569', fontSize: 14, textAlign: 'center', marginBottom: 28, lineHeight: 1.5 }}>Entrez l'adresse email utilisée lors de votre inscription pour accéder à vos documents.</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <input 
@@ -126,13 +126,13 @@ export default function ClientPortal() {
               value={email} 
               onChange={e => setEmail(e.target.value)} 
               placeholder="votre.email@entreprise.com" 
-              style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.15)', background: '#FFFFFF', color: '#0a0a0a', fontSize: 16, outline: 'none', transition: 'border 0.2s' }}
+              style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.15)', background: '#FFFFFF', color: '#1B2A4A', fontSize: 16, outline: 'none', transition: 'border 0.2s' }}
               onKeyDown={e => e.key === 'Enter' && searchParticipant()}
             />
             <button 
               onClick={searchParticipant} 
               disabled={loading}
-              style={{ padding: '14px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #C9A84C, #A88A3D)', color: '#0a0a0a', fontSize: 16, fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.7 : 1, transition: 'opacity 0.2s' }}
+              style={{ padding: '14px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #C9A84C, #A88A3D)', color: '#1B2A4A', fontSize: 16, fontWeight: 700, cursor: 'pointer', opacity: loading ? 0.7 : 1, transition: 'opacity 0.2s' }}
             >
               {loading ? 'Recherche...' : 'Accéder à mon espace'}
             </button>
@@ -141,7 +141,7 @@ export default function ClientPortal() {
           {error && <div style={{ color: '#E74C3C', fontSize: 14, marginTop: 16, textAlign: 'center', background: 'rgba(231,76,60,0.1)', padding: 12, borderRadius: 8 }}>{error}</div>}
 
           <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'rgba(0,0,0,0.4)', fontSize: 13, cursor: 'pointer' }}>← Retour à l'accueil</button>
+            <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: '#475569', fontSize: 13, cursor: 'pointer' }}>← Retour à l'accueil</button>
           </div>
         </div>
       </div>
@@ -157,7 +157,7 @@ export default function ClientPortal() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#FAF9F6', color: '#0a0a0a', fontFamily: "'DM Sans', sans-serif", display: 'flex' }}>
+    <div style={{ minHeight: '100vh', background: '#FAF9F6', color: '#1B2A4A', fontFamily: "'DM Sans', sans-serif", display: 'flex' }}>
       {/* ─── SIDEBAR (Desktop) ─── */}
       <aside style={{
         width: 260, background: '#FFFFFF', borderRight: '1px solid rgba(0,0,0,0.08)',
@@ -167,8 +167,8 @@ export default function ClientPortal() {
         <div style={{ padding: '0 24px', marginBottom: 32, display: 'flex', alignItems: 'center', gap: 12 }}>
           <LogoRMK scale={0.5} variant="light" />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#0a0a0a' }}>RMK × CABEXIA</div>
-            <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)' }}>Portail Client</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1B2A4A' }}>RMK × CABEXIA</div>
+            <div style={{ fontSize: 11, color: '#475569' }}>Portail Client</div>
           </div>
         </div>
 
@@ -189,8 +189,8 @@ export default function ClientPortal() {
         </nav>
 
         <div style={{ padding: '0 24px', borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: 16 }}>
-          <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.7)', fontWeight: 600 }}>{participant.prenom} {participant.nom}</div>
-          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.35)' }}>{participant.email}</div>
+          <div style={{ fontSize: 13, color: '#475569', fontWeight: 600 }}>{participant.prenom} {participant.nom}</div>
+          <div style={{ fontSize: 12, color: '#475569' }}>{participant.email}</div>
           <button onClick={() => { setParticipant(null); setEmail(''); setActiveTab('overview'); }}
             style={{ marginTop: 12, background: 'none', border: 'none', color: '#E74C3C', fontSize: 12, cursor: 'pointer', padding: 0 }}>
             Déconnexion
@@ -201,15 +201,15 @@ export default function ClientPortal() {
       {/* ─── MOBILE TOP BAR ─── */}
       <div className="portal-mobile-bar" style={{
         display: 'none', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-        background: 'rgba(15,23,42,0.97)', backdropFilter: 'blur(20px)',
+        background: 'rgba(27,42,74,0.97)', backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(0,0,0,0.08)', padding: '12px 16px',
         alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <LogoRMK scale={0.35} variant="light" />
-          <span style={{ color: '#0a0a0a', fontWeight: 700, fontSize: 14 }}>Mon Espace</span>
+          <span style={{ color: '#1B2A4A', fontWeight: 700, fontSize: 14 }}>Mon Espace</span>
         </div>
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ background: 'none', border: 'none', color: '#0a0a0a', fontSize: 22, cursor: 'pointer' }}>
+        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ background: 'none', border: 'none', color: '#1B2A4A', fontSize: 22, cursor: 'pointer' }}>
           {mobileMenuOpen ? '✕' : '☰'}
         </button>
       </div>
@@ -218,7 +218,7 @@ export default function ClientPortal() {
       {mobileMenuOpen && (
         <div className="portal-mobile-dropdown" style={{
           display: 'none', position: 'fixed', top: 52, left: 0, right: 0, zIndex: 199,
-          background: 'rgba(15,23,42,0.98)', borderBottom: '1px solid rgba(0,0,0,0.1)',
+          background: 'rgba(27,42,74,0.98)', borderBottom: '1px solid rgba(0,0,0,0.1)',
           padding: '8px 0',
         }}>
           {sidebarItems.map(item => (
@@ -250,7 +250,7 @@ export default function ClientPortal() {
           <span style={{ fontSize: 24 }}>📅</span>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#E74C3C' }}>ALERTE DE CALENDRIER</div>
-            <div style={{ fontSize: 13, color: '#0F172A' }}>Attention : Veuillez vérifier les dates de vos sessions dans l'onglet 'Programme' suite à de récentes mises à jour.</div>
+            <div style={{ fontSize: 13, color: '#1B2A4A' }}>Attention : Veuillez vérifier les dates de vos sessions dans l'onglet 'Programme' suite à de récentes mises à jour.</div>
           </div>
         </div>
 
@@ -260,17 +260,17 @@ export default function ClientPortal() {
             <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 6 }}>
               Bienvenue, <span style={{ color: '#C9A84C' }}>{participant.prenom}</span> 👋
             </h1>
-            <p style={{ color: 'rgba(0,0,0,0.5)', fontSize: 15, marginBottom: 36 }}>Voici un récapitulatif de votre inscription.</p>
+            <p style={{ color: '#475569', fontSize: 15, marginBottom: 36 }}>Voici un récapitulatif de votre inscription.</p>
 
             {/* Status Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 36 }}>
               <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 14, padding: '24px 20px' }}>
-                <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>Séminaire</div>
+                <div style={{ fontSize: 12, color: '#475569', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>Séminaire</div>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>{seminar?.icon} {seminar?.title}</div>
-                <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)', marginTop: 4 }}>{seminar?.week}</div>
+                <div style={{ fontSize: 13, color: '#475569', marginTop: 4 }}>{seminar?.week}</div>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 14, padding: '24px 20px' }}>
-                <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>Statut</div>
+                <div style={{ fontSize: 12, color: '#475569', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>Statut</div>
                 <div style={{
                   display: 'inline-block', padding: '6px 14px', borderRadius: 100, fontSize: 14, fontWeight: 700,
                   background: participant.status === 'confirmed' ? 'rgba(39,174,96,0.2)' : 'rgba(243,156,18,0.2)',
@@ -280,7 +280,7 @@ export default function ClientPortal() {
                 </div>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 14, padding: '24px 20px' }}>
-                <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>Montant</div>
+                <div style={{ fontSize: 12, color: '#475569', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>Montant</div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: '#C9A84C' }}>{Number(participant.amount || 540000).toLocaleString('fr-FR')} <span style={{ fontSize: 14 }}>FCFA</span></div>
               </div>
             </div>
@@ -290,19 +290,19 @@ export default function ClientPortal() {
               <h3 style={{ fontSize: 16, fontWeight: 700, marginTop: 0, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>👤 Informations Personnelles</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
                 <div>
-                  <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Nom complet</div>
+                  <div style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Nom complet</div>
                   <div style={{ fontSize: 15, fontWeight: 600 }}>{participant.prenom} {participant.nom}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Email</div>
+                  <div style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Email</div>
                   <div style={{ fontSize: 15, fontWeight: 600 }}>{participant.email}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Société</div>
+                  <div style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Société</div>
                   <div style={{ fontSize: 15, fontWeight: 600 }}>{participant.societe || '—'}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Fonction</div>
+                  <div style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Fonction</div>
                   <div style={{ fontSize: 15, fontWeight: 600 }}>{participant.fonction || '—'}</div>
                 </div>
               </div>
@@ -342,17 +342,17 @@ export default function ClientPortal() {
         {activeTab === 'syllabus' && (
           <div>
             <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 6 }}>📅 Programme du Séminaire</h1>
-            <p style={{ color: 'rgba(0,0,0,0.5)', fontSize: 15, marginBottom: 12 }}>
+            <p style={{ color: '#475569', fontSize: 15, marginBottom: 12 }}>
               {seminar?.icon} {seminar?.title} — {seminar?.week}
             </p>
-            <p style={{ color: 'rgba(0,0,0,0.4)', fontSize: 13, marginBottom: 36, fontStyle: 'italic' }}>
+            <p style={{ color: '#475569', fontSize: 13, marginBottom: 36, fontStyle: 'italic' }}>
               Programme exécutif « Intelligence Artificielle Stratégique pour Dirigeants » — Développé par CABEXIA, Cabinet d'Expertise en Intelligence Artificielle
             </p>
 
             {/* Objectives — always visible */}
             <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: '#C9A84C', marginTop: 0, marginBottom: 14 }}>🎯 Objectifs du programme</h3>
-              <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(0,0,0,0.7)', fontSize: 14, lineHeight: 2 }}>
+              <ul style={{ margin: 0, paddingLeft: 20, color: '#475569', fontSize: 14, lineHeight: 2 }}>
                 <li>Comprendre les transformations économiques provoquées par l'IA</li>
                 <li>Développer la capacité à utiliser l'IA comme outil d'analyse et d'aide à la décision</li>
                 <li>Maîtriser les techniques de prompting pour des résultats fiables et exploitables</li>
@@ -362,8 +362,8 @@ export default function ClientPortal() {
             </div>
 
             {/* 5 Axes du Programme */}
-            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 20, color: '#0a0a0a' }}>Contenu du Programme</h2>
-            <p style={{ color: 'rgba(0,0,0,0.5)', fontSize: 14, marginBottom: 24 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 20, color: '#1B2A4A' }}>Contenu du Programme</h2>
+            <p style={{ color: '#475569', fontSize: 14, marginBottom: 24 }}>
               Le programme est structuré autour de 5 axes permettant de développer une maîtrise progressive et opérationnelle de l'intelligence artificielle.
             </p>
 
@@ -436,12 +436,12 @@ export default function ClientPortal() {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: isUnlocked ? 14 : 0 }}>
                         <span style={{ fontSize: 22 }}>{axe.icon}</span>
-                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0a0a0a', margin: 0 }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1B2A4A', margin: 0 }}>
                           Axe {i + 1} — {axe.title}
                         </h3>
                       </div>
                       {isUnlocked ? (
-                        <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(0,0,0,0.6)', fontSize: 14, lineHeight: 1.9 }}>
+                        <ul style={{ margin: 0, paddingLeft: 20, color: '#475569', fontSize: 14, lineHeight: 1.9 }}>
                           {axe.points.map((p, j) => (
                             <li key={j}>{p}</li>
                           ))}
@@ -468,13 +468,13 @@ export default function ClientPortal() {
                       <p style={{ color: '#C9A84C', fontWeight: 700, fontSize: 15, margin: '8px 0 4px' }}>
                         Programme complet débloqué après validation du paiement
                       </p>
-                      <p style={{ color: 'rgba(0,0,0,0.4)', fontSize: 13, margin: 0 }}>
+                      <p style={{ color: '#475569', fontSize: 13, margin: 0 }}>
                         Validez votre paiement pour accéder au détail de chaque axe, à la méthodologie pédagogique et aux supports de cours.
                       </p>
                       <button onClick={() => setActiveTab('payment')} style={{
                         marginTop: 16, padding: '10px 24px', borderRadius: 8,
                         background: 'linear-gradient(135deg, #C9A84C, #A88A3D)', border: 'none',
-                        color: '#0a0a0a', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                        color: '#1B2A4A', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                       }}>
                         Voir les instructions de paiement →
                       </button>
@@ -488,10 +488,10 @@ export default function ClientPortal() {
             {participant.status === 'confirmed' && (
               <div style={{ background: 'rgba(39,174,96,0.08)', border: '1px solid rgba(39,174,96,0.2)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: '#27AE60', marginTop: 0, marginBottom: 14 }}>🧪 Méthodologie Pédagogique</h3>
-                <p style={{ color: 'rgba(0,0,0,0.6)', fontSize: 14, marginBottom: 12, lineHeight: 1.6 }}>
+                <p style={{ color: '#475569', fontSize: 14, marginBottom: 12, lineHeight: 1.6 }}>
                   Le programme repose sur une approche pédagogique immersive orientée vers l'action :
                 </p>
-                <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(0,0,0,0.6)', fontSize: 14, lineHeight: 2 }}>
+                <ul style={{ margin: 0, paddingLeft: 20, color: '#475569', fontSize: 14, lineHeight: 2 }}>
                   <li>Démonstrations pratiques d'utilisation des outils d'intelligence artificielle</li>
                   <li>Ateliers intensifs de prompt engineering</li>
                   <li>Études de cas inspirées de situations réelles</li>
@@ -503,9 +503,9 @@ export default function ClientPortal() {
 
             {/* Expected Results — always visible */}
             <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0a0a0a', marginTop: 0, marginBottom: 14 }}>🎓 Résultats Attendus</h3>
-              <p style={{ color: 'rgba(0,0,0,0.5)', fontSize: 14, marginBottom: 12 }}>À l'issue du programme, les participants seront capables de :</p>
-              <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(0,0,0,0.6)', fontSize: 14, lineHeight: 2 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1B2A4A', marginTop: 0, marginBottom: 14 }}>🎓 Résultats Attendus</h3>
+              <p style={{ color: '#475569', fontSize: 14, marginBottom: 12 }}>À l'issue du programme, les participants seront capables de :</p>
+              <ul style={{ margin: 0, paddingLeft: 20, color: '#475569', fontSize: 14, lineHeight: 2 }}>
                 <li>Comprendre les enjeux stratégiques de l'intelligence artificielle</li>
                 <li>Utiliser efficacement les outils d'IA générative</li>
                 <li>Maîtriser les techniques de prompting stratégique</li>
@@ -516,7 +516,7 @@ export default function ClientPortal() {
 
             {/* Public cible */}
             <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 14, padding: 24, marginBottom: 28 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0a0a0a', marginTop: 0, marginBottom: 14 }}>👥 Public Cible</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1B2A4A', marginTop: 0, marginBottom: 14 }}>👥 Public Cible</h3>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {["Dirigeants d'entreprises", "Directeurs généraux", "Cadres dirigeants", "Managers", "Responsables de départements", "Décideurs publics"].map((p, i) => (
                   <span key={i} style={{ padding: '6px 14px', borderRadius: 100, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.2)', color: '#C9A84C', fontSize: 13, fontWeight: 600 }}>{p}</span>
@@ -529,23 +529,23 @@ export default function ClientPortal() {
               <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 12, padding: 20 }}>
                 <div style={{ fontSize: 18, marginBottom: 8 }}>🏨</div>
                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Lieu</div>
-                <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>Hôtel Movenpick, Abidjan — Plateau</div>
+                <div style={{ fontSize: 13, color: '#475569' }}>Hôtel Movenpick, Abidjan — Plateau</div>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 12, padding: 20 }}>
                 <div style={{ fontSize: 18, marginBottom: 8 }}>⏰</div>
                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Horaires</div>
-                <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>08h30 — 17h00 (Pause déjeuner incluse)</div>
+                <div style={{ fontSize: 13, color: '#475569' }}>08h30 — 17h00 (Pause déjeuner incluse)</div>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 12, padding: 20 }}>
                 <div style={{ fontSize: 18, marginBottom: 8 }}>💻</div>
                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Matériel</div>
-                <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>Apportez votre laptop. Wi-Fi et supports fournis.</div>
+                <div style={{ fontSize: 13, color: '#475569' }}>Apportez votre laptop. Wi-Fi et supports fournis.</div>
               </div>
             </div>
 
             {/* CABEXIA footer */}
             <div style={{ marginTop: 32, textAlign: 'center', padding: 20, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-              <p style={{ color: 'rgba(0,0,0,0.3)', fontSize: 12, fontStyle: 'italic', margin: 0 }}>
+              <p style={{ color: '#475569', fontSize: 12, fontStyle: 'italic', margin: 0 }}>
                 « L'intelligence artificielle ne remplacera pas les dirigeants. Mais les dirigeants qui maîtrisent l'intelligence artificielle remplaceront ceux qui ne la maîtrisent pas. »
               </p>
               <p style={{ color: 'rgba(0,0,0,0.2)', fontSize: 11, marginTop: 8 }}>
@@ -559,16 +559,16 @@ export default function ClientPortal() {
         {activeTab === 'payment' && (
           <div>
             <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 6 }}>💳 Paiement</h1>
-            <p style={{ color: 'rgba(0,0,0,0.5)', fontSize: 15, marginBottom: 36 }}>Réglez votre inscription pour confirmer définitivement votre place.</p>
+            <p style={{ color: '#475569', fontSize: 15, marginBottom: 36 }}>Réglez votre inscription pour confirmer définitivement votre place.</p>
 
             {/* Amount Card */}
             <div style={{
               background: 'linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05))',
               border: '1px solid rgba(201,168,76,0.3)', borderRadius: 16, padding: 32, marginBottom: 28, textAlign: 'center',
             }}>
-              <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>Montant Total</div>
+              <div style={{ fontSize: 13, color: '#475569', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>Montant Total</div>
               <div style={{ fontSize: 42, fontWeight: 800, color: '#C9A84C' }}>{Number(participant.amount || 540000).toLocaleString('fr-FR')} <span style={{ fontSize: 20 }}>FCFA</span></div>
-              <div style={{ fontSize: 14, color: 'rgba(0,0,0,0.5)', marginTop: 8 }}>{seminar?.title} — {seminar?.week}</div>
+              <div style={{ fontSize: 14, color: '#475569', marginTop: 8 }}>{seminar?.title} — {seminar?.week}</div>
             </div>
 
             {/* Status */}
@@ -582,7 +582,7 @@ export default function ClientPortal() {
                 <div style={{ fontSize: 15, fontWeight: 700, color: participant.status === 'confirmed' ? '#27AE60' : '#F39C12' }}>
                   {participant.status === 'confirmed' ? 'Paiement validé' : 'En attente de paiement'}
                 </div>
-                <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>
+                <div style={{ fontSize: 13, color: '#475569' }}>
                   {participant.status === 'confirmed' ? 'Votre place est confirmée. Bienvenue !' : 'Envoyez votre preuve de paiement par WhatsApp pour validation.'}
                 </div>
               </div>
@@ -598,30 +598,30 @@ export default function ClientPortal() {
                       <span style={{ fontSize: 28 }}>🌊</span>
                       <span style={{ fontSize: 18, fontWeight: 700, color: '#00BFA5' }}>Wave</span>
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#0a0a0a', marginBottom: 8 }}>+225 07 02 61 15 82</div>
-                    <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>Envoyez le montant exact et transmettez la capture de reçu via WhatsApp.</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: '#1B2A4A', marginBottom: 8 }}>+225 07 02 61 15 82</div>
+                    <div style={{ fontSize: 13, color: '#475569' }}>Envoyez le montant exact et transmettez la capture de reçu via WhatsApp.</div>
                   </div>
                   <div style={{ background: 'rgba(255,102,0,0.1)', border: '1px solid rgba(255,102,0,0.3)', borderRadius: 14, padding: 24 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                       <span style={{ fontSize: 28 }}>🟧</span>
                       <span style={{ fontSize: 18, fontWeight: 700, color: '#FF6600' }}>Orange Money</span>
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#0a0a0a', marginBottom: 8 }}>+225 07 02 61 15 82</div>
-                    <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)' }}>Envoyez le montant exact et transmettez la capture de reçu via WhatsApp.</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: '#1B2A4A', marginBottom: 8 }}>+225 07 02 61 15 82</div>
+                    <div style={{ fontSize: 13, color: '#475569' }}>Envoyez le montant exact et transmettez la capture de reçu via WhatsApp.</div>
                   </div>
                   <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 14, padding: 24 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                       <span style={{ fontSize: 28 }}>🏦</span>
                       <span style={{ fontSize: 18, fontWeight: 700 }}>Virement Bancaire</span>
                     </div>
-                    <div style={{ fontSize: 15, color: 'rgba(0,0,0,0.7)', lineHeight: 1.6 }}>Contactez-nous par WhatsApp ou email pour les coordonnées bancaires et la facturation entreprise.</div>
+                    <div style={{ fontSize: 15, color: '#475569', lineHeight: 1.6 }}>Contactez-nous par WhatsApp ou email pour les coordonnées bancaires et la facturation entreprise.</div>
                   </div>
                 </div>
 
                 <div style={{ marginTop: 28, padding: 20, background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 12, textAlign: 'center' }}>
-                  <div style={{ fontSize: 14, color: 'rgba(0,0,0,0.7)', marginBottom: 8 }}>📱 Envoyez votre reçu par WhatsApp à :</div>
+                  <div style={{ fontSize: 14, color: '#475569', marginBottom: 8 }}>📱 Envoyez votre reçu par WhatsApp à :</div>
                   <div style={{ fontSize: 20, fontWeight: 800, color: '#27AE60' }}>+225 07 02 61 15 82</div>
-                  <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.4)', marginTop: 6 }}>Votre statut sera mis à jour sous 2h après réception du reçu.</div>
+                  <div style={{ fontSize: 12, color: '#475569', marginTop: 6 }}>Votre statut sera mis à jour sous 2h après réception du reçu.</div>
                 </div>
               </div>
             )}
@@ -632,25 +632,25 @@ export default function ClientPortal() {
         {activeTab === 'documents' && (
           <div>
             <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 6 }}>📄 Mes Documents</h1>
-            <p style={{ color: 'rgba(0,0,0,0.5)', fontSize: 15, marginBottom: 36 }}>Téléchargez vos documents officiels liés à la formation.</p>
+            <p style={{ color: '#475569', fontSize: 15, marginBottom: 36 }}>Téléchargez vos documents officiels liés à la formation.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
               {/* Attestation */}
               <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 14, padding: 28 }}>
                 <div style={{ fontSize: 40, marginBottom: 16 }}>🎓</div>
                 <h3 style={{ fontSize: 17, fontWeight: 700, marginTop: 0, marginBottom: 8 }}>Attestation de Formation</h3>
-                <p style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)', lineHeight: 1.5, marginBottom: 20 }}>
+                <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, marginBottom: 20 }}>
                   Document officiel certifiant votre participation au séminaire. Délivré par RMK Conseils & CABEXIA.
                 </p>
                 {participant.status === 'confirmed' ? (
                   <button onClick={exportAttestation} style={{
                     width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: '#27AE60',
-                    color: '#0a0a0a', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    color: '#1B2A4A', fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}>
                     ⬇️ Télécharger (PDF)
                   </button>
                 ) : (
-                  <div style={{ padding: '14px', borderRadius: 10, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.4)' }}>
+                  <div style={{ padding: '14px', borderRadius: 10, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)', textAlign: 'center', fontSize: 13, color: '#475569' }}>
                     🔒 Disponible après confirmation du paiement
                   </div>
                 )}
@@ -660,10 +660,10 @@ export default function ClientPortal() {
               <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 14, padding: 28 }}>
                 <div style={{ fontSize: 40, marginBottom: 16 }}>🧾</div>
                 <h3 style={{ fontSize: 17, fontWeight: 700, marginTop: 0, marginBottom: 8 }}>Facture Proforma</h3>
-                <p style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)', lineHeight: 1.5, marginBottom: 20 }}>
+                <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, marginBottom: 20 }}>
                   Facture proforma pour votre entreprise ou service comptable. Montant TTC inclus.
                 </p>
-                <div style={{ padding: '14px', borderRadius: 10, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.4)' }}>
+                <div style={{ padding: '14px', borderRadius: 10, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)', textAlign: 'center', fontSize: 13, color: '#475569' }}>
                   📧 Disponible sur demande par email
                 </div>
               </div>
@@ -672,10 +672,10 @@ export default function ClientPortal() {
               <div style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 14, padding: 28 }}>
                 <div style={{ fontSize: 40, marginBottom: 16 }}>📚</div>
                 <h3 style={{ fontSize: 17, fontWeight: 700, marginTop: 0, marginBottom: 8 }}>Support de Cours</h3>
-                <p style={{ fontSize: 13, color: 'rgba(0,0,0,0.5)', lineHeight: 1.5, marginBottom: 20 }}>
+                <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, marginBottom: 20 }}>
                   Slides, exercices et ressources complémentaires du séminaire. Distribués le Jour 1.
                 </p>
-                <div style={{ padding: '14px', borderRadius: 10, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.4)' }}>
+                <div style={{ padding: '14px', borderRadius: 10, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)', textAlign: 'center', fontSize: 13, color: '#475569' }}>
                   🔒 Disponible à partir du {seminar?.week.split('–')[0]}Mai
                 </div>
               </div>
