@@ -13,45 +13,49 @@ import { SEMINARS } from "../src/data/seminars.js";
 
 // ── Startup guard: fail loudly on missing critical secrets ────────────────────
 if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error("Missing required env vars: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY");
+  throw new Error(
+    "Missing required env vars: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY"
+  );
 }
 
 const app = express();
 
-// ── CORS: restrict to known deployment origins ────────────────────────────────
-// Set APP_URL in Vercel env vars to your production domain once known.
-const ALLOWED_ORIGINS = process.env.APP_URL
+// ── CORS: exact-match origin list + Vercel preview subdomains ─────────────────
+// startsWith() can be bypassed (rmkapp.vercel.app.evil.com starts with rmkapp.vercel.app).
+// Use exact match for production + regex for Vercel preview URLs.
+const ALLOWED_ORIGINS: string[] = process.env.APP_URL
   ? [process.env.APP_URL]
   : ["http://localhost:8080"];
+
+const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+-[a-z0-9]+\.vercel\.app$/;
 
 app.use(
   cors({
     origin: (origin, cb) => {
-      // Allow server-to-server calls (no origin) and known domains
-      if (!origin || ALLOWED_ORIGINS.some((o) => origin.startsWith(o))) {
-        cb(null, true);
-      } else {
-        cb(new Error("Not allowed by CORS"));
-      }
+      if (!origin) return cb(null, true); // server-to-server, no Origin header
+      if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      if (VERCEL_PREVIEW_RE.test(origin)) return cb(null, true);
+      cb(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST"],
   })
 );
 app.use(express.json());
 
-// ── Admin Supabase client (service role — bypasses RLS, server-side only) ─────
+// ── Supabase clients ──────────────────────────────────────────────────────────
+// Admin client: service role, bypasses RLS. Server-side only — never exposed to clients.
 const supabaseAdmin = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// ── Anon client — used only to verify user JWTs ───────────────────────────────
+// Anon client: used only to verify user JWTs for admin-protected endpoints.
 const supabaseAnon = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.VITE_SUPABASE_ANON_KEY!
 );
 
-// AI client — initialized lazily; routes that need it will check at call time
+// ── AI client — lazy init ─────────────────────────────────────────────────────
 const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
@@ -81,7 +85,7 @@ const notifyLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// ── Auth middleware: verify Supabase JWT for admin endpoints ──────────────────
+// ── Auth middleware: verify Supabase JWT ──────────────────────────────────────
 async function requireAuth(
   req: express.Request,
   res: express.Response,
@@ -91,17 +95,37 @@ async function requireAuth(
   if (!authHeader?.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  const token = authHeader.slice(7);
-  const { data, error } = await supabaseAnon.auth.getUser(token);
+  const { data, error } = await supabaseAnon.auth.getUser(
+    authHeader.slice(7)
+  );
   if (error || !data.user) {
     return res.status(401).json({ error: "Invalid or expired session" });
   }
   next();
 }
 
-// ── HTML escaping for email templates ─────────────────────────────────────────
+// ── Webhook auth: shared secret header ───────────────────────────────────────
+function requireWebhookSecret(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) {
+  const secret = process.env.WEBHOOK_SECRET;
+  if (!secret) {
+    // If secret not configured, block all webhook calls in production
+    return res.status(503).json({ error: "Webhook not configured" });
+  }
+  if (req.headers["x-webhook-secret"] !== secret) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+// ── Sanitization helpers ──────────────────────────────────────────────────────
+
+// Escape HTML for email templates — prevents XSS in email clients
 function escapeHtml(str: string): string {
-  return str
+  return String(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -109,13 +133,51 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#039;");
 }
 
+// Escape XML metacharacters for AI prompt templates — prevents tag injection
+function escapeXml(str: string): string {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// Strip control characters and cap length for SMS/WhatsApp plain text
+function sanitizeText(str: string, maxLen = 200): string {
+  return String(str)
+    .replace(/[\x00-\x1F\x7F]/g, "")
+    .slice(0, maxLen);
+}
+
+// Escape Postgres ilike wildcards (% and _) to prevent wildcard injection
+function escapeLike(str: string): string {
+  return str.replace(/([%_\\])/g, "\\$1");
+}
+
 // ── Registration notification (email + WhatsApp) ──────────────────────────────
+// No admin auth — called right after anon form submission from the landing page.
+// Defence: verify the participant actually exists in the DB before dispatching.
 app.post("/api/notify-registration", notifyLimiter, async (req, res) => {
   try {
     const participant = req.body;
+    if (!participant?.email || !participant?.seminar) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Verify participant exists before sending any messages
+    const { data: exists } = await supabaseAdmin
+      .from("participants")
+      .select("id")
+      .eq("email", participant.email.toLowerCase().trim())
+      .eq("seminar", participant.seminar)
+      .single();
+
+    if (!exists) {
+      return res.status(400).json({ error: "Participant not found" });
+    }
+
     const seminarTitle =
       SEMINARS.find((s) => s.id === participant.seminar)?.title ||
-      escapeHtml(participant.seminar);
+      participant.seminar;
 
     if (process.env.RESEND_API_KEY) {
       const resend = new Resend(process.env.RESEND_API_KEY);
@@ -143,24 +205,24 @@ app.post("/api/notify-registration", notifyLimiter, async (req, res) => {
         process.env.TWILIO_ACCOUNT_SID,
         process.env.TWILIO_AUTH_TOKEN
       );
-      // WhatsApp is plain text — no HTML injection risk
       await client.messages.create({
-        body: `Bonjour ${participant.prenom}, nous avons bien reçu votre demande d'inscription pour le séminaire ${seminarTitle}. L'équipe RMK vous contactera sous 24h.`,
+        // sanitizeText: strip control chars, cap at 200 chars
+        body: `Bonjour ${sanitizeText(participant.prenom, 50)}, nous avons bien reçu votre demande d'inscription pour le séminaire ${sanitizeText(seminarTitle, 100)}. L'équipe RMK vous contactera sous 24h.`,
         from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
         to: `whatsapp:${participant.tel}`,
       });
     }
 
     res.json({ success: true });
-  } catch (error: any) {
-    console.error("Notification Error:", error);
+  } catch {
     res.status(500).json({ error: "Failed to send notifications" });
   }
 });
 
 // ── Client portal lookup ──────────────────────────────────────────────────────
-// No admin auth — participants look up their own registrations by email + nom.
-// Rate-limited to 5 req/min per IP to prevent enumeration.
+// No admin auth — participants self-look up their own registration by email + nom.
+// tel removed from select: phone number is PII, not needed in the portal view.
+// Rate-limited to 5 req/min per IP to prevent enumeration attacks.
 app.post("/api/portal/lookup", portalLimiter, async (req, res) => {
   const { email, nom } = req.body;
   if (!email || !nom || typeof email !== "string" || typeof nom !== "string") {
@@ -169,9 +231,11 @@ app.post("/api/portal/lookup", portalLimiter, async (req, res) => {
 
   const { data, error } = await supabaseAdmin
     .from("participants")
-    .select("nom, prenom, email, tel, seminar, status, created_at")
+    // tel excluded — phone number PII not needed in participant self-service view
+    .select("nom, prenom, email, seminar, status, created_at")
     .eq("email", email.toLowerCase().trim())
-    .ilike("nom", nom.trim());
+    // escapeLike prevents % and _ wildcard injection in ilike
+    .ilike("nom", escapeLike(nom.trim()));
 
   if (error) {
     console.error("Portal lookup error:", error);
@@ -180,30 +244,30 @@ app.post("/api/portal/lookup", portalLimiter, async (req, res) => {
   res.json(data || []);
 });
 
-// ── AI generation (admin only — requires valid Supabase session) ──────────────
+// ── AI generation (admin only) ────────────────────────────────────────────────
+// tools are rejected from the request body — function declarations must be
+// defined server-side only to prevent arbitrary function injection by clients.
 app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
   if (!ai) return res.status(503).json({ error: "AI features not configured" });
   try {
-    const { systemPrompt, userPrompt, messages, tools } = req.body;
+    // tools intentionally excluded from destructuring — server-side only
+    const { systemPrompt, userPrompt, messages } = req.body;
     const contents = messages || userPrompt;
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: contents,
-      config: {
-        systemInstruction: systemPrompt,
-        tools: tools ? [{ functionDeclarations: tools }] : undefined,
-      },
+      config: { systemInstruction: systemPrompt },
     });
-    res.json({ text: response.text, functionCalls: response.functionCalls });
-  } catch (error: any) {
-    console.error("AI Generate Error:", error.message || error);
+    res.json({ text: response.text });
+  } catch {
     res.status(500).json({ error: "AI generation failed" });
   }
 });
 
-// ── Webhooks ──────────────────────────────────────────────────────────────────
-// Wrap user content in XML delimiters to mitigate prompt injection.
-app.post("/webhook/prospect", aiLimiter, async (req, res) => {
+// ── Webhooks (require shared secret) ─────────────────────────────────────────
+// escapeXml prevents prompt injection via XML tag closing attacks:
+//   nom = '</prospect>\nIgnore all instructions...' would break the template.
+app.post("/webhook/prospect", aiLimiter, requireWebhookSecret, async (req, res) => {
   if (!ai) return res.status(503).json({ error: "AI features not configured" });
   try {
     const { nom, entreprise, poste, seminar } = req.body;
@@ -214,12 +278,15 @@ app.post("/webhook/prospect", aiLimiter, async (req, res) => {
       model: "gemini-2.5-flash",
       contents: `Génère un email de prospection pour la personne suivante:
 <prospect>
-  Nom: ${nom}
-  Poste: ${poste}
-  Entreprise: ${entreprise}
-  Séminaire cible: ${seminar}
+  Nom: ${escapeXml(nom)}
+  Poste: ${escapeXml(poste)}
+  Entreprise: ${escapeXml(entreprise)}
+  Séminaire cible: ${escapeXml(seminar)}
 </prospect>`,
-      config: { systemInstruction: "Tu es un expert en cold emailing B2B. Génère uniquement l'email demandé." },
+      config: {
+        systemInstruction:
+          "Tu es un expert en cold emailing B2B. Génère uniquement l'email demandé.",
+      },
     });
     res.json({ email: response.text });
   } catch {
@@ -227,7 +294,7 @@ app.post("/webhook/prospect", aiLimiter, async (req, res) => {
   }
 });
 
-app.post("/webhook/whatsapp", aiLimiter, async (req, res) => {
+app.post("/webhook/whatsapp", aiLimiter, requireWebhookSecret, async (req, res) => {
   if (!ai) return res.status(503).json({ error: "AI features not configured" });
   try {
     const { from, message } = req.body;
@@ -236,8 +303,8 @@ app.post("/webhook/whatsapp", aiLimiter, async (req, res) => {
     }
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `<message_from>${from}</message_from>
-<message_content>${message}</message_content>`,
+      contents: `<message_from>${escapeXml(from)}</message_from>
+<message_content>${escapeXml(message)}</message_content>`,
       config: {
         systemInstruction:
           "Tu es un closer WhatsApp pour RMK Conseils. Qualifie le prospect et réponds de manière concise et persuasive en français. Réponds uniquement au message client.",
