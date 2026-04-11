@@ -120,7 +120,7 @@ function Nav({ page, setPage }: any) {
     <nav style={{ position:"fixed", top:0, left:0, bottom:0, width:220, background:"#1B2A4A", borderRight:"1px solid rgba(255,255,255,0.06)", zIndex:100, display:"flex", flexDirection:"column", padding:"16px 0", overflowY:"auto" }}>
       <div style={{ padding:"8px 20px 24px", borderBottom:"1px solid rgba(255,255,255,0.06)", marginBottom:8 }}>
         <div style={{ display:"flex", alignItems:"center", gap:8, cursor: "pointer" }} onClick={() => navigate('/')}>
-          <LogoRMK scale={0.4} variant="dark" forceText={true} />
+          <LogoRMK scale={0.4} variant="dark" />
           <div>
             <div style={{ color:"#FAF9F6", fontWeight:700, fontSize:14 }}>RMK CONSEILS</div>
             <div style={{ color:"rgba(250,249,246,0.6)", fontSize:10, letterSpacing:1 }}>ADMIN · MAI 2026</div>

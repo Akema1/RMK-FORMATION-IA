@@ -577,7 +577,7 @@ function InscriptionPage({ selectedSem, seminars }: any) {
             <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Prénom *</label><input id="field-prenom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.prenom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.prenom} onChange={upd("prenom")} placeholder="Votre prénom" />{errors.prenom && <div style={errorStyle}>{errors.prenom}</div>}</div>
           </div>
           <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Email professionnel *</label><input id="field-email" type="email" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.email ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.email} onChange={upd("email")} placeholder="email@entreprise.com" />{errors.email && <div style={errorStyle}>{errors.email}</div>}</div>
-          <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence)</label><input id="field-tel" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.tel ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 XX XX XX XX" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
+          <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence)</label><input id="field-tel" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.tel ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 02 61 15 82" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
             <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Société *</label><input id="field-societe" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.societe ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.societe} onChange={upd("societe")} placeholder="Nom de l'entreprise" />{errors.societe && <div style={errorStyle}>{errors.societe}</div>}</div>
             <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Fonction *</label><input id="field-fonction" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.fonction ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." />{errors.fonction && <div style={errorStyle}>{errors.fonction}</div>}</div>
@@ -622,9 +622,9 @@ function Footer({ setPage }: any) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <LogoRMK scale={0.5} variant="dark" />
-              <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15 }}>RMK <span style={{ color: "#C9A84C" }}>×</span> CABEXIA</span>
+              <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15 }}>RMK CONSEILS</span>
             </div>
-            <p style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.7 }}>Organisé par RMK à Abidjan. Formations délivrées par CABEXIA, Cabinet d'Expertise en Intelligence Artificielle.</p>
+            <p style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.7 }}>Organisé par RMK Conseils à Abidjan.</p>
           </div>
           <div>
             <div style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, letterSpacing: 1, marginBottom: 12, textTransform: "uppercase" }}>Navigation</div>
@@ -651,14 +651,14 @@ function Footer({ setPage }: any) {
             <div style={{ color: "#CBD5E1", fontSize: 14, lineHeight: 2 }}>
               📍 Abidjan, Côte d'Ivoire<br />
               📧 contact@rmk-formations.com<br />
-              📱 +225 07 XX XX XX XX<br />
+              📱 +225 07 02 61 15 82<br />
               💬 WhatsApp disponible
             </div>
           </div>
         </div>
         <div style={{ borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-          <div style={{ color: '#1B2A4A', fontSize: 12 }}>© 2026 RMK × CABEXIA · Tous droits réservés</div>
-          <div style={{ color: '#1B2A4A', fontSize: 12 }}>Formation délivrée par CABEXIA – Cabinet d'Expertise en Intelligence Artificielle</div>
+          <div style={{ color: '#1B2A4A', fontSize: 12 }}>© 2026 RMK Conseils · Tous droits réservés</div>
+          <div style={{ color: '#1B2A4A', fontSize: 12 }}>Formation délivrée par RMK Conseils</div>
         </div>
       </div>
     </footer>

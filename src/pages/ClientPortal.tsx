@@ -125,7 +125,7 @@ export default function ClientPortal() {
       <div style={{ minHeight: '100vh', background: '#FAF9F6', color: '#1B2A4A', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ maxWidth: 460, width: '100%', background: '#FFFFFF', padding: '48px 40px', borderRadius: 24, border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}>
           <div style={{ textAlign: 'center', marginBottom: 40, display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <LogoRMK scale={0.9} variant="light" forceText={true} />
+            <LogoRMK scale={0.9} variant="light" />
             <div style={{ color: '#C9A84C', fontSize: 11, fontWeight: 800, letterSpacing: 4, textTransform: 'uppercase', marginTop: 16 }}>Espace Client Privé</div>
           </div>
 
@@ -184,7 +184,7 @@ export default function ClientPortal() {
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
       }} className="portal-sidebar">
         <div style={{ padding: '0 24px', marginBottom: 40, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <LogoRMK scale={0.5} variant="dark" forceText={true} />
+          <LogoRMK scale={0.5} variant="dark" />
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#FAF9F6', letterSpacing: 1 }}>RMK CONSEILS</div>
             <div style={{ fontSize: 10, color: '#C9A84C', fontWeight: 600, textTransform: 'uppercase' }}>Portail Client</div>
