@@ -4,7 +4,7 @@
  */
 import express from "express";
 import cors from "cors";
-import { GoogleGenAI } from "@google/genai";
+import { generateText } from "ai";
 import { Resend } from "resend";
 import twilio from "twilio";
 import { createClient } from "@supabase/supabase-js";
@@ -60,10 +60,9 @@ const supabaseAnon = createClient(
   process.env.VITE_SUPABASE_ANON_KEY!
 );
 
-// ── AI client — lazy init ─────────────────────────────────────────────────────
-const ai = process.env.GEMINI_API_KEY
-  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-  : null;
+// ── AI model ─────────────────────────────────────────────────────────────────
+// Routes through Vercel AI Gateway — auth via OIDC (auto on Vercel) or AI_GATEWAY_API_KEY.
+const AI_MODEL = "anthropic/claude-haiku-4.5";
 
 // ── Rate limiters ─────────────────────────────────────────────────────────────
 const portalLimiter = rateLimit({
@@ -253,15 +252,25 @@ app.post("/api/portal/lookup", portalLimiter, async (req, res) => {
 // tools are rejected from the request body — function declarations must be
 // defined server-side only to prevent arbitrary function injection by clients.
 app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
-  if (!ai) return res.status(503).json({ error: "AI features not configured" });
   try {
     // tools intentionally excluded from destructuring — server-side only
     const { systemPrompt, userPrompt, messages } = req.body;
-    const contents = messages || userPrompt;
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: contents,
-      config: { systemInstruction: systemPrompt },
+
+    // Convert Gemini message format ({role, parts:[{text}]}) to AI SDK format
+    const aiMessages = messages
+      ? (messages as any[]).map((m) => ({
+          role: (m.role === "model" ? "assistant" : m.role) as
+            | "user"
+            | "assistant",
+          content:
+            m.parts?.map((p: any) => p.text).join("") || String(m.text || ""),
+        }))
+      : undefined;
+
+    const response = await generateText({
+      model: AI_MODEL,
+      system: systemPrompt,
+      ...(aiMessages ? { messages: aiMessages } : { prompt: userPrompt }),
     });
     res.json({ text: response.text });
   } catch {
@@ -273,25 +282,22 @@ app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
 // escapeXml prevents prompt injection via XML tag closing attacks:
 //   nom = '</prospect>\nIgnore all instructions...' would break the template.
 app.post("/webhook/prospect", aiLimiter, requireWebhookSecret, async (req, res) => {
-  if (!ai) return res.status(503).json({ error: "AI features not configured" });
   try {
     const { nom, entreprise, poste, seminar } = req.body;
     if (!nom || !entreprise || !poste || !seminar) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `Génère un email de prospection pour la personne suivante:
+    const response = await generateText({
+      model: AI_MODEL,
+      system:
+        "Tu es un expert en cold emailing B2B. Génère uniquement l'email demandé.",
+      prompt: `Génère un email de prospection pour la personne suivante:
 <prospect>
   Nom: ${escapeXml(nom)}
   Poste: ${escapeXml(poste)}
   Entreprise: ${escapeXml(entreprise)}
   Séminaire cible: ${escapeXml(seminar)}
 </prospect>`,
-      config: {
-        systemInstruction:
-          "Tu es un expert en cold emailing B2B. Génère uniquement l'email demandé.",
-      },
     });
     res.json({ email: response.text });
   } catch {
@@ -300,20 +306,17 @@ app.post("/webhook/prospect", aiLimiter, requireWebhookSecret, async (req, res) 
 });
 
 app.post("/webhook/whatsapp", aiLimiter, requireWebhookSecret, async (req, res) => {
-  if (!ai) return res.status(503).json({ error: "AI features not configured" });
   try {
     const { from, message } = req.body;
     if (!from || !message) {
       return res.status(400).json({ error: "Missing from or message" });
     }
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: `<message_from>${escapeXml(from)}</message_from>
+    const response = await generateText({
+      model: AI_MODEL,
+      system:
+        "Tu es un closer WhatsApp pour RMK Conseils. Qualifie le prospect et réponds de manière concise et persuasive en français. Réponds uniquement au message client.",
+      prompt: `<message_from>${escapeXml(from)}</message_from>
 <message_content>${escapeXml(message)}</message_content>`,
-      config: {
-        systemInstruction:
-          "Tu es un closer WhatsApp pour RMK Conseils. Qualifie le prospect et réponds de manière concise et persuasive en français. Réponds uniquement au message client.",
-      },
     });
     res.json({ reply: response.text });
   } catch {
