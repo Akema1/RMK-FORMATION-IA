@@ -12,9 +12,13 @@ import rateLimit from "express-rate-limit";
 import { SEMINARS } from "../src/data/seminars.js";
 
 // ── Startup guard: fail loudly on missing critical secrets ────────────────────
-if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+if (
+  !process.env.VITE_SUPABASE_URL ||
+  !process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  !process.env.VITE_SUPABASE_ANON_KEY
+) {
   throw new Error(
-    "Missing required env vars: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY"
+    "Missing required env vars: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, VITE_SUPABASE_ANON_KEY"
   );
 }
 
@@ -27,7 +31,8 @@ const ALLOWED_ORIGINS: string[] = process.env.APP_URL
   ? [process.env.APP_URL]
   : ["http://localhost:8080"];
 
-const VERCEL_PREVIEW_RE = /^https:\/\/[a-z0-9-]+-[a-z0-9]+\.vercel\.app$/;
+// Scoped to this project's preview URLs only — prevents other Vercel apps from passing CORS
+const VERCEL_PREVIEW_RE = /^https:\/\/rmk-formation-ia-[a-z0-9-]+\.vercel\.app$/;
 
 app.use(
   cors({
