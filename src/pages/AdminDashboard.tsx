@@ -884,20 +884,108 @@ function FinancePage({ participants, seminars, prices, expenses, refreshExpenses
   const exportPDF = () => {
     const doc = new jsPDF();
     const title = view === "global" ? "Tous les séminaires" : seminars.find((s:any)=>s.id===view)?.title;
-    doc.text(`Rapport Financier - ${title}`, 14, 22);
     
+    // --- Styles ---
+    const brandNavy: [number, number, number] = [27, 42, 74];
+    const brandGold: [number, number, number] = [201, 168, 76];
+    const brandLight: [number, number, number] = [250, 249, 246];
+
+    // --- Header ---
+    doc.setFillColor(...brandNavy);
+    doc.rect(0, 0, 210, 45, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text("RAPPORT FINANCIER", 14, 22);
+    
+    doc.setTextColor(...brandGold);
+    doc.setFontSize(12);
+    doc.text(title.toUpperCase(), 14, 32);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(200, 200, 200);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 155, 22);
+    doc.text("RMK CONSEILS", 155, 32);
+
+    // --- Synthèse Globale ---
+    doc.setTextColor(...brandNavy);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text("1. Synthèse Globale", 14, 60);
+
     autoTable(doc, {
-      startY: 30,
-      head: [['Catégorie', 'Plan (Budget)', 'Réel (Actuel)', 'Écart']],
+      startY: 65,
+      head: [['Indicateur', 'Plan (Budget)', 'Réel (Actuel)', 'Écart']],
       body: [
-        ['Revenus Standard', fmt(plan.revStandard), fmt(actual.revStandard), fmt(actual.revStandard - plan.revStandard)],
-        ['Revenus Early Bird', fmt(plan.revEarlyBird), fmt(actual.revEarlyBird), fmt(actual.revEarlyBird - plan.revEarlyBird)],
+        ['Revenus (Standard)', fmt(plan.revStandard), fmt(actual.revStandard), fmt(actual.revStandard - plan.revStandard)],
+        ['Revenus (Early Bird)', fmt(plan.revEarlyBird), fmt(actual.revEarlyBird), fmt(actual.revEarlyBird - plan.revEarlyBird)],
         ['TOTAL REVENUS', fmt(plan.totalRevenus), fmt(actual.totalRevenus), fmt(actual.totalRevenus - plan.totalRevenus)],
-        ['TOTAL CHARGES', fmt(plan.totalCharges), fmt(actual.totalCharges), fmt(actual.totalCharges - plan.totalCharges)],
+        ['TOTAL CHARGES', fmt(plan.totalCharges), fmt(actual.totalCharges), fmt(plan.totalCharges - actual.totalCharges)],
         ['BÉNÉFICE NET', fmt(plan.net), fmt(actual.net), fmt(actual.net - plan.net)],
       ],
+      headStyles: { fillColor: brandNavy, textColor: [255,255,255], fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { textColor: brandNavy, fontSize: 11 },
+      columnStyles: {
+        0: { fontStyle: 'bold' },
+        1: { halign: 'right' },
+        2: { halign: 'right', textColor: brandGold, fontStyle: 'bold' },
+        3: { halign: 'right', fontStyle: 'bold' }
+      },
+      alternateRowStyles: { fillColor: brandLight },
+      theme: 'grid'
     });
-    doc.save(`finance_${view}.pdf`);
+
+    // --- Détail des Dépenses ---
+    let finalY = (doc as any).lastAutoTable.finalY + 20;
+
+    doc.setTextColor(...brandNavy);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text("2. Détails des Dépenses", 14, finalY);
+
+    const chargesDiff = (p: number, a: number) => fmt(p - a);
+
+    autoTable(doc, {
+      startY: finalY + 5,
+      head: [['Catégorie de Dépense', 'Budget (Plan)', 'Réel (Dépenses)', 'Écart (Économie/Dépassement)']],
+      body: [
+        ['Consultance (Présentiel)', fmt(plan.charges.consultance_pres || 0), fmt(actual.charges.consultance_pres || 0), chargesDiff(plan.charges.consultance_pres || 0, actual.charges.consultance_pres || 0)],
+        ['Consultance (Ligne)', fmt(plan.charges.consultance_ligne || 0), fmt(actual.charges.consultance_ligne || 0), chargesDiff(plan.charges.consultance_ligne || 0, actual.charges.consultance_ligne || 0)],
+        ["Billet d'avion", fmt(plan.charges.billet_avion || 0), fmt(actual.charges.billet_avion || 0), chargesDiff(plan.charges.billet_avion || 0, actual.charges.billet_avion || 0)],
+        ['Hébergement / Séjour', fmt(plan.charges.sejour || 0), fmt(actual.charges.sejour || 0), chargesDiff(plan.charges.sejour || 0, actual.charges.sejour || 0)],
+        ['Location Salle', fmt(plan.charges.salle || 0), fmt(actual.charges.salle || 0), chargesDiff(plan.charges.salle || 0, actual.charges.salle || 0)],
+        ['Pauses Café', fmt(plan.charges.pauses_cafe || 0), fmt(actual.charges.pauses_cafe || 0), chargesDiff(plan.charges.pauses_cafe || 0, actual.charges.pauses_cafe || 0)],
+        ['Déjeuners', fmt(plan.charges.dejeuner || 0), fmt(actual.charges.dejeuner || 0), chargesDiff(plan.charges.dejeuner || 0, actual.charges.dejeuner || 0)],
+        ['Supports Pédagogiques', fmt(plan.charges.supports || 0), fmt(actual.charges.supports || 0), chargesDiff(plan.charges.supports || 0, actual.charges.supports || 0)],
+        ['Équipements', fmt(plan.charges.equipements || 0), fmt(actual.charges.equipements || 0), chargesDiff(plan.charges.equipements || 0, actual.charges.equipements || 0)],
+        ['Communication / Mkt', fmt(plan.charges.commercialisation || 0), fmt(actual.charges.commercialisation || 0), chargesDiff(plan.charges.commercialisation || 0, actual.charges.commercialisation || 0)],
+        ['Transport local', fmt(plan.charges.transport || 0), fmt(actual.charges.transport || 0), chargesDiff(plan.charges.transport || 0, actual.charges.transport || 0)],
+        ['Divers & Imprévus', fmt(plan.charges.divers || 0), fmt(actual.charges.divers || 0), chargesDiff(plan.charges.divers || 0, actual.charges.divers || 0)],
+      ],
+      headStyles: { fillColor: brandNavy, textColor: [255,255,255], fontStyle: 'bold' },
+      bodyStyles: { textColor: brandNavy, fontSize: 10 },
+      columnStyles: {
+        0: { fontStyle: 'bold' },
+        1: { halign: 'right' },
+        2: { halign: 'right', fontStyle: 'bold' },
+        3: { halign: 'right' }
+      },
+      alternateRowStyles: { fillColor: brandLight },
+      theme: 'grid',
+    });
+
+    // --- Footer Pages ---
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`RMK CONSEILS - Document Confidentiel - Page ${i} sur ${pageCount}`, 14, 290);
+    }
+
+    doc.save(`RMK_Finance_${view}.pdf`);
   };
 
   const chartData = [
