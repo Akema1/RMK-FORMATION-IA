@@ -15,7 +15,7 @@ const SYLLABUS = [
   { day: "Jour 2", mode: "Présentiel", location: "Abidjan", title: "Ingénierie de Prompts & Outils Avancés", desc: "Maîtrise complète de ChatGPT, Claude et Gemini. Techniques avancées pour automatiser l'analyse de données, la rédaction et la prise de décision.", color: "#C9A84C" },
   { day: "Jour 3", mode: "Présentiel", location: "Abidjan", title: "Atelier Pratique : Construire vos Solutions", desc: "Déploiement sur vos propres données professionnelles. Création de workflows intelligents et d'assistants IA sur-mesure pour votre entreprise.", color: "#C9A84C" },
   { day: "Jour 4", mode: "Distanciel", location: "En ligne", title: "Accompagnement & Implémentation", desc: "Suivi à distance de la mise en œuvre. Sessions individuelles de coaching. Résolution de problèmes spécifiques à votre contexte professionnel.", color: "#27AE60" },
-  { day: "Jour 5", mode: "Distanciel", location: "En ligne", title: "Évaluation & Certification", desc: "Validation des acquis et des cas d'usage en situation réelle. Présentation des projets finaux. Remise des attestations officielles CABEXIA.", color: "#27AE60" },
+  { day: "Jour 5", mode: "Distanciel", location: "En ligne", title: "Évaluation & Certification", desc: "Validation des acquis et des cas d'usage en situation réelle. Présentation des projets finaux. Remise des attestations officielles par RMK CONSEILS.", color: "#27AE60" },
 ];
 
 import { LogoRMK } from "../components/LogoRMK";
@@ -112,7 +112,7 @@ export default function ClientPortal() {
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
     doc.text("Le Directeur Général, RMK Conseils", 50, 180, { align: "center" });
-    doc.text("L'Expert Formateur, CABEXIA", 247, 180, { align: "center" });
+    doc.text("L'Expert Formateur Consultant", 247, 180, { align: "center" });
     
     doc.save(`Attestation_${participant.nom}_${s.code}.pdf`);
   };
@@ -125,12 +125,12 @@ export default function ClientPortal() {
       <div style={{ minHeight: '100vh', background: '#FAF9F6', color: '#1B2A4A', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ maxWidth: 460, width: '100%', background: '#FFFFFF', padding: '48px 40px', borderRadius: 24, border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}>
           <div style={{ textAlign: 'center', marginBottom: 40, display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <LogoRMK scale={0.9} variant="light" />
-            <div style={{ color: '#C9A84C', fontSize: 11, fontWeight: 800, letterSpacing: 4, textTransform: 'uppercase', marginTop: 16 }}>Espace Client Privé</div>
+            <LogoRMK scale={1.2} variant="light" />
+            <div style={{ color: '#C9A84C', fontSize: 13, fontWeight: 800, letterSpacing: 5, textTransform: 'uppercase', marginTop: 20 }}>Espace Client Privé</div>
           </div>
 
-          <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 12, textAlign: 'center', color: '#1B2A4A' }}>Accès Formation</h2>
-          <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 1.6 }}>Veuillez vous identifier avec l'email utilisé lors de votre inscription.</p>
+          <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12, textAlign: 'center', color: '#1B2A4A' }}>Accès Formation</h2>
+          <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 1.6 }}>Identifiez-vous pour accéder à votre programme et vos documents.</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ position: 'relative' }}>
@@ -184,10 +184,10 @@ export default function ClientPortal() {
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
       }} className="portal-sidebar">
         <div style={{ padding: '0 24px', marginBottom: 40, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <LogoRMK scale={0.5} variant="dark" />
-          <div>
+          <LogoRMK scale={0.45} variant="dark" />
+          <div style={{ borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: 12 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#FAF9F6', letterSpacing: 1 }}>RMK CONSEILS</div>
-            <div style={{ fontSize: 10, color: '#C9A84C', fontWeight: 600, textTransform: 'uppercase' }}>Portail Client</div>
+            <div style={{ fontSize: 10, color: '#C9A84C', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Espace Privé</div>
           </div>
         </div>
 
@@ -429,9 +429,9 @@ export default function ClientPortal() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ padding: '16px', background: 'rgba(0,0,0,0.03)', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)' }}>
                     <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.4)', marginBottom: 4 }}>WAVE / ORANGE</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#1B2A4A' }}>+2250702611582</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#1B2A4A' }}>+225 07 02 61 15 82</div>
                   </div>
-                  <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.5)', lineHeight: 1.5 }}>Envoyez votre reçu via WhatsApp au même numéro pour une validation rapide.</p>
+                  <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.5)', lineHeight: 1.5 }}>Envoyez votre reçu via WhatsApp au même numéro (+225 07 02 61 15 82) pour une validation rapide.</p>
                 </div>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, padding: 28 }}>
@@ -449,15 +449,17 @@ export default function ClientPortal() {
             <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: '#1B2A4A' }}>🤝 Communauté RMK</h1>
             <p style={{ color: '#C9A84C', fontSize: 16, marginBottom: 40, fontWeight: 600 }}>Espace exclusif de networking pour la cohorte Mai 2026.</p>
 
-            <div style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.1)', borderRadius: 24, padding: 40, textAlign: 'center', marginBottom: 32 }}>
-              <div style={{ fontSize: 48, marginBottom: 20 }}>🚀</div>
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1B2A4A', marginBottom: 12 }}>Bievenue dans le groupe !</h2>
-              <p style={{ fontSize: 16, color: 'rgba(27,42,74,0.6)', maxWidth: 600, margin: '0 auto 28px', lineHeight: 1.6 }}>
-                Vous faites maintenant partie des dirigeants qui transforment leur vision grâce à l'IA. 
-                Rejoignez vos pairs pour échanger avant même le début de la session.
+            <div style={{ background: '#1B2A4A', border: '1px solid #C9A84C', borderRadius: 24, padding: 48, textAlign: 'center', marginBottom: 40, boxShadow: '0 20px 40px rgba(27,42,74,0.15)' }}>
+              <div style={{ fontSize: 56, marginBottom: 24 }}>🚀</div>
+              <h2 style={{ fontSize: 28, fontWeight: 700, color: '#FAF9F6', marginBottom: 16 }}>Bienvenue dans l'Élite de l'IA</h2>
+              <p style={{ fontSize: 17, color: 'rgba(250,249,246,0.7)', maxWidth: 650, margin: '0 auto 36px', lineHeight: 1.8 }}>
+                Félicitations, <strong style={{ color: '#C9A84C' }}>{participant.prenom}</strong> ! Vous faites maintenant partie d'un réseau exclusif de dirigeants ivoiriens tournés vers l'avenir. 
+                Échangez, partagez vos défis et collaborez avant même la session présentielle.
               </p>
-              <button style={{ padding: '16px 32px', borderRadius: 12, background: '#25D366', color: '#FFFFFF', border: 'none', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 10, boxShadow: '0 10px 20px rgba(37,211,102,0.1)' }}>
-                <span>Rejoindre le groupe WhatsApp Privé</span>
+              <button onClick={() => window.open('https://chat.whatsapp.com/ExempleLink', '_blank')} 
+                style={{ padding: '20px 40px', borderRadius: 14, background: '#25D366', color: '#FFFFFF', border: 'none', fontSize: 17, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 12, boxShadow: '0 10px 30px rgba(37,211,102,0.3)', transition: 'all 0.3s' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                Rejoindre le groupe WhatsApp RMK
               </button>
             </div>
 

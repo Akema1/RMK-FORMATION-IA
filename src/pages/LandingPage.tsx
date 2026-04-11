@@ -531,6 +531,12 @@ function InscriptionPage({ selectedSem, seminars }: any) {
       const { error: dbError } = await supabase.from('participants').insert([newParticipant]);
       if (dbError) throw dbError;
       
+      // -- AUTO TASKS GENERATOR --
+      await supabase.from('tasks').insert([
+        { task: `[Onboarding] Vérifier dossier & appeler ${newParticipant.prenom} ${newParticipant.nom}`, owner: 'alexis', priority: 'high', seminar: newParticipant.seminar },
+        { task: `[Finance] Confirmer paiement de ${newParticipant.prenom} ${newParticipant.nom}`, owner: 'alexis', priority: 'medium', seminar: newParticipant.seminar }
+      ]);
+      
       // Send notifications
       try {
         await fetch('/api/notify-registration', {
@@ -651,7 +657,7 @@ function Footer({ setPage }: any) {
             <div style={{ color: "#CBD5E1", fontSize: 14, lineHeight: 2 }}>
               📧 contact@rmkconsulting.pro<br />
               📧 rkedem@rmkconsulting.pro<br />
-              📱 +2250702611582 WhatsApp
+              📱 +225 07 02 61 15 82 WhatsApp
             </div>
           </div>
         </div>
@@ -661,6 +667,42 @@ function Footer({ setPage }: any) {
         </div>
       </div>
     </footer>
+  );
+}
+
+// ─── LEAD MAGNET ───
+function ContactLead() {
+  const [lead, setLead] = useState({ nom: "", contact: "", source: "Téléchargement Brochure" });
+  const [sent, setSent] = useState(false);
+
+  const saveLead = async () => {
+    if (!lead.nom || !lead.contact) return;
+    await supabase.from('leads').insert([lead]);
+    await supabase.from('tasks').insert([{ task: `[Commercial] Rappeler le prospect ${lead.nom} (Contact: ${lead.contact})`, owner: 'alexis', priority: 'high', seminar: 'all' }]);
+    setSent(true);
+  };
+
+  if (sent) return (
+    <section style={{ padding: "60px 24px", background: "#1B2A4A", textAlign: "center" }}>
+      <div style={{ color: "#27AE60", fontSize: 40, marginBottom: 12 }}>✓</div>
+      <h3 style={{ color: "#fff", fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Demande bien reçue !</h3>
+      <p style={{ color: "rgba(255,255,255,0.7)" }}>Notre équipe vous contactera très rapidement avec les informations demandées.</p>
+    </section>
+  );
+
+  return (
+    <section style={{ padding: "80px 24px", background: "#1B2A4A", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
+        <h3 style={{ fontSize: 28, fontWeight: 800, color: "#fff", marginBottom: 16 }}>Pas encore décidé ? Recevez la brochure complète.</h3>
+        <p style={{ color: "rgba(255,255,255,0.7)", marginBottom: 32 }}>Laissez-nous vos coordonnées. Un conseiller RMK vous rappellera pour répondre à vos questions et vous envoyer le PDF détaillé du programme.</p>
+        
+        <div style={{ display: "flex", gap: 12, flexDirection: "column", maxWidth: 400, margin: "0 auto" }}>
+          <input style={{ padding: "16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.2)", color: "#fff", fontSize: 15 }} value={lead.nom} onChange={e => setLead({...lead, nom: e.target.value})} placeholder="Votre Nom & Prénom" />
+          <input style={{ padding: "16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.2)", color: "#fff", fontSize: 15 }} value={lead.contact} onChange={e => setLead({...lead, contact: e.target.value})} placeholder="Numéro de téléphone / Email" />
+          <button onClick={saveLead} style={{ background: "#C9A84C", color: "#1B2A4A", border: "none", padding: "16px", borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: "pointer", marginTop: 8 }}>M'envoyer la brochure</button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -732,7 +774,7 @@ export default function LandingPage() {
       {page === "seminaires" && <SeminarsPage setPage={setPage} seminars={seminars} setSelectedSem={setSelectedSem} />}
       {page === "tarifs" && <PricingPage setPage={setPage} seminars={seminars} setSelectedSem={setSelectedSem} />}
       {page === "inscription" && <InscriptionPage selectedSem={selectedSem} seminars={seminars} />}
-      
+      {page === "home" && <ContactLead />}
       <Footer setPage={setPage} />
     </div>
   );
