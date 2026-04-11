@@ -4,7 +4,7 @@ import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
 import { LogoRMK } from "../components/LogoRMK";
 
-const SEMINARS = [
+const DEFAULT_SEMINARS = [
   {
     id: "s1",
     code: "S1",
@@ -229,7 +229,7 @@ function CountdownBlock() {
   );
 }
 
-function Hero({ setPage }: { setPage: (p: string) => void }) {
+function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: any[] }) {
   return (
     <section style={{
       minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
@@ -277,7 +277,7 @@ function Hero({ setPage }: { setPage: (p: string) => void }) {
       </div>
 
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 48, position: "relative", zIndex: 1 }}>
-        {SEMINARS.map((s) => (
+        {seminars.map((s: any) => (
           <div key={s.id} style={{
             background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12,
             padding: "14px 20px", display: "flex", alignItems: "center", gap: 10, minWidth: 200,
@@ -410,7 +410,7 @@ function SeminarCard({ sem, onSelect, delay = 0 }: any) {
   );
 }
 
-function SeminarsPage({ setPage, setSelectedSem }: any) {
+function SeminarsPage({ setPage, seminars, setSelectedSem }: any) {
   return (
     <section style={{ background: "#FAF9F6", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
@@ -420,7 +420,7 @@ function SeminarsPage({ setPage, setSelectedSem }: any) {
           <p style={{ color: '#1B2A4A', fontSize: 16 }}>Chaque séminaire : 3 jours présentiel à Abidjan + 2 sessions en ligne de 4h · Formation délivrée par CABEXIA</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: 24 }}>
-          {SEMINARS.map((s, i) => (
+          {seminars.map((s: any, i: number) => (
             <SeminarCard key={s.id} sem={s} delay={i * 100} onSelect={(id: string) => { setSelectedSem(id); setPage("inscription"); window.scrollTo(0, 0); }} />
           ))}
         </div>
@@ -429,7 +429,7 @@ function SeminarsPage({ setPage, setSelectedSem }: any) {
   );
 }
 
-function PricingPage({ setPage, setSelectedSem }: any) {
+function PricingPage({ setPage, seminars, setSelectedSem }: any) {
   const [ref, vis] = useInView();
   const offers = [
     { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne"], cta: "S'inscrire", primary: false },
@@ -473,7 +473,7 @@ function PricingPage({ setPage, setSelectedSem }: any) {
   );
 }
 
-function InscriptionPage({ selectedSem }: any) {
+function InscriptionPage({ selectedSem, seminars }: any) {
   const [form, setForm] = useState({ nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -586,7 +586,7 @@ function InscriptionPage({ selectedSem }: any) {
             <label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Séminaire souhaité *</label>
             <select id="field-seminaire" style={{ ...inputStyle, cursor: "pointer", background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.seminaire ? "#E74C3C" : "rgba(0,0,0,0.1)" }} value={form.seminaire} onChange={upd("seminaire")}>
               <option value="" style={{ color: "#000" }}>-- Choisir un séminaire --</option>
-              {SEMINARS.map((s) => <option key={s.id} value={s.id} style={{ color: "#000" }}>{s.code} – {s.title} ({s.week})</option>)}
+              {seminars.map((s: any) => <option key={s.id} value={s.id} style={{ color: "#000" }}>{s.code} – {s.title} ({s.week})</option>)}
               <option value="pack2" style={{ color: "#000" }}>📦 Pack 2 séminaires (au choix)</option>
               <option value="pack4" style={{ color: "#000" }}>📦 Pack 4 séminaires (-20%)</option>
             </select>
@@ -670,6 +670,17 @@ function Footer({ setPage }: any) {
 export default function LandingPage() {
   const [page, setPage] = useState("home");
   const [selectedSem, setSelectedSem] = useState("");
+  const [seminars, setSeminars] = useState<any[]>(DEFAULT_SEMINARS);
+
+  useEffect(() => {
+    const fetchSeminars = async () => {
+      const { data, error } = await supabase.from('seminars').select('*').order('code');
+      if (!error && data && data.length > 0) {
+        setSeminars(data);
+      }
+    };
+    fetchSeminars();
+  }, []);
 
   return (
     <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", margin: 0, minHeight: "100vh", background: "#FAF9F6" }}>
@@ -693,7 +704,7 @@ export default function LandingPage() {
       
       {page === "home" && (
         <>
-          <Hero setPage={setPage} />
+          <Hero setPage={setPage} seminars={seminars} />
           <FormatSection />
           <section style={{ background: "#FAF9F6", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
             <div style={{ maxWidth: 1100, margin: "0 auto" }}>
@@ -702,7 +713,7 @@ export default function LandingPage() {
                 <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1B2A4A", margin: 0 }}>Choisissez votre séminaire</h2>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: 24 }}>
-                {SEMINARS.map((s, i) => (
+                {seminars.map((s: any, i: number) => (
                   <SeminarCard key={s.id} sem={s} delay={i * 100} onSelect={(id: string) => { setSelectedSem(id); setPage("inscription"); window.scrollTo(0, 0); }} />
                 ))}
               </div>
@@ -719,9 +730,9 @@ export default function LandingPage() {
         </>
       )}
       
-      {page === "seminaires" && <SeminarsPage setPage={setPage} setSelectedSem={setSelectedSem} />}
-      {page === "tarifs" && <PricingPage setPage={setPage} setSelectedSem={setSelectedSem} />}
-      {page === "inscription" && <InscriptionPage selectedSem={selectedSem} />}
+      {page === "seminaires" && <SeminarsPage setPage={setPage} seminars={seminars} setSelectedSem={setSelectedSem} />}
+      {page === "tarifs" && <PricingPage setPage={setPage} seminars={seminars} setSelectedSem={setSelectedSem} />}
+      {page === "inscription" && <InscriptionPage selectedSem={selectedSem} seminars={seminars} />}
       
       <Footer setPage={setPage} />
     </div>

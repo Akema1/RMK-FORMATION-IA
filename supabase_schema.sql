@@ -20,10 +20,29 @@ CREATE TABLE IF NOT EXISTS public.leads (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   nom TEXT NOT NULL,
-  entreprise TEXT NOT NULL,
-  status TEXT DEFAULT 'Nouveau'::text,
-  value INTEGER DEFAULT 0,
-  lastContact TEXT
+  entreprise TEXT,
+  contact TEXT,
+  source TEXT,
+  status TEXT DEFAULT 'froid'::text,
+  notes TEXT
+);
+
+-- Table: seminars (Configuration des séminaires)
+CREATE TABLE IF NOT EXISTS public.seminars (
+  id TEXT PRIMARY KEY, -- Using custom string IDs like 's1', 's2' for compatibility
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  code TEXT NOT NULL,
+  title TEXT NOT NULL,
+  week TEXT NOT NULL,
+  icon TEXT NOT NULL,
+  color TEXT NOT NULL,
+  seats INTEGER NOT NULL,
+  targets JSONB DEFAULT '[]'::jsonb,
+  sectors JSONB DEFAULT '[]'::jsonb,
+  flyer_subtitle TEXT,
+  flyer_highlight TEXT,
+  flyer_bullets JSONB DEFAULT '[]'::jsonb,
+  flyer_image TEXT
 );
 
 -- Table: tasks (Tâches opérationnelles)
@@ -51,3 +70,4 @@ ALTER TABLE public.participants DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leads DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seminars DISABLE ROW LEVEL SECURITY;

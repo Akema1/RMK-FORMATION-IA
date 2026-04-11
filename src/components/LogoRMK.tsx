@@ -6,11 +6,13 @@ import React, { useState } from 'react';
 export function LogoRMK({ 
   scale = 1, 
   variant = 'light',
-  showFrame = true 
+  showFrame = true,
+  forceText = false
 }: { 
   scale?: number; 
   variant?: 'dark' | 'light';
   showFrame?: boolean;
+  forceText?: boolean;
 }) {
   const [error, setError] = useState(false);
   const w = 140 * scale;
@@ -18,7 +20,7 @@ export function LogoRMK({
   const imageSrc = variant === 'dark' ? '/logo-white.png' : '/logo.png';
   const textColor = variant === 'dark' ? '#FFFFFF' : '#1B2A4A';
 
-  if (error) {
+  if (error || forceText) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: w }}>
         <span style={{ fontSize: 24 * scale, fontWeight: 800, color: textColor, letterSpacing: 1 }}>RMK</span>
