@@ -5,6 +5,7 @@
 import express from "express";
 import cors from "cors";
 import { generateText } from "ai";
+import { gateway } from "@ai-sdk/gateway";
 import { Resend } from "resend";
 import twilio from "twilio";
 import { createClient } from "@supabase/supabase-js";
@@ -62,7 +63,7 @@ const supabaseAnon = createClient(
 
 // ── AI model ─────────────────────────────────────────────────────────────────
 // Routes through Vercel AI Gateway — auth via OIDC (auto on Vercel) or AI_GATEWAY_API_KEY.
-const AI_MODEL = "anthropic/claude-haiku-4.5";
+const AI_MODEL = gateway("anthropic/claude-haiku-4.5");
 
 // ── Rate limiters ─────────────────────────────────────────────────────────────
 const portalLimiter = rateLimit({
@@ -218,7 +219,8 @@ app.post("/api/notify-registration", notifyLimiter, async (req, res) => {
     }
 
     res.json({ success: true });
-  } catch {
+  } catch (err) {
+    console.error("Notification error:", err);
     res.status(500).json({ error: "Failed to send notifications" });
   }
 });
@@ -257,14 +259,17 @@ app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
     const { systemPrompt, userPrompt, messages } = req.body;
 
     // Convert Gemini message format ({role, parts:[{text}]}) to AI SDK format
+    const VALID_ROLES = new Set(["user", "assistant", "model"]);
     const aiMessages = messages
-      ? (messages as any[]).map((m) => ({
-          role: (m.role === "model" ? "assistant" : m.role) as
-            | "user"
-            | "assistant",
-          content:
-            m.parts?.map((p: any) => p.text).join("") || String(m.text || ""),
-        }))
+      ? (messages as any[])
+          .filter((m) => VALID_ROLES.has(m.role))
+          .map((m) => ({
+            role: (m.role === "model" ? "assistant" : m.role) as
+              | "user"
+              | "assistant",
+            content:
+              m.parts?.map((p: any) => p.text).join("") || String(m.text || ""),
+          }))
       : undefined;
 
     const response = await generateText({
@@ -273,7 +278,8 @@ app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
       ...(aiMessages ? { messages: aiMessages } : { prompt: userPrompt }),
     });
     res.json({ text: response.text });
-  } catch {
+  } catch (err) {
+    console.error("AI generation error:", err);
     res.status(500).json({ error: "AI generation failed" });
   }
 });
@@ -300,7 +306,8 @@ app.post("/webhook/prospect", aiLimiter, requireWebhookSecret, async (req, res) 
 </prospect>`,
     });
     res.json({ email: response.text });
-  } catch {
+  } catch (err) {
+    console.error("Prospect email generation error:", err);
     res.status(500).json({ error: "Failed to generate email" });
   }
 });
@@ -319,7 +326,8 @@ app.post("/webhook/whatsapp", aiLimiter, requireWebhookSecret, async (req, res) 
 <message_content>${escapeXml(message)}</message_content>`,
     });
     res.json({ reply: response.text });
-  } catch {
+  } catch (err) {
+    console.error("WhatsApp reply generation error:", err);
     res.status(500).json({ error: "Failed to generate reply" });
   }
 });

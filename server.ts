@@ -7,6 +7,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { generateText } from "ai";
+import { gateway } from "@ai-sdk/gateway";
 import cron from "node-cron";
 import path from "path";
 import { Resend } from "resend";
@@ -54,7 +55,7 @@ async function startServer() {
   // ── AI model ──────────────────────────────────────────────────────────────
   // Routes through Vercel AI Gateway — auth via OIDC or AI_GATEWAY_API_KEY.
   // For local dev: run `vercel env pull .env.local` or set AI_GATEWAY_API_KEY.
-  const AI_MODEL = "anthropic/claude-haiku-4.5";
+  const AI_MODEL = gateway("anthropic/claude-haiku-4.5");
 
   // ── Rate limiters ─────────────────────────────────────────────────────────
   const portalLimiter = rateLimit({
@@ -207,7 +208,8 @@ async function startServer() {
       }
 
       res.json({ success: true });
-    } catch {
+    } catch (err) {
+      console.error("Notification error:", err);
       res.status(500).json({ error: "Failed to send notifications" });
     }
   });
@@ -246,15 +248,18 @@ async function startServer() {
       const { systemPrompt, userPrompt, messages } = req.body;
 
       // Convert Gemini message format ({role, parts:[{text}]}) to AI SDK format
+      const VALID_ROLES = new Set(["user", "assistant", "model"]);
       const aiMessages = messages
-        ? (messages as any[]).map((m) => ({
-            role: (m.role === "model" ? "assistant" : m.role) as
-              | "user"
-              | "assistant",
-            content:
-              m.parts?.map((p: any) => p.text).join("") ||
-              String(m.text || ""),
-          }))
+        ? (messages as any[])
+            .filter((m) => VALID_ROLES.has(m.role))
+            .map((m) => ({
+              role: (m.role === "model" ? "assistant" : m.role) as
+                | "user"
+                | "assistant",
+              content:
+                m.parts?.map((p: any) => p.text).join("") ||
+                String(m.text || ""),
+            }))
         : undefined;
 
       const response = await generateText({
@@ -263,7 +268,8 @@ async function startServer() {
         ...(aiMessages ? { messages: aiMessages } : { prompt: userPrompt }),
       });
       res.json({ text: response.text });
-    } catch {
+    } catch (err) {
+      console.error("AI generation error:", err);
       res.status(500).json({ error: "AI generation failed" });
     }
   });
@@ -292,7 +298,8 @@ async function startServer() {
 </prospect>`,
         });
         res.json({ email: response.text });
-      } catch {
+      } catch (err) {
+        console.error("Prospect email generation error:", err);
         res.status(500).json({ error: "Failed to generate email" });
       }
     }
@@ -316,7 +323,8 @@ async function startServer() {
 <message_content>${escapeXml(message)}</message_content>`,
         });
         res.json({ reply: response.text });
-      } catch {
+      } catch (err) {
+        console.error("WhatsApp reply generation error:", err);
         res.status(500).json({ error: "Failed to generate reply" });
       }
     }
