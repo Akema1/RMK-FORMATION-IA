@@ -1084,15 +1084,59 @@ function FinancePage({ participants, seminars, prices, expenses, refreshExpenses
   );
 }
 
-function ExpenseManager({ expenses, seminars, refreshExpenses }: any) {
-  const [form, setForm] = useState({ label:"", amount:0, category:"salle", seminar:"all", paid:false });
-  const upd = (k: string) => (e: any) => setForm({ ...form, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+const EXPENSE_CATEGORIES = [
+  { value: "consultance_pres", label: "Consultance (Présentiel)" },
+  { value: "consultance_ligne", label: "Consultance (En Ligne)" },
+  { value: "billet_avion", label: "Billet d'avion" },
+  { value: "sejour", label: "Hébergement / Séjour" },
+  { value: "salle", label: "Location Salle" },
+  { value: "pauses_cafe", label: "Pauses Café" },
+  { value: "dejeuner", label: "Déjeuners" },
+  { value: "supports", label: "Supports Pédagogiques" },
+  { value: "equipements", label: "Équipements" },
+  { value: "commercialisation", label: "Communication / Mkt" },
+  { value: "transport", label: "Transport local" },
+  { value: "divers", label: "Divers & Imprévus" }
+];
 
-  const addExpense = async () => {
+function ExpenseManager({ expenses, seminars, refreshExpenses }: any) {
+  const [form, setForm] = useState({ label:"", amount:0, category:"consultance_pres", seminar:"all", paid:false });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ label:"", amount:0, category:"", seminar:"", paid:false });
+  
+  const totalExpenses = expenses.reduce((s: number, e: any) => s + (e.amount || 0), 0);
+  const totalPaid = expenses.filter((e: any) => e.paid).reduce((s: number, e: any) => s + (e.amount || 0), 0);
+  const totalPending = totalExpenses - totalPaid;
+
+  const upd = (k: string) => (e: any) => setForm({ ...form, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+  const updEdit = (k: string) => (e: any) => setEditForm({ ...editForm, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+
+  const saveExpense = async () => {
     if (!form.label || !form.amount) return;
     await supabase.from('expenses').insert([{ ...form, amount: Number(form.amount) }]);
     refreshExpenses();
-    setForm({ label:"", amount:0, category:"salle", seminar:"all", paid:false });
+    setForm({ label:"", amount:0, category:"consultance_pres", seminar:"all", paid:false });
+  };
+
+  const startEdit = (e: any) => {
+    setEditingId(e.id);
+    setEditForm({ label: e.label, amount: e.amount, category: e.category, seminar: e.seminar, paid: e.paid });
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editForm.label || !editForm.amount) return;
+    await supabase.from('expenses').update({ ...editForm, amount: Number(editForm.amount) }).eq('id', id);
+    setEditingId(null);
+    refreshExpenses();
+  };
+
+  const togglePaidStatus = async (e: any) => {
+    await supabase.from('expenses').update({ paid: !e.paid }).eq('id', e.id);
+    refreshExpenses();
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
   };
 
   const deleteExpense = async (id: string) => {
@@ -1104,50 +1148,91 @@ function ExpenseManager({ expenses, seminars, refreshExpenses }: any) {
 
   return (
     <div style={{ marginTop: 32 }}>
-      <h3 style={{ color:"#1B2A4A", fontSize:20, fontWeight:800, marginBottom:16 }}>Saisie des Dépenses (Réel)</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h3 style={{ color:"#1B2A4A", fontSize:20, fontWeight:800, margin: 0 }}>Gestion des Dépenses</h3>
+        <div style={{ display: "flex", gap: 16 }}>
+          <div style={{ background: "rgba(39, 174, 96, 0.1)", color: "#27AE60", padding: "8px 16px", borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
+            Payé : {fmt(totalPaid)} F
+          </div>
+          <div style={{ background: "rgba(243, 156, 18, 0.1)", color: "#E67E22", padding: "8px 16px", borderRadius: 8, fontWeight: 700, fontSize: 13 }}>
+            À Payer : {fmt(totalPending)} F
+          </div>
+        </div>
+      </div>
+      
       <div style={{ ...card, marginBottom:24 }}>
         <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr auto auto", gap:12, alignItems:"end" }}>
-          <div><label style={label}>Libellé *</label><input style={inputS} value={form.label} onChange={upd("label")} placeholder="Ex: Location salle..." /></div>
+          <div><label style={label}>Nouvelle Dépense *</label><input style={inputS} value={form.label} onChange={upd("label")} placeholder="Ex: Achat fournitures..." /></div>
           <div><label style={label}>Montant (FCFA) *</label><input type="number" style={inputS} value={form.amount} onChange={upd("amount")} /></div>
-          <div><label style={label}>Catégorie</label>
+          <div><label style={label}>Catégorie Exacte</label>
             <select style={selectS} value={form.category} onChange={upd("category")}>
-              <option value="formateur">Formateur / Consultance</option>
-              <option value="transport">Transport / Billet</option>
-              <option value="hebergement">Hébergement</option>
-              <option value="salle">Salle & Équipement</option>
-              <option value="restauration">Restauration / Pauses</option>
-              <option value="supports">Supports Pédagogiques</option>
-              <option value="marketing">Marketing / Commercialisation</option>
-              <option value="divers">Divers</option>
+              {EXPENSE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
           </div>
-          <div><label style={label}>Séminaire</label>
+          <div><label style={label}>Affectation</label>
             <select style={selectS} value={form.seminar} onChange={upd("seminar")}>
-              <option value="all">Tous (Général)</option>
+              <option value="all">Tous (Frais Généraux)</option>
               {seminars.map((s:any) => <option key={s.id} value={s.id}>{s.code}</option>)}
             </select>
           </div>
           <div style={{ paddingBottom: 12 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#1B2A4A", fontSize: 13, cursor: "pointer" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#1B2A4A", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>
               <input type="checkbox" checked={form.paid} onChange={upd("paid")} /> Payé
             </label>
           </div>
-          <button onClick={addExpense} style={{ ...btnPrimary, height:42 }}>+ Ajouter</button>
+          <button onClick={saveExpense} style={{ ...btnPrimary, height:42 }}>+ Ajouter</button>
         </div>
       </div>
 
       <div style={{ ...card, padding:0, overflow:"hidden" }}>
-        {expenses.map((e: any) => (
-          <div key={e.id} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1fr 0.5fr", padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", alignItems:"center" }}>
-            <div style={{ color:"#1B2A4A", fontSize:13, fontWeight:600 }}>{e.label}</div>
-            <div style={{ color:"#E74C3C", fontSize:13, fontWeight:700 }}>{fmt(e.amount)} F</div>
-            <div style={{ color: '#1B2A4A', fontSize:12, textTransform:"capitalize" }}>{e.category}</div>
-            <div style={{ color: '#1B2A4A', fontSize:12 }}>{e.seminar === "all" ? "Général" : seminars.find((s:any)=>s.id===e.seminar)?.code}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: e.paid ? "#27AE60" : "#F39C12", background: e.paid ? "rgba(39, 174, 96, 0.1)" : "rgba(243, 156, 18, 0.1)", padding: "4px 8px", borderRadius: 100 }}>{e.paid ? "Payé" : "En attente"}</span>
-              <button onClick={() => deleteExpense(e.id)} style={{ background:"none", border:"none", color:"#E74C3C", cursor:"pointer", fontSize:16 }}>🗑</button>
+        <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1.5fr 1fr 1fr", padding:"12px 16px", background:"#1B2A4A", color:"#fff", fontSize:12, fontWeight:700, textTransform:"uppercase" }}>
+          <div>Libellé</div>
+          <div>Montant</div>
+          <div>Catégorie</div>
+          <div>Affectation</div>
+          <div style={{ textAlign: "right" }}>Actions</div>
+        </div>
+        
+        {expenses.length === 0 ? (
+           <div style={{ padding: 32, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>Aucune dépense enregistrée.</div>
+        ) : expenses.map((e: any) => (
+          editingId === e.id ? (
+            <div key={e.id} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1.5fr 1fr 1fr", padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", alignItems:"center", gap: 12, background:"rgba(201,168,76,0.05)" }}>
+              <input style={{...inputS, padding: "8px 12px"}} value={editForm.label} onChange={updEdit("label")} />
+              <input type="number" style={{...inputS, padding: "8px 12px"}} value={editForm.amount} onChange={updEdit("amount")} />
+              <select style={{...selectS, padding: "8px 12px"}} value={editForm.category} onChange={updEdit("category")}>
+                {EXPENSE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+              <select style={{...selectS, padding: "8px 12px"}} value={editForm.seminar} onChange={updEdit("seminar")}>
+                <option value="all">Tous (Général)</option>
+                {seminars.map((s:any) => <option key={s.id} value={s.id}>{s.code}</option>)}
+              </select>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+                <button onClick={() => saveEdit(e.id)} style={{ background:"#27AE60", border:"none", color:"#fff", padding:"6px 12px", borderRadius:6, cursor:"pointer", fontSize: 12, fontWeight: 700 }}>✓</button>
+                <button onClick={cancelEdit} style={{ background:"#E74C3C", border:"none", color:"#fff", padding:"6px 12px", borderRadius:6, cursor:"pointer", fontSize: 12, fontWeight: 700 }}>✕</button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div key={e.id} style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1.5fr 1fr 1fr", padding:"12px 16px", borderBottom:"1px solid rgba(0,0,0,0.04)", alignItems:"center", transition: "background 0.2s" }} onMouseEnter={(ev) => ev.currentTarget.style.background="rgba(0,0,0,0.02)"} onMouseLeave={(ev) => ev.currentTarget.style.background="transparent"}>
+              <div style={{ color:"#1B2A4A", fontSize:13, fontWeight:600 }}>{e.label}</div>
+              <div style={{ color:"#E74C3C", fontSize:13, fontWeight:700 }}>{fmt(e.amount)} F</div>
+              <div style={{ color: '#1B2A4A', fontSize:12, display: "flex", alignItems: "center" }}>
+                <span style={{ padding: "4px 8px", background: "rgba(0,0,0,0.05)", borderRadius: 4 }}>
+                  {EXPENSE_CATEGORIES.find(c => c.value === e.category)?.label || e.category}
+                </span>
+              </div>
+              <div style={{ color: '#1B2A4A', fontSize:12, fontWeight: 500 }}>{e.seminar === "all" ? "Général" : seminars.find((s:any)=>s.id===e.seminar)?.code}</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+                <button onClick={() => togglePaidStatus(e)} style={{ border: "none", background: "none", padding: 0, cursor: "pointer", display: "flex", alignItems: "center" }} title={e.paid ? "Marquer comme en attente" : "Marquer comme payé"}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: e.paid ? "#27AE60" : "#E67E22", background: e.paid ? "rgba(39, 174, 96, 0.15)" : "rgba(243, 156, 18, 0.15)", padding: "4px 8px", borderRadius: 100, border: `1px solid ${e.paid ? "rgba(39,174,96,0.3)" : "rgba(243,156,18,0.3)"}` }}>
+                    {e.paid ? "✔ Payé" : "⏳ En attente"}
+                  </span>
+                </button>
+                <button onClick={() => startEdit(e)} style={{ background:"none", border:"none", color:"rgba(0,0,0,0.4)", cursor:"pointer", fontSize:14 }} title="Modifier">✏️</button>
+                <button onClick={() => deleteExpense(e.id)} style={{ background:"none", border:"none", color:"#E74C3C", cursor:"pointer", fontSize:16 }} title="Supprimer">🗑</button>
+              </div>
+            </div>
+          )
         ))}
       </div>
     </div>
