@@ -152,7 +152,7 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
     }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={() => { setPage("home"); window.scrollTo(0, 0); }}>
-          <LogoRMK scale={0.5} variant="light" />
+          <LogoRMK scale={0.5} variant="dark" />
           <div>
             <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, letterSpacing: 0.5, lineHeight: 1.1 }}>RMK <span style={{ color: "#C9A84C" }}>×</span> CABEXIA</div>
             <div style={{ color: '#1B2A4A', fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase" }}>Formation IA · Abidjan</div>
@@ -621,7 +621,7 @@ function Footer({ setPage }: any) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 32, marginBottom: 32 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <LogoRMK scale={0.5} variant="light" />
+              <LogoRMK scale={0.5} variant="dark" />
               <span style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15 }}>RMK <span style={{ color: "#C9A84C" }}>×</span> CABEXIA</span>
             </div>
             <p style={{ color: '#94A3B8', fontSize: 13, lineHeight: 1.7 }}>Organisé par RMK à Abidjan. Formations délivrées par CABEXIA, Cabinet d'Expertise en Intelligence Artificielle.</p>

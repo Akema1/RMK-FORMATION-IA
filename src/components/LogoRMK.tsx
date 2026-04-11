@@ -41,7 +41,7 @@ export function LogoRMK({
       {showFrame && (
         <rect 
           x="52" y="12" 
-          width="84" height="62" 
+          width="84" height="56" 
           rx="0" 
           stroke={goldColor} 
           strokeWidth="1.5" 
@@ -70,7 +70,7 @@ export function LogoRMK({
       {/* CONSEILS — Elegant wide-tracked small caps */}
       <text 
         x="56" 
-        y="76" 
+        y="78" 
         fontFamily="'Cormorant Garamond', 'Times New Roman', serif" 
         fontSize="7.5" 
         fontWeight="500"
