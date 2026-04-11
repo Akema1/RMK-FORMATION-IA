@@ -9,7 +9,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.log(error);
+      // localStorage error handled silently
       return initialValue;
     }
   });
@@ -24,7 +24,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         return valueToStore;
       });
     } catch (error) {
-      console.log(error);
+      // localStorage error handled silently
     }
   };
 

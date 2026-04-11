@@ -8,31 +8,24 @@ import html2canvas from "html2canvas";
 import autoTable from "jspdf-autotable";
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { SEMINARS as BASE_SEMINARS, Seminar as BaseSeminar, fmt } from '../data/seminars';
 
 // ─── DATA & CONFIG ───
 // ─── TYPES ───
-interface Seminar {
-  id: string;
-  code: string;
-  title: string;
-  week: string;
-  icon: string;
-  color: string;
-  seats: number;
-  targets: string[];
-  sectors: string[];
+interface Seminar extends BaseSeminar {
   flyer_subtitle: string;
   flyer_highlight: string;
   flyer_bullets: string[];
   flyer_image: string;
 }
 
-const DEFAULT_SEMINARS: Seminar[] = [
-  { id: "s1", code: "IA-FINANCE", title: "IA pour la Finance", week: "Semaine 1 (Mai 2026)", icon: "💰", color: "#3498DB", seats: 20, targets: ["Directeurs Financiers", "Comptables"], sectors: ["Banque", "Assurance"], flyer_subtitle: "Optimisez vos processus financiers", flyer_highlight: "L'IA au service de la performance", flyer_bullets: ["Analyse prédictive", "Automatisation", "Reporting"], flyer_image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f" },
-  { id: "s2", code: "IA-STRAT", title: "IA Stratégique", week: "Semaine 2 (Mai 2026)", icon: "🎯", color: "#E67E22", seats: 20, targets: ["Top Management", "Conseil"], sectors: ["Gouvernance", "Startups"], flyer_subtitle: "Le futur de la stratégie d'entreprise", flyer_highlight: "Décidez plus vite, décidez mieux", flyer_bullets: ["Vision 2026", "Agents Autonomes", "Marché Africain"], flyer_image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f" },
-  { id: "s3", code: "IA-TECH", title: "IA Technique", week: "Semaine 3 (Mai 2026)", icon: "⚙️", color: "#27AE60", seats: 20, targets: ["CTO", "Développeurs"], sectors: ["IT", "Telecom"], flyer_subtitle: "Maîtrisez les outils de demain", flyer_highlight: "Du concept à la production", flyer_bullets: ["Python & AI", "LLM Fine-tuning", "Prompt Engineering"], flyer_image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c" },
-  { id: "s4", code: "IA-RH-MKT", title: "IA RH & Marketing", week: "Semaine 4 (Mai 2026)", icon: "📣", color: "#9B59B6", seats: 20, targets: ["RH", "Marketing"], sectors: ["Services", "Commerce"], flyer_subtitle: "Boostez votre productivité humaine", flyer_highlight: "L'IA qui comprend l'humain", flyer_bullets: ["Recrutement IA", "Contenu Viral", "Analyse de sentiment"], flyer_image: "https://images.unsplash.com/photo-1552664730-d307ca884978" }
-];
+const DEFAULT_SEMINARS: Seminar[] = BASE_SEMINARS.map(s => ({
+  ...s,
+  flyer_subtitle: s.subtitle,
+  flyer_highlight: s.highlights[0] || "",
+  flyer_bullets: s.highlights.slice(0, 3),
+  flyer_image: "",
+}));
 
 const DEFAULT_PRICES = { standard: 600000, earlyBird: 540000, discountPct: 10 };
 
@@ -54,7 +47,7 @@ const TEAM = [
   { id:"alexis", name:"Alexis", role:"Formateur CABEXIA + Stratégie RMK", avatar:"🧑‍💼" },
   { id:"rosine", name:"Rosine", role:"Opérations & Commercial RMK", avatar:"👩‍💼" },
 ];
-const fmt = (n: number) => typeof n === 'number' ? n.toLocaleString("fr-FR") : n;
+// fmt imported from seminars.ts
 
 // ─── AI AGENT HELPER ───
 async function callGemini(systemPrompt: string, userPrompt: string, seminars: Seminar[], useSearch = false, tools?: any[]) {
@@ -104,7 +97,7 @@ async function callGemini(systemPrompt: string, userPrompt: string, seminars: Se
 }
 
 // ─── STYLES ───
-const NAVY = "#FAF9F6";
+const SURFACE_BG = "#FAF9F6";
 import { LogoRMK } from "../components/LogoRMK";
 
 const ORANGE = "#C9A84C";
@@ -1785,7 +1778,7 @@ export default function AdminDashboard() {
           fetchExpenses().catch(e => console.error("Error fetching expenses:", e)),
           fetchTasks().catch(e => console.error("Error fetching tasks:", e)),
           fetchLeads().catch(e => console.error("Error fetching leads:", e)),
-          supabase.from('settings').select('*').eq('id', 'budget_config').single().then(({data}) => {
+          Promise.resolve(supabase.from('settings').select('*').eq('id', 'budget_config').single()).then(({data}) => {
             if (data && data.value) setBudgetConfig(data.value);
           }).catch(e => console.error("Error fetching config:", e))
         ]);
@@ -1852,7 +1845,7 @@ export default function AdminDashboard() {
 
   if (!user) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: NAVY }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: SURFACE_BG }}>
         <div style={{ ...card, textAlign: "center", maxWidth: 400, width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ marginBottom: 24 }}>
             <LogoRMK scale={0.8} variant="light" />
@@ -1887,7 +1880,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div style={{ fontFamily:"'DM Sans','Segoe UI',sans-serif", background:NAVY, minHeight:"100vh", color:"#1B2A4A" }}>
+    <div style={{ fontFamily:"'DM Sans','Segoe UI',sans-serif", background:SURFACE_BG, minHeight:"100vh", color:"#1B2A4A" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
         * { box-sizing:border-box; margin:0; }

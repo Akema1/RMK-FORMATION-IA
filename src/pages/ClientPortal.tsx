@@ -2,13 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
-
-const DEFAULT_SEMINARS = [
-  { id:"s1", code:"S1", title:"IA Stratégique pour Dirigeants", week:"5–9 Mai 2026", icon: "🎯" },
-  { id:"s2", code:"S2", title:"IA appliquée à la Finance", week:"12–16 Mai 2026", icon: "💰" },
-  { id:"s3", code:"S3", title:"IA pour les Notaires", week:"19–23 Mai 2026", icon: "⚖️" },
-  { id:"s4", code:"S4", title:"IA pour les Ressources Humaines", week:"26–30 Mai 2026", icon: "👥" },
-];
+import { SEMINARS } from '../data/seminars';
 
 const SYLLABUS = [
   { day: "Jour 1", mode: "Présentiel", location: "Abidjan", title: "Fondamentaux & Stratégie IA", desc: "Démystification de l'IA générative. Audit de maturité digitale de votre organisation. Cartographie des cas d'usage à fort ROI pour votre secteur.", color: "#C9A84C" },
@@ -24,7 +18,7 @@ import { useEffect } from 'react';
 export default function ClientPortal() {
   const [email, setEmail] = useState('');
   const [participant, setParticipant] = useState<any>(null);
-  const [seminars, setSeminars] = useState<any[]>(DEFAULT_SEMINARS);
+  const [seminars, setSeminars] = useState<any[]>(SEMINARS);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -85,7 +79,7 @@ export default function ClientPortal() {
     // Subtitle
     doc.setFontSize(14);
     doc.setTextColor(100, 100, 100);
-    doc.text("Délivrée par RMK Conseils & CABEXIA", 148.5, 55, { align: "center" });
+    doc.text("Délivrée par RMK Conseils", 148.5, 55, { align: "center" });
     
     // Body
     doc.setFontSize(16);

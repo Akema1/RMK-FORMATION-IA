@@ -3,97 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
 import { LogoRMK } from "../components/LogoRMK";
+import { SEMINARS, PRICE, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, fmt } from "../data/seminars";
 
-const DEFAULT_SEMINARS = [
-  {
-    id: "s1",
-    code: "S1",
-    title: "IA Stratégique pour Dirigeants",
-    subtitle: "Leadership & Transformation Digitale",
-    week: "12 – 16 Mai 2026",
-    dates: { start: "2026-05-12", presentiel: "Mar 12 – Jeu 14 Mai", online: "Ven 15 – Sam 16 Mai" },
-    target: "DG, CEO, Cadres dirigeants, Directeurs de département",
-    seats: 20,
-    color: "#C9A84C",
-    gradient: "linear-gradient(135deg, #C9A84C 0%, #D4B865 100%)",
-    icon: "👔",
-    highlights: [
-      "Comprendre les transformations économiques liées à l'IA",
-      "Prompt engineering stratégique pour la prise de décision",
-      "Construction d'agents IA personnalisés (Claude Projects)",
-      "Connecteurs MCP, Skills & Plugins pour l'entreprise",
-      "Plan d'action IA individuel avec feuille de route",
-    ],
-    modules: ["IA & Transformation du Leadership", "Prompt Engineering Stratégique", "IA & Décision Augmentée", "Construction d'Agents IA", "Feuille de Route Personnelle"],
-  },
-  {
-    id: "s2",
-    code: "S2",
-    title: "IA appliquée à la Finance",
-    subtitle: "Analyse Financière & Gestion des Risques",
-    week: "19 – 23 Mai 2026",
-    dates: { start: "2026-05-19", presentiel: "Mar 19 – Jeu 21 Mai", online: "Ven 22 – Sam 23 Mai" },
-    target: "DAF, Analystes financiers, Banquiers, Risk Managers, Contrôleurs de gestion",
-    seats: 20,
-    color: "#27AE60",
-    gradient: "linear-gradient(135deg, #27AE60 0%, #6FCF97 100%)",
-    icon: "📊",
-    highlights: [
-      "Analyse automatisée des bilans et comptes de résultat",
-      "Prompting appliqué à l'analyse financière et au reporting",
-      "Identification et anticipation des risques financiers",
-      "Simulation de scénarios économiques avec l'IA",
-      "IA et conformité bancaire (BCEAO, UEMOA)",
-    ],
-    modules: ["IA & Métiers de la Finance", "Prompt Engineering Financier", "Analyse des États Financiers", "Gestion des Risques", "Prise de Décision & Conformité"],
-  },
-  {
-    id: "s3",
-    code: "S3",
-    title: "IA pour les Notaires",
-    subtitle: "Modernisation des Études Notariales",
-    week: "26 – 30 Mai 2026",
-    dates: { start: "2026-05-26", presentiel: "Mar 26 – Jeu 28 Mai", online: "Ven 29 – Sam 30 Mai" },
-    target: "Notaires, Clercs de notaires, Collaborateurs d'études, Juristes",
-    seats: 15,
-    color: "#2980B9",
-    gradient: "linear-gradient(135deg, #2980B9 0%, #74B9FF 100%)",
-    icon: "⚖️",
-    highlights: [
-      "Rédaction assistée d'actes notariaux avec l'IA",
-      "Analyse de clauses contractuelles et risques juridiques",
-      "Organisation intelligente des dossiers et documents",
-      "Prompt engineering juridique professionnel",
-      "Sécurité des données et responsabilité professionnelle",
-    ],
-    modules: ["IA & Pratique Notariale", "Prompt Engineering Juridique", "Rédaction d'Actes Assistée", "Analyse de Contrats", "Modernisation des Études"],
-  },
-  {
-    id: "s4",
-    code: "S4",
-    title: "IA pour les Ressources Humaines",
-    subtitle: "Transformer la Fonction RH",
-    week: "2 – 6 Juin 2026",
-    dates: { start: "2026-06-02", presentiel: "Mar 2 – Jeu 4 Juin", online: "Ven 5 – Sam 6 Juin" },
-    target: "DRH, Responsables RH, Chargés de recrutement, Responsables formation",
-    seats: 15,
-    color: "#F39C12",
-    gradient: "linear-gradient(135deg, #F39C12 0%, #F7DC6F 100%)",
-    icon: "🤝",
-    highlights: [
-      "Rédaction d'offres d'emploi et analyse de CV avec l'IA",
-      "Préparation d'entretiens et évaluation des compétences",
-      "Gestion des talents et plans de carrière augmentés",
-      "Communication RH et notes internes optimisées",
-      "Planification stratégique des ressources humaines",
-    ],
-    modules: ["IA & Transformation RH", "Prompt Engineering RH", "Recrutement & Talents", "Communication RH", "Gestion Stratégique"],
-  },
-];
-
-const PRICE = 600000;
-const EARLY_BIRD_PRICE = 540000;
-const EARLY_BIRD_DEADLINE = new Date("2026-04-30T23:59:59");
 
 function useCountdown(target: number) {
   const [diff, setDiff] = useState(target - Date.now());
@@ -124,7 +35,6 @@ function useInView(threshold = 0.15) {
 
 
 
-const fmt = (n: number) => n.toLocaleString("fr-FR");
 
 // ─── COMPONENTS ───
 
@@ -175,13 +85,6 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
                 padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
                 transition: "all 0.2s", letterSpacing: 0.3, marginLeft: 8
               }}>Portail Client</button>
-          <button onClick={() => navigate('/admin')}
-              style={{
-                background: "transparent",
-                border: "1px solid rgba(255,255,255,0.2)", color: "#E2E8F0",
-                padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
-                transition: "all 0.2s", letterSpacing: 0.3, marginLeft: 8
-              }}>Admin</button>
         </div>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="nav-mobile-btn" style={{ display: "none", background: "none", border: "none", color: "#1B2A4A", fontSize: 24, cursor: "pointer" }}>
           {mobileOpen ? "✕" : "☰"}
@@ -198,10 +101,6 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
           <button onClick={() => navigate('/portal')}
               style={{ background: "transparent", border: "1px solid rgba(0,0,0,0.2)", color: "#1B2A4A", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
               Portail Client
-          </button>
-          <button onClick={() => navigate('/admin')}
-              style={{ background: "transparent", border: "1px solid rgba(0,0,0,0.2)", color: "#1B2A4A", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
-              Admin
           </button>
         </div>
       )}
@@ -646,11 +545,6 @@ function Footer({ setPage }: any) {
                   Portail Client
                 </button>
             </div>
-            <div style={{ marginBottom: 8 }}>
-                <button onClick={() => navigate('/admin')} style={{ background: "none", border: "none", color: "#CBD5E1", cursor: "pointer", fontSize: 14, padding: 0 }}>
-                  Admin
-                </button>
-            </div>
           </div>
           <div>
             <div style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, letterSpacing: 1, marginBottom: 12, textTransform: "uppercase" }}>Contact</div>
@@ -711,7 +605,7 @@ function ContactLead() {
 export default function LandingPage() {
   const [page, setPage] = useState("home");
   const [selectedSem, setSelectedSem] = useState("");
-  const [seminars, setSeminars] = useState<any[]>(DEFAULT_SEMINARS);
+  const [seminars, setSeminars] = useState<any[]>(SEMINARS);
 
   useEffect(() => {
     const fetchSeminars = async () => {
