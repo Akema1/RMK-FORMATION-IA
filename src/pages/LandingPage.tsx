@@ -649,10 +649,9 @@ function Footer({ setPage }: any) {
           <div>
             <div style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, letterSpacing: 1, marginBottom: 12, textTransform: "uppercase" }}>Contact</div>
             <div style={{ color: "#CBD5E1", fontSize: 14, lineHeight: 2 }}>
-              📍 Abidjan, Côte d'Ivoire<br />
-              📧 contact@rmk-formations.com<br />
-              📱 +225 07 02 61 15 82<br />
-              💬 WhatsApp disponible
+              📧 contact@rmkconsulting.pro<br />
+              📧 rkedem@rmkconsulting.pro<br />
+              📱 +2250702611582 WhatsApp
             </div>
           </div>
         </div>

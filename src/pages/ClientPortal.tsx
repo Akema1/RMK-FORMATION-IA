@@ -429,7 +429,7 @@ export default function ClientPortal() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ padding: '16px', background: 'rgba(0,0,0,0.03)', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)' }}>
                     <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.4)', marginBottom: 4 }}>WAVE / ORANGE</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#1B2A4A' }}>+225 07 02 61 15 82</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#1B2A4A' }}>+2250702611582</div>
                   </div>
                   <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.5)', lineHeight: 1.5 }}>Envoyez votre reçu via WhatsApp au même numéro pour une validation rapide.</p>
                 </div>
