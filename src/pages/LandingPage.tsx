@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
 import { LogoRMK } from "../components/LogoRMK";
-import { SEMINARS, PRICE, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
+import { SEMINARS, PRICE, PRICE_DIRIGEANTS, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, COACHING_PRICE, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
 import { Settings, X, Menu, Building2, Monitor, Check, CheckCircle, type LucideIcon } from "lucide-react";
 
 const ICON_MAP: Record<string, LucideIcon> = { Briefcase, BarChart3, Scale, Users };
@@ -68,7 +68,7 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
           <LogoRMK scale={0.5} variant="dark" />
           <div>
             <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, letterSpacing: 0.5, lineHeight: 1.1 }}>RMK <span style={{ color: "#C9A84C" }}>×</span> CABEXIA</div>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase" }}>Formation IA · Abidjan</div>
+            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 500 }}>Formation IA · Abidjan</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 4, alignItems: "center" }} className="nav-desktop">
@@ -148,7 +148,7 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
   return (
     <section style={{
       minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
-      background: "#FAF9F6",
+      background: "#F5F0E8",
       position: "relative", overflow: "hidden", padding: "120px 24px 60px",
     }}>
       <div style={{ position: "absolute", top: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.15) 0%, transparent 70%)" }} />
@@ -195,13 +195,13 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
         {seminars.map((s: Seminar) => (
           <div key={s.id} style={{
             background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12,
-            padding: "14px 20px", display: "flex", alignItems: "center", gap: 10, minWidth: 200,
+            padding: "14px 24px", display: "flex", alignItems: "center", gap: 12, minWidth: 260,
             borderLeft: `3px solid ${s.color}`,
           }}>
-            {(() => { const I = ICON_MAP[s.icon]; return I ? <I size={22} style={{ color: s.color }} /> : null; })()}
+            {(() => { const I = ICON_MAP[s.icon]; return I ? <I size={24} style={{ color: s.color }} /> : null; })()}
             <div>
-              <div style={{ color: "#1B2A4A", fontSize: 13, fontWeight: 700 }}>{s.code} · {s.title.split(" ").slice(-1)}</div>
-              <div style={{ color: '#1B2A4A', fontSize: 11 }}>{s.week}</div>
+              <div style={{ color: "#1B2A4A", fontSize: 14, fontWeight: 700 }}>{s.code} · {s.title.split(" ").slice(-1)}</div>
+              <div style={{ color: '#1B2A4A', fontSize: 12 }}>{s.week}</div>
             </div>
           </div>
         ))}
@@ -213,11 +213,11 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
 function FormatSection() {
   const [ref, vis] = useInView();
   const steps = [
-    { day: "Jour 1–3", mode: "Présentiel", Icon: Building2, desc: "Immersion complète en salle à Abidjan. Ateliers pratiques, démonstrations live, exercices sur vos propres documents." },
+    { day: "Jour 1–3", mode: "Présentiel", Icon: Building2, desc: "Matinée Jour 1 : module commun d'introduction à l'IA (identique pour les 4 séminaires). Puis immersion complète en salle à Abidjan. Ateliers pratiques, démonstrations live et études de cas." },
     { day: "Jour 4–5", mode: "En ligne", Icon: Monitor, desc: "Sessions Zoom de 4h (9h–13h). Approfondissement, retour d'expérience, feuille de route personnelle." },
   ];
   return (
-    <section ref={ref} style={{ background: "#FAF9F6", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
+    <section ref={ref} style={{ background: "#F5F0E8", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
       <div style={{ maxWidth: 900, margin: "0 auto", opacity: vis ? 1 : 0, transform: vis ? "none" : "translateY(30px)", transition: "all 0.8s ease" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Format Hybride</div>
@@ -333,7 +333,7 @@ function SeminarCard({ sem, onSelect, delay = 0 }: SeminarCardProps) {
 
 function SeminarsPage({ setPage, seminars, setSelectedSem }: { setPage: (p: string) => void; seminars: Seminar[]; setSelectedSem: (id: string) => void }) {
   return (
-    <section style={{ background: "#FAF9F6", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
+    <section style={{ background: "#F5F0E8", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Programme Complet</div>
@@ -353,17 +353,17 @@ function SeminarsPage({ setPage, seminars, setSelectedSem }: { setPage: (p: stri
 function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: string) => void; seminars: Seminar[]; setSelectedSem: (id: string) => void }) {
   const [ref, vis] = useInView();
   const offers = [
-    { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne"], cta: "S'inscrire", primary: false },
-    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "Réduction de 60 000 FCFA", "Inscription avant le 30 avril", "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
-    { name: "Pack Entreprise", price: "Sur devis", unit: "dès 3 inscrits", features: ["-15% dès 3 inscrits même entreprise", "Pack 2 séminaires : -10%", "Pack 4 séminaires : -20%", "Facturation entreprise", "Coaching post-formation inclus"], cta: "Nous contacter", primary: false },
+    { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne", `Séminaire Dirigeants (S1) : ${fmt(PRICE_DIRIGEANTS)} FCFA`], cta: "S'inscrire", primary: false },
+    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "Réduction de 60 000 FCFA", "Inscription avant le 10 mai 2026", "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
+    { name: "Pack Entreprise", price: "Sur devis", unit: "dès 3 inscrits", features: ["-15% dès 3 inscrits même entreprise", "Pack 2 séminaires : -10%", "Pack 4 séminaires : -20%", "Facturation entreprise", `Coaching personnalisé : ${fmt(COACHING_PRICE)} FCFA / 2h`], cta: "Nous contacter", primary: false },
   ];
   return (
-    <section style={{ background: "linear-gradient(170deg, #FAF9F6, #E0DCCD)", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
+    <section style={{ background: "linear-gradient(170deg, #F5F0E8, #E0DCCD)", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
       <div ref={ref} style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", opacity: vis ? 1 : 0, transform: vis ? "none" : "translateY(30px)", transition: "all 0.8s" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Tarifs</div>
           <h2 style={{ fontSize: 40, fontWeight: 800, color: "#1B2A4A", margin: "0 0 12px" }}>Investissez dans votre avenir</h2>
-          <p style={{ color: '#1B2A4A', fontSize: 16 }}>Tarif identique pour les 4 séminaires · Formation complète 5 jours hybride</p>
+          <p style={{ color: '#1B2A4A', fontSize: 16 }}>Formation complète 5 jours hybride · Coaching personnalisé disponible</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, alignItems: "start" }}>
           {offers.map((o, i) => (
@@ -480,7 +480,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
   };
 
   if (submitted) return (
-    <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAF9F6", paddingTop: 80 }}>
+    <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F5F0E8", paddingTop: 80 }}>
       <div style={{ textAlign: "center", maxWidth: 500, padding: 40 }}>
         <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><CheckCircle size={56} style={{ color: "#27AE60" }} /></div>
         <h2 style={{ fontSize: 32, fontWeight: 800, color: "#1B2A4A", marginBottom: 12 }}>Demande envoyée !</h2>
@@ -491,7 +491,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
   );
 
   return (
-    <section style={{ minHeight: "100vh", background: "#FAF9F6", paddingTop: 100, paddingBottom: 80 }}>
+    <section style={{ minHeight: "100vh", background: "#F5F0E8", paddingTop: 100, paddingBottom: 80 }}>
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Inscription</div>
@@ -641,7 +641,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", margin: 0, minHeight: "100vh", background: "#FAF9F6" }}>
+    <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", margin: 0, minHeight: "100vh", background: "#F5F0E8" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
         * { box-sizing: border-box; margin: 0; }
@@ -664,7 +664,7 @@ export default function LandingPage() {
         <>
           <Hero setPage={setPage} seminars={seminars} />
           <FormatSection />
-          <section style={{ background: "#FAF9F6", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
+          <section style={{ background: "#F5F0E8", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
             <div style={{ maxWidth: 1100, margin: "0 auto" }}>
               <div style={{ textAlign: "center", marginBottom: 48 }}>
                 <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Séminaires</div>

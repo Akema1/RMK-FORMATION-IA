@@ -34,8 +34,8 @@ export const SEMINARS: Seminar[] = [
     code: "S1",
     title: "IA Stratégique pour Dirigeants",
     subtitle: "Leadership & Transformation Digitale",
-    week: "5 – 9 Mai 2026",
-    dates: { start: "2026-05-05", presentiel: "Lun 5 – Mer 7 Mai", online: "Jeu 8 – Ven 9 Mai" },
+    week: "19 – 23 Mai 2026",
+    dates: { start: "2026-05-19", presentiel: "Lun 19 – Mer 21 Mai", online: "Jeu 22 – Ven 23 Mai" },
     target: "DG, CEO, Cadres dirigeants, Directeurs de département",
     seats: 20,
     color: "#E8651A",
@@ -57,8 +57,8 @@ export const SEMINARS: Seminar[] = [
     code: "S2",
     title: "IA appliquée à la Finance",
     subtitle: "Analyse Financière & Gestion des Risques",
-    week: "12 – 16 Mai 2026",
-    dates: { start: "2026-05-12", presentiel: "Lun 12 – Mer 14 Mai", online: "Jeu 15 – Ven 16 Mai" },
+    week: "26 – 30 Mai 2026",
+    dates: { start: "2026-05-26", presentiel: "Lun 26 – Mer 28 Mai", online: "Jeu 29 – Ven 30 Mai" },
     target: "DAF, Analystes financiers, Banquiers, Risk Managers, Contrôleurs de gestion",
     seats: 20,
     color: "#27AE60",
@@ -80,8 +80,8 @@ export const SEMINARS: Seminar[] = [
     code: "S3",
     title: "IA pour les Notaires",
     subtitle: "Modernisation des Études Notariales",
-    week: "19 – 23 Mai 2026",
-    dates: { start: "2026-05-19", presentiel: "Lun 19 – Mer 21 Mai", online: "Jeu 22 – Ven 23 Mai" },
+    week: "2 – 6 Juin 2026",
+    dates: { start: "2026-06-02", presentiel: "Lun 2 – Mer 4 Juin", online: "Jeu 5 – Ven 6 Juin" },
     target: "Notaires, Clercs de notaires, Collaborateurs d'études, Juristes",
     seats: 15,
     color: "#2980B9",
@@ -103,8 +103,8 @@ export const SEMINARS: Seminar[] = [
     code: "S4",
     title: "IA pour les Ressources Humaines",
     subtitle: "Transformer la Fonction RH",
-    week: "26 – 30 Mai 2026",
-    dates: { start: "2026-05-26", presentiel: "Lun 26 – Mer 28 Mai", online: "Jeu 29 – Ven 30 Mai" },
+    week: "9 – 13 Juin 2026",
+    dates: { start: "2026-06-09", presentiel: "Lun 9 – Mer 11 Juin", online: "Jeu 12 – Ven 13 Juin" },
     target: "DRH, Responsables RH, Chargés de recrutement, Responsables formation",
     seats: 15,
     color: "#F39C12",
@@ -134,8 +134,10 @@ export const SEMINAR_ICONS: Record<string, string> = {
 
 // Pricing constants
 export const PRICE = 600000;
+export const PRICE_DIRIGEANTS = 680000;
 export const EARLY_BIRD_PRICE = 540000;
-export const EARLY_BIRD_DEADLINE = new Date("2026-04-30T23:59:59");
+export const EARLY_BIRD_DEADLINE = new Date("2026-05-10T23:59:59");
+export const COACHING_PRICE = 100000; // par session de 2h (inclus pour dirigeants, optionnel pour les autres)
 
 // Formatting helper
 export const fmt = (n: number) => typeof n === 'number' ? n.toLocaleString("fr-FR") : n;
