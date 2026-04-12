@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
 import { LogoRMK } from "../components/LogoRMK";
-import { SEMINARS, PRICE, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, fmt, type Seminar } from "../data/seminars";
+import { SEMINARS, PRICE, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
+import { Settings, X, Menu, Building2, Monitor, Check, CheckCircle, type LucideIcon } from "lucide-react";
+
+const ICON_MAP: Record<string, LucideIcon> = { Briefcase, BarChart3, Scale, Users };
 
 
 function useCountdown(target: number) {
@@ -55,7 +58,7 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
   ];
   return (
     <nav style={{
-      position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 30,
       background: scrolled ? "rgba(27,42,74,0.97)" : "rgba(27,42,74,0.85)",
       backdropFilter: "blur(20px)", borderBottom: scrolled ? "1px solid rgba(201,168,76,0.3)" : "none",
       transition: "all 0.4s ease",
@@ -86,16 +89,17 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
                 transition: "all 0.2s", letterSpacing: 0.3, marginLeft: 8
               }}>Portail Client</button>
           <button onClick={() => navigate('/admin')}
+              aria-label="Administration"
               title="Administration"
               style={{
                 background: "transparent",
                 border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C",
                 padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
                 transition: "all 0.2s", marginLeft: 4
-              }}>⚙</button>
+              }}><Settings size={16} /></button>
         </div>
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="nav-mobile-btn" style={{ display: "none", background: "none", border: "none", color: "#1B2A4A", fontSize: 24, cursor: "pointer" }}>
-          {mobileOpen ? "✕" : "☰"}
+        <button onClick={() => setMobileOpen(!mobileOpen)} className="nav-mobile-btn" aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"} style={{ display: "none", background: "none", border: "none", color: "#fff", fontSize: 24, cursor: "pointer", minWidth: 44, minHeight: 44 }}>
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
       {mobileOpen && (
@@ -112,7 +116,7 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
           </button>
           <button onClick={() => navigate('/admin')}
               style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
-              ⚙ Administration
+              <Settings size={16} style={{ marginRight: 6 }} /> Administration
           </button>
         </div>
       )}
@@ -194,7 +198,7 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
             padding: "14px 20px", display: "flex", alignItems: "center", gap: 10, minWidth: 200,
             borderLeft: `3px solid ${s.color}`,
           }}>
-            <span style={{ fontSize: 24 }}>{s.icon}</span>
+            {(() => { const I = ICON_MAP[s.icon]; return I ? <I size={22} style={{ color: s.color }} /> : null; })()}
             <div>
               <div style={{ color: "#1B2A4A", fontSize: 13, fontWeight: 700 }}>{s.code} · {s.title.split(" ").slice(-1)}</div>
               <div style={{ color: '#1B2A4A', fontSize: 11 }}>{s.week}</div>
@@ -209,8 +213,8 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
 function FormatSection() {
   const [ref, vis] = useInView();
   const steps = [
-    { day: "Jour 1–3", mode: "Présentiel", icon: "🏢", desc: "Immersion complète en salle à Abidjan. Ateliers pratiques, démonstrations live, exercices sur vos propres documents." },
-    { day: "Jour 4–5", mode: "En ligne", icon: "💻", desc: "Sessions Zoom de 4h (9h–13h). Approfondissement, retour d'expérience, feuille de route personnelle." },
+    { day: "Jour 1–3", mode: "Présentiel", Icon: Building2, desc: "Immersion complète en salle à Abidjan. Ateliers pratiques, démonstrations live, exercices sur vos propres documents." },
+    { day: "Jour 4–5", mode: "En ligne", Icon: Monitor, desc: "Sessions Zoom de 4h (9h–13h). Approfondissement, retour d'expérience, feuille de route personnelle." },
   ];
   return (
     <section ref={ref} style={{ background: "#FAF9F6", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
@@ -220,11 +224,11 @@ function FormatSection() {
           <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1B2A4A", margin: 0 }}>5 jours qui transforment votre pratique</h2>
           <p style={{ color: '#1B2A4A', fontSize: 16, marginTop: 12 }}>Le meilleur du présentiel et du distanciel, combinés pour un impact maximal.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(340px, 100%), 1fr))", gap: 24 }}>
           {steps.map((s, i) => (
             <div key={i} style={{ background: "rgba(0,0,0,0.03)", borderRadius: 16, padding: 32, border: "1px solid rgba(0,0,0,0.08)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                <span style={{ fontSize: 32 }}>{s.icon}</span>
+                <s.Icon size={28} style={{ color: "#C9A84C" }} />
                 <div>
                   <div style={{ fontWeight: 800, color: "#1B2A4A", fontSize: 18 }}>{s.day}</div>
                   <div style={{ color: "#C9A84C", fontWeight: 700, fontSize: 13, letterSpacing: 1 }}>{s.mode.toUpperCase()}</div>
@@ -274,11 +278,11 @@ function SeminarCard({ sem, onSelect, delay = 0 }: SeminarCardProps) {
             <h3 style={{ fontSize: 22, fontWeight: 800, margin: "8px 0 4px", lineHeight: 1.2 }}>{sem.title}</h3>
             <p style={{ fontSize: 14, opacity: 0.85, margin: 0 }}>{sem.subtitle}</p>
           </div>
-          <span style={{ fontSize: 40 }}>{sem.icon}</span>
+          {(() => { const I = ICON_MAP[sem.icon]; return I ? <I size={36} /> : null; })()}
         </div>
         <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 12, opacity: 0.8 }}>
-          <span>🏢 {sem.dates.presentiel}</span>
-          <span>💻 {sem.dates.online}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Building2 size={14} /> {sem.dates.presentiel}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Monitor size={14} /> {sem.dates.online}</span>
         </div>
       </div>
       <div style={{ padding: "24px 28px" }}>
@@ -336,7 +340,7 @@ function SeminarsPage({ setPage, seminars, setSelectedSem }: { setPage: (p: stri
           <h2 style={{ fontSize: 40, fontWeight: 800, color: "#1B2A4A", margin: "0 0 12px" }}>4 Séminaires, 4 Expertises</h2>
           <p style={{ color: '#1B2A4A', fontSize: 16 }}>Chaque séminaire : 3 jours présentiel à Abidjan + 2 sessions en ligne de 4h · Formation délivrée par CABEXIA</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(480px, 100%), 1fr))", gap: 24 }}>
           {seminars.map((s: Seminar, i: number) => (
             <SeminarCard key={s.id} sem={s} delay={i * 100} onSelect={(id: string) => { setSelectedSem(id); setPage("inscription"); window.scrollTo(0, 0); }} />
           ))}
@@ -374,7 +378,7 @@ function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: strin
               <div style={{ fontSize: 13, color: o.primary ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.4)", marginBottom: 24 }}>{o.unit}</div>
               {o.features.map((f, j) => (
                 <div key={j} style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 0", color: o.primary ? "#fff" : "rgba(0,0,0,0.7)", fontSize: 14 }}>
-                  <span style={{ color: o.primary ? "#fff" : "#27AE60" }}>✓</span> {f}
+                  <Check size={16} style={{ color: o.primary ? "#fff" : "#27AE60", flexShrink: 0 }} /> {f}
                 </div>
               ))}
               <button onClick={() => { setPage("inscription"); window.scrollTo(0, 0); }} style={{
@@ -469,7 +473,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
       setSubmitted(true);
     } catch (error) {
       console.error("Error saving participant:", error);
-      alert("Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
+      setErrors({ ...errors, _global: "Une erreur est survenue lors de l'inscription. Veuillez réessayer." });
     } finally {
       setIsSubmitting(false);
     }
@@ -478,7 +482,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
   if (submitted) return (
     <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAF9F6", paddingTop: 80 }}>
       <div style={{ textAlign: "center", maxWidth: 500, padding: 40 }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+        <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><CheckCircle size={56} style={{ color: "#27AE60" }} /></div>
         <h2 style={{ fontSize: 32, fontWeight: 800, color: "#1B2A4A", marginBottom: 12 }}>Demande envoyée !</h2>
         <p style={{ color: '#1B2A4A', fontSize: 16, lineHeight: 1.7 }}>Merci {form.prenom}. L'équipe RMK vous contactera sous 24h pour confirmer votre inscription et les modalités de paiement.</p>
         <p style={{ color: "#C9A84C", fontWeight: 600, fontSize: 14, marginTop: 16 }}>Vous recevrez un email de confirmation à {form.email}</p>
@@ -495,15 +499,16 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
           <p style={{ color: '#1B2A4A', fontSize: 15 }}>Sélection exclusive par séminaire · Inscription confirmée après validation du paiement</p>
         </div>
         <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 20, padding: 36, border: "1px solid rgba(0,0,0,0.08)" }}>
+          {errors._global && <div style={{ ...errorStyle, padding: "12px 16px", background: "rgba(231,76,60,0.08)", borderRadius: 10, marginBottom: 16, textAlign: "center" }}>{errors._global}</div>}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Nom *</label><input id="field-nom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.nom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.nom} onChange={upd("nom")} placeholder="Votre nom" />{errors.nom && <div style={errorStyle}>{errors.nom}</div>}</div>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Prénom *</label><input id="field-prenom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.prenom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.prenom} onChange={upd("prenom")} placeholder="Votre prénom" />{errors.prenom && <div style={errorStyle}>{errors.prenom}</div>}</div>
+            <div><label htmlFor="field-nom" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Nom *</label><input id="field-nom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.nom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.nom} onChange={upd("nom")} placeholder="Votre nom" />{errors.nom && <div style={errorStyle}>{errors.nom}</div>}</div>
+            <div><label htmlFor="field-prenom" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Prénom *</label><input id="field-prenom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.prenom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.prenom} onChange={upd("prenom")} placeholder="Votre prénom" />{errors.prenom && <div style={errorStyle}>{errors.prenom}</div>}</div>
           </div>
-          <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Email professionnel *</label><input id="field-email" type="email" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.email ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.email} onChange={upd("email")} placeholder="email@entreprise.com" />{errors.email && <div style={errorStyle}>{errors.email}</div>}</div>
-          <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence)</label><input id="field-tel" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.tel ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 02 61 15 82" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
+          <div style={{ marginTop: 16 }}><label htmlFor="field-email" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Email professionnel *</label><input id="field-email" type="email" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.email ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.email} onChange={upd("email")} placeholder="email@entreprise.com" />{errors.email && <div style={errorStyle}>{errors.email}</div>}</div>
+          <div style={{ marginTop: 16 }}><label htmlFor="field-tel" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence)</label><input id="field-tel" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.tel ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 02 61 15 82" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Société *</label><input id="field-societe" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.societe ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.societe} onChange={upd("societe")} placeholder="Nom de l'entreprise" />{errors.societe && <div style={errorStyle}>{errors.societe}</div>}</div>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Fonction *</label><input id="field-fonction" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.fonction ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." />{errors.fonction && <div style={errorStyle}>{errors.fonction}</div>}</div>
+            <div><label htmlFor="field-societe" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Société *</label><input id="field-societe" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.societe ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.societe} onChange={upd("societe")} placeholder="Nom de l'entreprise" />{errors.societe && <div style={errorStyle}>{errors.societe}</div>}</div>
+            <div><label htmlFor="field-fonction" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Fonction *</label><input id="field-fonction" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.fonction ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." />{errors.fonction && <div style={errorStyle}>{errors.fonction}</div>}</div>
           </div>
           <div style={{ marginTop: 16 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Séminaire souhaité *</label>
@@ -596,7 +601,7 @@ function ContactLead() {
 
   if (sent) return (
     <section style={{ padding: "60px 24px", background: "#1B2A4A", textAlign: "center" }}>
-      <div style={{ color: "#27AE60", fontSize: 40, marginBottom: 12 }}>✓</div>
+      <div style={{ marginBottom: 12, display: "flex", justifyContent: "center" }}><CheckCircle size={40} style={{ color: "#27AE60" }} /></div>
       <h3 style={{ color: "#fff", fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Demande bien reçue !</h3>
       <p style={{ color: "rgba(255,255,255,0.7)" }}>Notre équipe vous contactera très rapidement avec les informations demandées.</p>
     </section>
@@ -665,7 +670,7 @@ export default function LandingPage() {
                 <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Séminaires</div>
                 <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1B2A4A", margin: 0 }}>Choisissez votre séminaire</h2>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: 24 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(480px, 100%), 1fr))", gap: 24 }}>
                 {seminars.map((s: Seminar, i: number) => (
                   <SeminarCard key={s.id} sem={s} delay={i * 100} onSelect={(id: string) => { setSelectedSem(id); setPage("inscription"); window.scrollTo(0, 0); }} />
                 ))}

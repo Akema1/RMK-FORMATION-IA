@@ -40,7 +40,7 @@ export const SEMINARS: Seminar[] = [
     seats: 20,
     color: "#E8651A",
     gradient: "linear-gradient(135deg, #E8651A 0%, #F4A261 100%)",
-    icon: "👔",
+    icon: "Briefcase",
     highlights: [
       "Comprendre les transformations économiques liées à l'IA",
       "Prompt engineering stratégique pour la prise de décision",
@@ -63,7 +63,7 @@ export const SEMINARS: Seminar[] = [
     seats: 20,
     color: "#27AE60",
     gradient: "linear-gradient(135deg, #27AE60 0%, #6FCF97 100%)",
-    icon: "📊",
+    icon: "BarChart3",
     highlights: [
       "Analyse automatisée des bilans et comptes de résultat",
       "Prompting appliqué à l'analyse financière et au reporting",
@@ -86,7 +86,7 @@ export const SEMINARS: Seminar[] = [
     seats: 15,
     color: "#2980B9",
     gradient: "linear-gradient(135deg, #2980B9 0%, #74B9FF 100%)",
-    icon: "⚖️",
+    icon: "Scale",
     highlights: [
       "Rédaction assistée d'actes notariaux avec l'IA",
       "Analyse de clauses contractuelles et risques juridiques",
@@ -109,7 +109,7 @@ export const SEMINARS: Seminar[] = [
     seats: 15,
     color: "#F39C12",
     gradient: "linear-gradient(135deg, #F39C12 0%, #F7DC6F 100%)",
-    icon: "🤝",
+    icon: "Users",
     highlights: [
       "Rédaction d'offres d'emploi et analyse de CV avec l'IA",
       "Préparation d'entretiens et évaluation des compétences",
@@ -122,6 +122,15 @@ export const SEMINARS: Seminar[] = [
     sectors: ["Multinationales CI", "Grandes entreprises locales", "Secteur public", "ONG internationales"],
   },
 ];
+
+// Lucide icon name → component map (used by rendering components)
+export { Briefcase, BarChart3, Scale, Users } from 'lucide-react';
+export const SEMINAR_ICONS: Record<string, string> = {
+  Briefcase: "Briefcase",
+  BarChart3: "BarChart3",
+  Scale: "Scale",
+  Users: "Users",
+};
 
 // Pricing constants
 export const PRICE = 600000;

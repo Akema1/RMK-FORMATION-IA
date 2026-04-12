@@ -29,8 +29,8 @@ export const DEFAULT_BUDGET_CONFIG: BudgetConfig = {
 };
 
 export const TEAM: TeamMember[] = [
-  { id: "alexis", name: "Alexis", role: "Formateur CABEXIA + Stratégie RMK", avatar: "\uD83E\uDDD1\u200D\uD83D\uDCBC" },
-  { id: "rosine", name: "Rosine", role: "Opérations & Commercial RMK", avatar: "\uD83D\uDC69\u200D\uD83D\uDCBC" },
+  { id: "alexis", name: "Alexis", role: "Formateur CABEXIA + Stratégie RMK", avatar: "AD" },
+  { id: "rosine", name: "Rosine", role: "Opérations & Commercial RMK", avatar: "RM" },
 ];
 
 export const EXPENSE_CATEGORIES = [

@@ -290,7 +290,7 @@ export default function ClientPortal() {
       <aside style={{
         width: 260, background: '#1B2A4A', borderRight: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', flexDirection: 'column', padding: '32px 0', flexShrink: 0,
-        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
+        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
       }} className="portal-sidebar">
         <div style={{ padding: '0 24px', marginBottom: 40, display: 'flex', alignItems: 'center', gap: 12 }}>
           <LogoRMK scale={0.45} variant="dark" />
@@ -337,7 +337,7 @@ export default function ClientPortal() {
 
       {/* ─── MOBILE TOP BAR ─── */}
       <div className="portal-mobile-bar" style={{
-        display: 'none', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
+        display: 'none', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
         background: '#1B2A4A',
         borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '12px 16px',
         alignItems: 'center', justifyContent: 'space-between',
@@ -354,7 +354,7 @@ export default function ClientPortal() {
       {/* ─── MOBILE DROPDOWN MENU ─── */}
       {mobileMenuOpen && (
         <div className="portal-mobile-dropdown" style={{
-          display: 'none', position: 'fixed', top: 52, left: 0, right: 0, zIndex: 199,
+          display: 'none', position: 'fixed', top: 52, left: 0, right: 0, zIndex: 29,
           background: '#1B2A4A', borderBottom: '1px solid rgba(255,255,255,0.1)',
           padding: '8px 0',
         }}>
