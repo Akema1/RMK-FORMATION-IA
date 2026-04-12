@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { card, inputS, selectS, btnPrimary, label, ORANGE } from './config';
+import { card, inputS, selectS, btnPrimary, label, ORANGE, ICON_EMOJI } from './config';
 import type { Seminar } from './types';
 
 interface SeminarsManagementProps {
@@ -63,10 +63,18 @@ export function SeminarsManagement({ seminars, refreshSeminars }: SeminarsManage
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
             <div><label style={label}>Code (ex: S1)</label><input style={inputS} value={form.code} onChange={upd("code")} /></div>
             <div><label style={label}>Titre</label><input style={inputS} value={form.title} onChange={upd("title")} /></div>
-            <div><label style={label}>Dates (ex: 12-16 Mai 2026)</label><input style={inputS} value={form.week} onChange={upd("week")} /></div>
-            <div><label style={label}>Icon (Emoji)</label><input style={inputS} value={form.icon} onChange={upd("icon")} /></div>
-            <div><label style={label}>Couleur (Hex)</label><input style={inputS} value={form.color} onChange={upd("color")} /></div>
+            <div><label style={label}>Libellé dates (ex: 19 – 23 Mai 2026)</label><input style={inputS} value={form.week} onChange={upd("week")} /></div>
+            <div><label style={label}>Date début</label><input type="date" style={inputS} value={form.dates?.start || ""} onChange={(e) => setForm({ ...form, dates: { ...form.dates, start: e.target.value } as any })} /></div>
             <div><label style={label}>Places Disponibles</label><input type="number" style={inputS} value={form.seats} onChange={upd("seats")} /></div>
+            <div><label style={label}>Icon</label>
+              <select style={{ ...inputS, cursor: "pointer" }} value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })}>
+                <option value="Briefcase">💼 Briefcase</option>
+                <option value="BarChart3">📊 BarChart3</option>
+                <option value="Scale">⚖️ Scale</option>
+                <option value="Users">👥 Users</option>
+              </select>
+            </div>
+            <div><label style={label}>Couleur (Hex)</label><input type="color" style={{ ...inputS, height: 42, padding: 4, cursor: "pointer" }} value={form.color} onChange={upd("color")} /></div>
           </div>
 
           <div style={{ marginTop: 16, borderTop: "1px solid rgba(0,0,0,0.05)", paddingTop: 16 }}>
@@ -96,7 +104,7 @@ export function SeminarsManagement({ seminars, refreshSeminars }: SeminarsManage
         {seminars.map((s: Seminar) => (
           <div key={s.id} style={{ display: "grid", gridTemplateColumns: "0.5fr 3fr 2fr 1fr 1fr", padding: "14px 16px", borderBottom: "1px solid rgba(0,0,0,0.04)", alignItems: "center" }}>
             <div style={{ fontWeight: 700, color: s.color }}>{s.code}</div>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{s.icon} {s.title}</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{ICON_EMOJI[s.icon] || "📋"} {s.title}</div>
             <div style={{ fontSize: 12 }}>{s.week}</div>
             <div style={{ fontSize: 12 }}>{s.seats} places</div>
             <div style={{ display: "flex", gap: 8 }}>

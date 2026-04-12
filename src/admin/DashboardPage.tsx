@@ -1,6 +1,6 @@
 import React from 'react';
 import { fmt } from '../data/seminars';
-import { card, badge, ORANGE } from './config';
+import { card, badge, ORANGE, ICON_EMOJI } from './config';
 import type { Seminar, Participant, Task, Lead, Prices } from './types';
 
 interface DashboardPageProps {
@@ -49,7 +49,7 @@ export function DashboardPage({ participants, prices, tasks, leads, seminars }: 
           return (
             <div key={s.id} style={{ ...card, borderTop: `3px solid ${s.color}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 22 }}>{s.icon}</span>
+                <span style={{ fontSize: 22 }}>{ICON_EMOJI[s.icon] || "📋"}</span>
                 <span style={badge(s.color)}>{s.code}</span>
               </div>
               <div style={{ color: "#1B2A4A", fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{s.title}</div>

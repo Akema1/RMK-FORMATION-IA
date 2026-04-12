@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, GraduationCap, ClipboardList, Target, Wallet, CheckSquare, Tag, Bot, Search, FileImage, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, GraduationCap, ClipboardList, Target, Wallet, CheckSquare, Tag, Bot, Search, FileImage, CalendarCheck, type LucideIcon } from 'lucide-react';
 import { LogoRMK } from '../components/LogoRMK';
 import { TEAM, ORANGE } from './config';
 
@@ -17,6 +17,7 @@ const tabs: { key: string; label: string; Icon: LucideIcon }[] = [
   { key: "finance", label: "Finance", Icon: Wallet },
   { key: "tasks", label: "Tâches", Icon: CheckSquare },
   { key: "prices", label: "Tarifs", Icon: Tag },
+  { key: "formation", label: "Suivi Formation", Icon: CalendarCheck },
   { key: "agent", label: "Agent Commercial", Icon: Bot },
   { key: "seo", label: "Agent SEO", Icon: Search },
   { key: "flyer", label: "Flyer", Icon: FileImage },

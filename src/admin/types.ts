@@ -82,6 +82,11 @@ export interface Prices {
   standard: number;
   earlyBird: number;
   discountPct: number;
+  dirigeants: number;
+  coaching: number;
+  packDiscount3: number;
+  packDiscount2sem: number;
+  packDiscount4sem: number;
 }
 
 // ─── Charges breakdown ───

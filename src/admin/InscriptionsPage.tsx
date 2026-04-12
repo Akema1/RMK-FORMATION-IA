@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import jsPDF from 'jspdf';
 import { supabase } from '../lib/supabaseClient';
 import { fmt } from '../data/seminars';
-import { card, inputS, selectS, btnPrimary, btnSecondary, label, ORANGE } from './config';
+import { card, inputS, selectS, btnPrimary, btnSecondary, label, ORANGE, ICON_EMOJI } from './config';
 import type { Seminar, Participant } from './types';
 
 interface InscriptionsPageProps {
@@ -54,34 +54,78 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
 
   const exportAttestation = (p: Participant, s: Seminar) => {
     const doc = new jsPDF({ orientation: 'landscape' });
-    doc.setLineWidth(2);
-    doc.setDrawColor(232, 101, 26);
-    doc.rect(10, 10, 277, 190);
-    doc.setFontSize(30);
-    doc.setTextColor(15, 23, 42);
-    doc.text("ATTESTATION DE FORMATION", 148.5, 40, { align: "center" });
-    doc.setFontSize(14);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Délivrée par RMK Conseils & CABEXIA", 148.5, 55, { align: "center" });
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text("Nous soussignés, certifions que :", 148.5, 80, { align: "center" });
-    doc.setFontSize(24);
-    doc.setTextColor(232, 101, 26);
-    doc.text(`${p.prenom} ${p.nom}`.toUpperCase(), 148.5, 100, { align: "center" });
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`a suivi avec succès le séminaire de formation :`, 148.5, 120, { align: "center" });
-    doc.setFontSize(20);
-    doc.setTextColor(15, 23, 42);
-    doc.text(s.title, 148.5, 135, { align: "center" });
-    doc.setFontSize(14);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Date : ${s.week} | Lieu : Hôtel Movenpick, Abidjan`, 148.5, 150, { align: "center" });
+    const navy: [number, number, number] = [27, 42, 74];
+    const gold: [number, number, number] = [201, 168, 76];
+
+    // Navy header band
+    doc.setFillColor(...navy);
+    doc.rect(0, 0, 297, 50, 'F');
+
+    // Gold accent line
+    doc.setFillColor(...gold);
+    doc.rect(0, 50, 297, 3, 'F');
+
+    // Header text
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.text("ATTESTATION DE FORMATION", 148.5, 28, { align: "center" });
     doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text("Le Directeur Général, RMK Conseils", 50, 180, { align: "center" });
-    doc.text("L'Expert Formateur, CABEXIA", 247, 180, { align: "center" });
+    doc.setTextColor(...gold);
+    doc.text("RMK CONSEILS × CABEXIA", 148.5, 42, { align: "center" });
+
+    // Gold border frame (inner area)
+    doc.setLineWidth(1.5);
+    doc.setDrawColor(...gold);
+    doc.rect(15, 58, 267, 130);
+
+    // Body
+    doc.setFontSize(14);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Nous soussignés, certifions que :", 148.5, 82, { align: "center" });
+
+    doc.setFontSize(26);
+    doc.setTextColor(...navy);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${p.prenom} ${p.nom}`.toUpperCase(), 148.5, 100, { align: "center" });
+
+    doc.setFontSize(14);
+    doc.setTextColor(80, 80, 80);
+    doc.setFont('helvetica', 'normal');
+    doc.text("a suivi avec succès le séminaire de formation :", 148.5, 118, { align: "center" });
+
+    doc.setFontSize(20);
+    doc.setTextColor(...gold);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`« ${s.title} »`, 148.5, 135, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${s.week} — Abidjan, Côte d'Ivoire`, 148.5, 150, { align: "center" });
+    doc.text("Formation hybride : 3 jours présentiel + 2 sessions en ligne", 148.5, 160, { align: "center" });
+
+    // Signatures
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(180, 180, 180);
+    doc.line(40, 178, 120, 178);
+    doc.line(177, 178, 257, 178);
+
+    doc.setFontSize(10);
+    doc.setTextColor(...navy);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Le Directeur Général", 80, 184, { align: "center" });
+    doc.text("L'Expert Formateur", 217, 184, { align: "center" });
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(120, 120, 120);
+    doc.text("RMK Conseils", 80, 190, { align: "center" });
+    doc.text("CABEXIA", 217, 190, { align: "center" });
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(160, 160, 160);
+    doc.text(`Document généré le ${new Date().toLocaleDateString('fr-FR')} — Réf: ATT-${s.code}-${p.nom.substring(0, 3).toUpperCase()}`, 148.5, 205, { align: "center" });
+
     doc.save(`Attestation_${p.nom}_${s.code}.pdf`);
   };
 
@@ -176,7 +220,7 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
             <div key={p.id} style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding: "14px 16px", borderBottom: "1px solid rgba(0,0,0,0.04)", alignItems: "center" }}>
               <div><div style={{ color: "#1B2A4A", fontSize: 13, fontWeight: 600 }}>{p.nom} {p.prenom}</div><div style={{ color: '#1B2A4A', fontSize: 11 }}>{p.email}</div></div>
               <div><div style={{ color: '#1B2A4A', fontSize: 13 }}>{p.societe}</div><div style={{ color: '#1B2A4A', fontSize: 11 }}>{p.fonction}</div></div>
-              <div style={{ fontSize: 12, color: s?.color || "#fff", fontWeight: 600 }}>{s?.code} {s?.icon}</div>
+              <div style={{ fontSize: 12, color: s?.color || "#fff", fontWeight: 600 }}>{s?.code} {ICON_EMOJI[s?.icon || ""] || "📋"}</div>
               <div style={{ fontSize: 12, color: '#1B2A4A', display: "flex", alignItems: "center", gap: 8 }}>
                 {p.payment || "—"}
                 {p.tel && (

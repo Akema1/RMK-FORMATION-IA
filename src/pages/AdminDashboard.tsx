@@ -17,6 +17,7 @@ import { TasksPage } from "../admin/TasksPage";
 import { PricesPage } from "../admin/PricesPage";
 import { AgentPage } from "../admin/AgentPage";
 import { ResearchPage } from "../admin/ResearchPage";
+import { FormationTrackingPage } from "../admin/FormationTrackingPage";
 
 // ─── Supabase User type ───
 interface SupabaseUser {
@@ -215,6 +216,7 @@ export default function AdminDashboard() {
             {page === "finance" && <FinancePage participants={participants} seminars={seminars} prices={prices} expenses={expenses} refreshExpenses={fetchExpenses} budgetConfig={budgetConfig} setBudgetConfig={setBudgetConfig} />}
             {page === "tasks" && <TasksPage tasks={tasks} seminars={seminars} refreshTasks={fetchTasks} />}
             {page === "prices" && <PricesPage prices={prices} setPrices={setPrices} seminars={seminars} />}
+            {page === "formation" && <FormationTrackingPage seminars={seminars} participants={participants} />}
             {page === "agent" && <AgentPage seminars={seminars} />}
             {page === "seo" && <SeoAgentPage seminars={seminars} />}
             {page === "flyer" && <FlyerPage seminars={seminars} />}

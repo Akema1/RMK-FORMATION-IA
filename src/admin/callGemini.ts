@@ -33,6 +33,19 @@ export async function callGemini(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ systemPrompt, messages, tools })
       });
+
+      // Check if response is actually JSON (server.ts might not be running)
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(
+          'Le serveur backend (server.ts) ne semble pas actif. ' +
+          'Lancez-le avec: npx tsx server.ts'
+        );
+      }
+      if (!response.ok) {
+        const errBody = await response.text();
+        throw new Error(`Erreur serveur (${response.status}): ${errBody}`);
+      }
       const data = await response.json();
       if (data.error) throw new Error(data.error);
 

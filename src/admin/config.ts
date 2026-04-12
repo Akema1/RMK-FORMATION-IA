@@ -1,5 +1,6 @@
 import React from 'react';
 import { SEMINARS as BASE_SEMINARS } from '../data/seminars';
+import { Briefcase, BarChart3, Scale, Users, type LucideIcon } from "lucide-react";
 import type { Seminar, BudgetConfig, Prices, TeamMember } from './types';
 
 // ─── DEFAULT DATA ───
@@ -11,7 +12,16 @@ export const DEFAULT_SEMINARS: Seminar[] = BASE_SEMINARS.map(s => ({
   flyer_image: "",
 }));
 
-export const DEFAULT_PRICES: Prices = { standard: 600000, earlyBird: 540000, discountPct: 10 };
+export const DEFAULT_PRICES: Prices = {
+  standard: 600000,
+  earlyBird: 540000,
+  discountPct: 10,
+  dirigeants: 680000,
+  coaching: 100000,
+  packDiscount3: 15,
+  packDiscount2sem: 10,
+  packDiscount4sem: 20,
+};
 
 export const DEFAULT_BUDGET_CONFIG: BudgetConfig = {
   consultance_pres: 1050000,
@@ -47,6 +57,18 @@ export const EXPENSE_CATEGORIES = [
   { value: "transport", label: "Transport local" },
   { value: "divers", label: "Divers & Imprévus" }
 ] as const;
+
+// ─── ICON MAPS ───
+// Emoji map for <option> elements (can't render React components in <option>)
+export const ICON_EMOJI: Record<string, string> = {
+  Briefcase: "💼",
+  BarChart3: "📊",
+  Scale: "⚖️",
+  Users: "👥",
+};
+
+// Lucide icon component map for rendering outside <select>
+export const ICON_MAP: Record<string, LucideIcon> = { Briefcase, BarChart3, Scale, Users };
 
 // ─── COLORS ───
 export const SURFACE_BG = "#FAF9F6";

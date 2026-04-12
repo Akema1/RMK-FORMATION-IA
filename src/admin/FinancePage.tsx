@@ -304,7 +304,7 @@ export function FinancePage({ participants, seminars, prices, expenses, refreshE
     const title = view === "global" ? "Tous les séminaires" : seminars.find(s => s.id === view)?.title || "Séminaire";
     const brandNavy: [number, number, number] = [27, 42, 74];
     const brandGold: [number, number, number] = [201, 168, 76];
-    const brandLight: [number, number, number] = [250, 249, 246];
+    const brandLight: [number, number, number] = [245, 240, 232];
 
     doc.setFillColor(...brandNavy);
     doc.rect(0, 0, 210, 45, 'F');
@@ -450,10 +450,23 @@ export function FinancePage({ participants, seminars, prices, expenses, refreshE
               const pVal = plan.charges[row.key] || 0;
               const aVal = actual.charges[row.key] || 0;
               const diff = pVal - aVal;
+              const configKey = row.key as keyof typeof budgetConfig;
+              const isEditable = configKey in budgetConfig && configKey !== "commercialisation_pct";
               return (
                 <tr key={i} style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
                   <td style={{ padding: "10px 16px", color: "#1B2A4A", fontWeight: 500 }}>{row.label}</td>
-                  <td style={{ padding: "10px 16px", textAlign: "right", color: "#2980B9" }}>{fmt(pVal)}</td>
+                  <td style={{ padding: "10px 16px", textAlign: "right", color: "#2980B9" }}>
+                    {isEditable ? (
+                      <input
+                        type="number"
+                        value={budgetConfig[configKey] || 0}
+                        onChange={(e) => setBudgetConfig({ ...budgetConfig, [configKey]: Number(e.target.value) })}
+                        style={{ width: 110, textAlign: "right", border: "1px solid rgba(0,0,0,0.12)", borderRadius: 6, padding: "4px 8px", fontSize: 13, color: "#2980B9", fontWeight: 600, background: "rgba(41,128,185,0.05)", outline: "none" }}
+                      />
+                    ) : (
+                      fmt(pVal)
+                    )}
+                  </td>
                   <td style={{ padding: "10px 16px", textAlign: "right", color: "#C9A84C", fontWeight: 700 }}>{fmt(aVal)}</td>
                   <td style={{ padding: "10px 16px", textAlign: "right", color: diff >= 0 ? "#27AE60" : "#E74C3C", fontWeight: 600 }}>{fmt(diff)}</td>
                 </tr>

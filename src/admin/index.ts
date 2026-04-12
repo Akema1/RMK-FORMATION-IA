@@ -11,6 +11,7 @@ export { TasksPage } from './TasksPage';
 export { PricesPage } from './PricesPage';
 export { AgentPage } from './AgentPage';
 export { ResearchPage } from './ResearchPage';
+export { FormationTrackingPage } from './FormationTrackingPage';
 export { callGemini } from './callGemini';
 
 export type {

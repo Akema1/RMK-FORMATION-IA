@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { COMMERCIAL_STRATEGY } from '../lib/strategy';
 import { callGemini } from './callGemini';
-import { card, selectS, btnPrimary, label, ORANGE } from './config';
+import { card, selectS, btnPrimary, label, ORANGE, ICON_EMOJI } from './config';
 import type { Seminar, AgentHistoryEntry } from './types';
 
 interface AgentPageProps {
@@ -78,7 +78,7 @@ Réponds en français. Fournis un plan de prospection journalier avec:
         <div style={{ flex: 1, minWidth: 200 }}>
           <label style={label}>Séminaire cible</label>
           <select style={selectS} value={seminar} onChange={e => setSeminar(e.target.value)}>
-            {seminars.map(s => <option key={s.id} value={s.id}>{s.icon} {s.code} – {s.title}</option>)}
+            {seminars.map(s => <option key={s.id} value={s.id}>{ICON_EMOJI[s.icon] || "📋"} {s.code} – {s.title}</option>)}
           </select>
         </div>
         <button onClick={runAgent} disabled={loading} style={{ ...btnPrimary, opacity: loading ? 0.6 : 1, minWidth: 220 }}>
