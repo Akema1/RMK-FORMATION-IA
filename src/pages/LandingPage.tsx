@@ -65,7 +65,7 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
           <LogoRMK scale={0.5} variant="dark" />
           <div>
             <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, letterSpacing: 0.5, lineHeight: 1.1 }}>RMK <span style={{ color: "#C9A84C" }}>×</span> CABEXIA</div>
-            <div style={{ color: '#1B2A4A', fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase" }}>Formation IA · Abidjan</div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase" }}>Formation IA · Abidjan</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 4, alignItems: "center" }} className="nav-desktop">
@@ -85,6 +85,14 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
                 padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
                 transition: "all 0.2s", letterSpacing: 0.3, marginLeft: 8
               }}>Portail Client</button>
+          <button onClick={() => navigate('/admin')}
+              title="Administration"
+              style={{
+                background: "transparent",
+                border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C",
+                padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
+                transition: "all 0.2s", marginLeft: 4
+              }}>⚙</button>
         </div>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="nav-mobile-btn" style={{ display: "none", background: "none", border: "none", color: "#1B2A4A", fontSize: 24, cursor: "pointer" }}>
           {mobileOpen ? "✕" : "☰"}
@@ -99,8 +107,12 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
             </button>
           ))}
           <button onClick={() => navigate('/portal')}
-              style={{ background: "transparent", border: "1px solid rgba(0,0,0,0.2)", color: "#1B2A4A", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
+              style={{ background: "transparent", border: "1px solid rgba(0,0,0,0.2)", color: "#fff", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
               Portail Client
+          </button>
+          <button onClick={() => navigate('/admin')}
+              style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
+              ⚙ Administration
           </button>
         </div>
       )}
