@@ -9,11 +9,14 @@ CREATE TABLE IF NOT EXISTS public.participants (
   societe TEXT NOT NULL,
   fonction TEXT NOT NULL,
   seminar TEXT NOT NULL,
-  amount INTEGER NOT NULL,
-  status TEXT DEFAULT 'pending'::text,
-  payment TEXT,
-  notes TEXT
+  amount INTEGER NOT NULL CHECK (amount >= 0),
+  status TEXT DEFAULT 'pending'::text CHECK (status IN ('pending', 'confirmed', 'cancelled', 'waitlist')),
+  payment TEXT CHECK (payment IS NULL OR payment IN ('pending', 'partial', 'paid', 'refunded')),
+  notes TEXT,
+  CONSTRAINT participants_email_format CHECK (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$')
 );
+CREATE INDEX IF NOT EXISTS participants_email_idx ON public.participants (email);
+CREATE INDEX IF NOT EXISTS participants_seminar_idx ON public.participants (seminar);
 
 -- Table: leads (Prospects CRM)
 CREATE TABLE IF NOT EXISTS public.leads (
@@ -23,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
   entreprise TEXT,
   contact TEXT,
   source TEXT,
-  status TEXT DEFAULT 'froid'::text,
+  status TEXT DEFAULT 'froid'::text CHECK (status IN ('froid', 'tiede', 'chaud', 'converti', 'perdu')),
   notes TEXT
 );
 
@@ -36,7 +39,7 @@ CREATE TABLE IF NOT EXISTS public.seminars (
   week TEXT NOT NULL,
   icon TEXT NOT NULL,
   color TEXT NOT NULL,
-  seats INTEGER NOT NULL,
+  seats INTEGER NOT NULL CHECK (seats > 0),
   targets JSONB DEFAULT '[]'::jsonb,
   sectors JSONB DEFAULT '[]'::jsonb,
   flyer_subtitle TEXT,
@@ -52,7 +55,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
   title TEXT NOT NULL,
   assignee TEXT NOT NULL,
   deadline TEXT NOT NULL,
-  status TEXT DEFAULT 'pending'::text
+  status TEXT DEFAULT 'pending'::text CHECK (status IN ('pending', 'in_progress', 'done', 'blocked'))
 );
 
 -- Table: expenses (Dépenses budgétaires)
@@ -60,8 +63,8 @@ CREATE TABLE IF NOT EXISTS public.expenses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   category TEXT NOT NULL,
-  amount INTEGER NOT NULL,
-  status TEXT DEFAULT 'planned'::text,
+  amount INTEGER NOT NULL CHECK (amount >= 0),
+  status TEXT DEFAULT 'planned'::text CHECK (status IN ('planned', 'approved', 'paid', 'cancelled')),
   date TEXT NOT NULL
 );
 
@@ -107,3 +110,28 @@ CREATE POLICY "Allow authenticated full access to tasks"
 CREATE POLICY "Allow authenticated full access to expenses"
   ON public.expenses FOR ALL
   TO authenticated USING (true) WITH CHECK (true);
+
+-- ============================================================
+-- Idempotent migration: add CHECK constraints on existing installs
+-- ============================================================
+-- CREATE TABLE IF NOT EXISTS above is a no-op on existing tables, so fresh
+-- installs get constraints from the column definitions, while pre-existing
+-- deployments need these ALTER statements. Each block tolerates re-runs.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'participants_amount_check')
+  THEN ALTER TABLE public.participants ADD CONSTRAINT participants_amount_check CHECK (amount >= 0); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'participants_status_check')
+  THEN ALTER TABLE public.participants ADD CONSTRAINT participants_status_check CHECK (status IN ('pending','confirmed','cancelled','waitlist')); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'participants_payment_check')
+  THEN ALTER TABLE public.participants ADD CONSTRAINT participants_payment_check CHECK (payment IS NULL OR payment IN ('pending','partial','paid','refunded')); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'seminars_seats_check')
+  THEN ALTER TABLE public.seminars ADD CONSTRAINT seminars_seats_check CHECK (seats > 0); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leads_status_check')
+  THEN ALTER TABLE public.leads ADD CONSTRAINT leads_status_check CHECK (status IN ('froid','tiede','chaud','converti','perdu')); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tasks_status_check')
+  THEN ALTER TABLE public.tasks ADD CONSTRAINT tasks_status_check CHECK (status IN ('pending','in_progress','done','blocked')); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_amount_check')
+  THEN ALTER TABLE public.expenses ADD CONSTRAINT expenses_amount_check CHECK (amount >= 0); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_status_check')
+  THEN ALTER TABLE public.expenses ADD CONSTRAINT expenses_status_check CHECK (status IN ('planned','approved','paid','cancelled')); END IF;
+END $$;

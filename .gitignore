@@ -8,3 +8,4 @@ coverage/
 !.env.example
 .vercel
 .claude/settings.local.json
+/.serena/

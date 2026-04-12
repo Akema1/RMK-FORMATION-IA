@@ -16,6 +16,8 @@ import twilio from "twilio";
 import { createClient } from "@supabase/supabase-js";
 import rateLimit from "express-rate-limit";
 import { SEMINARS } from "./src/data/seminars.js";
+import { renderSystemPrompt, PROMPT_TEMPLATES, type TemplateId } from "./api/prompts.js";
+import { z } from "zod";
 
 dotenv.config();
 
@@ -23,10 +25,23 @@ async function startServer() {
   const app = express();
   const PORT = 8080;
 
-  // ── CORS ──────────────────────────────────────────────────────────────────
+  // Parity with api/index.ts: trust the first proxy hop (Vite dev proxies).
+  app.set("trust proxy", 1);
+
+  // ── CORS: exact-match allowlist + scoped Vercel preview regex ─────────────
+  // Parity with api/index.ts — prevents dev/prod drift.
+  const ALLOWED_ORIGINS: string[] = process.env.APP_URL
+    ? [process.env.APP_URL, "http://localhost:8080"]
+    : ["http://localhost:8080"];
+  const VERCEL_PREVIEW_RE = /^https:\/\/rmk-formation-ia-[a-z0-9-]+\.vercel\.app$/;
   app.use(
     cors({
-      origin: process.env.APP_URL || "http://localhost:8080",
+      origin: (origin, cb) => {
+        if (!origin) return cb(null, true);
+        if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+        if (VERCEL_PREVIEW_RE.test(origin)) return cb(null, true);
+        cb(new Error("Not allowed by CORS"));
+      },
       methods: ["GET", "POST"],
     })
   );
@@ -68,7 +83,7 @@ async function startServer() {
   // ── Rate limiters ─────────────────────────────────────────────────────────
   const portalLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 5,
+    max: 3,
     message: { error: "Too many requests. Try again in a minute." },
     standardHeaders: true,
     legacyHeaders: false,
@@ -268,9 +283,29 @@ async function startServer() {
   });
 
   // ── AI generation (admin only) ────────────────────────────────────────────
+  const aiGenerateSchema = z.object({
+    templateId: z.enum(PROMPT_TEMPLATES as readonly [TemplateId, ...TemplateId[]]),
+    vars: z.record(z.string(), z.any()).optional(),
+    userPrompt: z.string().max(5000).optional(),
+    messages: z.array(z.object({
+      role: z.string(),
+      text: z.string().max(5000).optional(),
+      parts: z.array(z.any()).optional(),
+    })).max(20).optional(),
+  });
   app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
     try {
-      const { systemPrompt, userPrompt, messages } = req.body;
+      const parsed = aiGenerateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid input", details: parsed.error.issues.map(i => i.message) });
+      }
+      const { templateId, vars, userPrompt, messages } = parsed.data;
+      let systemPrompt: string;
+      try {
+        systemPrompt = renderSystemPrompt(templateId, vars as any);
+      } catch (e: any) {
+        return res.status(400).json({ error: e?.message || "Invalid template" });
+      }
 
       // Convert client message format to AI SDK format (Claude Haiku via Vercel AI Gateway)
       const VALID_ROLES = new Set(["user", "assistant", "model"]);
@@ -287,11 +322,17 @@ async function startServer() {
             }))
         : undefined;
 
-      const response = await generateText({
-        model: AI_MODEL,
-        system: systemPrompt,
-        ...(aiMessages ? { messages: aiMessages } : { prompt: userPrompt }),
-      });
+      const response = aiMessages
+        ? await generateText({
+            model: AI_MODEL,
+            system: systemPrompt,
+            messages: aiMessages,
+          })
+        : await generateText({
+            model: AI_MODEL,
+            system: systemPrompt,
+            prompt: userPrompt ?? "",
+          });
       res.json({ text: response.text });
     } catch (err) {
       console.error("AI generation error:", err);

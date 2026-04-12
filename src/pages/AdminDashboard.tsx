@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
-import { COMMERCIAL_STRATEGY } from "../lib/strategy";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import autoTable from "jspdf-autotable";
@@ -43,7 +42,17 @@ const TEAM = [
 const fmt = (n: number) => typeof n === 'number' ? n.toLocaleString("fr-FR") : n;
 
 // ─── AI AGENT HELPER ───
-async function callAI(systemPrompt: string, userPrompt: string, seminars: Seminar[], useSearch = false, tools?: any[]) {
+// templateId selects a server-side system prompt whitelist. Clients cannot
+// supply arbitrary prompts — server renders the actual prompt from vars.
+type AITemplateId = "seo" | "commercial" | "research";
+async function callAI(
+  templateId: AITemplateId,
+  vars: Record<string, unknown> | undefined,
+  userPrompt: string,
+  seminars: Seminar[],
+  _useSearch = false,
+  tools?: any[]
+) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
@@ -58,7 +67,7 @@ async function callAI(systemPrompt: string, userPrompt: string, seminars: Semina
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ systemPrompt, messages, tools })
+        body: JSON.stringify({ templateId, vars, messages, tools })
       });
       const data = await response.json();
       if (data.error) throw new Error(data.error);
@@ -231,7 +240,7 @@ function SeoAgentPage({ seminars }: { seminars: Seminar[] }) {
     3. Une meta description optimisée (max 160 caractères)
     4. Un plan de contenu (H1, H2, H3) pour une page d'atterrissage.`;
     
-    const res = await callAI("Tu es un expert SEO B2B.", prompt, seminars);
+    const res = await callAI("seo", undefined, prompt, seminars);
     setResult(res.text);
     const newHistory = [{ date: new Date().toLocaleString("fr-FR"), topic, result: res.text }, ...history.slice(0, 9)];
     setHistory(newHistory);
@@ -1499,34 +1508,7 @@ function AgentPage({ seminars }: any) {
     if (!s) return;
     setLoading(true);
     setResult("");
-    const systemPrompt = `Tu es un agent commercial expert pour RMK Conseils, société qui organise des séminaires de formation en Intelligence Artificielle à Abidjan, Côte d'Ivoire. La formation est délivrée par CABEXIA, Cabinet d'Expertise en IA.
-
-Voici la stratégie commerciale globale de l'événement :
-${COMMERCIAL_STRATEGY}
-
-Tu dois identifier les MEILLEURS profils de participants potentiels pour le séminaire "${s.title}" (${s.week}).
-
-Contexte marché Abidjan:
-- 1ère place financière UEMOA (BRVM, BCEAO)
-- 28 banques commerciales, nombreuses SGI et assurances
-- 500+ grandes entreprises et multinationales
-- Écosystème tech en croissance +15% annuel
-- Mobile money: Orange Money, MTN MoMo, Wave
-
-Profils cibles: ${s.targets.join(", ")}
-Secteurs prioritaires: ${s.sectors.join(", ")}
-Prix: 600 000 FCFA (5 jours hybride: 3 présentiel + 2 en ligne)
-Places: ${s.seats} maximum
-
-Réponds en français. Fournis un plan de prospection journalier avec:
-1. TOP 10 entreprises/institutions à contacter en priorité à Abidjan (noms réels)
-2. Les profils décideurs clés dans chaque entreprise (titres de poste)
-3. Argumentaire de vente adapté au secteur
-4. Script d'approche LinkedIn (message InMail)
-5. Script WhatsApp de premier contact
-6. Objections probables et réponses
-7. Canaux de contact recommandés par cible`;
-
+    // System prompt is rendered server-side from templateId="commercial" + seminarId.
     const userPrompt = `Génère le plan de prospection du jour pour le séminaire ${s.code} - ${s.title}. Concentre-toi sur les entreprises les plus susceptibles d'inscrire leurs cadres. Sois concret avec des noms d'entreprises réelles d'Abidjan et de Côte d'Ivoire.`;
 
     const tools = [{
@@ -1541,7 +1523,7 @@ Réponds en français. Fournis un plan de prospection journalier avec:
       }
     }];
 
-    const res = await callAI(systemPrompt, userPrompt, seminars, true, tools);
+    const res = await callAI("commercial", { seminarId: s.id }, userPrompt, seminars, true, tools);
     setResult(res.text);
     const newHistory = [{ date: new Date().toLocaleString("fr-FR"), seminar: s.code, title: s.title, result: res.text }, ...history.slice(0, 9)];
     setHistory(newHistory);
@@ -1613,19 +1595,8 @@ function ResearchPage({ seminars }: { seminars: Seminar[] }) {
   const runResearch = async (q = query) => {
     setLoading(true);
     setResult("");
-    const systemPrompt = `Tu es un assistant de recherche pour RMK, société qui organise des séminaires de formation IA à Abidjan en mai 2026. Tu dois fournir des estimations de prix détaillées et réalistes basées sur le marché ivoirien/ouest-africain.
-
-Pour chaque recherche, fournis:
-1. FOURCHETTE DE PRIX en FCFA (minimum – moyen – maximum)
-2. Les prestataires recommandés avec noms et contacts si possible
-3. Conseils de négociation
-4. Alternatives économiques
-5. Timing de réservation optimal
-6. Conditions et inclusions typiques
-
-Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les prix réels du marché local. Monnaie: FCFA (XOF).`;
-
-    const res = await callAI(systemPrompt, q, seminars, true);
+    // System prompt rendered server-side from templateId="research".
+    const res = await callAI("research", undefined, q, seminars, true);
     setResult(res.text);
     const newHistory = [{ date: new Date().toLocaleString("fr-FR"), query: q, result: res.text }, ...history.slice(0, 9)];
     setHistory(newHistory);
@@ -1702,20 +1673,24 @@ export default function AdminDashboard() {
     }
   };
 
+  // Hard cap on admin fetches to prevent memory exhaustion if row counts explode.
+  // 500 is ~6× the expected participant volume for the May 2026 cohort; raise
+  // if/when the dashboard grows real pagination.
+  const ADMIN_FETCH_LIMIT = 500;
   const fetchParticipants = async () => {
-    const { data } = await supabase.from('participants').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('participants').select('*').order('created_at', { ascending: false }).limit(ADMIN_FETCH_LIMIT);
     if (data) setParticipants(data);
   };
   const fetchExpenses = async () => {
-    const { data } = await supabase.from('expenses').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('expenses').select('*').order('created_at', { ascending: false }).limit(ADMIN_FETCH_LIMIT);
     if (data) setExpenses(data);
   };
   const fetchTasks = async () => {
-    const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(ADMIN_FETCH_LIMIT);
     if (data) setTasks(data);
   };
   const fetchLeads = async () => {
-    const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+    const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false }).limit(ADMIN_FETCH_LIMIT);
     if (data) setLeads(data);
   };
 

@@ -13,6 +13,7 @@ import { createClient } from "@supabase/supabase-js";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { SEMINARS } from "../src/data/seminars.js";
+import { renderSystemPrompt, PROMPT_TEMPLATES, type TemplateId } from "./prompts.js";
 
 // ── Startup guard: fail loudly on missing critical secrets ────────────────────
 if (
@@ -26,6 +27,11 @@ if (
 }
 
 const app = express();
+
+// Trust the first proxy (Vercel's edge) so express-rate-limit keys on the real
+// client IP (X-Forwarded-For) instead of the edge IP. Without this, rate limits
+// either lock everyone out or lock no one out, depending on topology.
+app.set("trust proxy", 1);
 
 // ── CORS: exact-match origin list + Vercel preview subdomains ─────────────────
 // startsWith() can be bypassed (rmkapp.vercel.app.evil.com starts with rmkapp.vercel.app).
@@ -75,9 +81,13 @@ const supabaseAnon = createClient(
 const AI_MODEL = gateway("anthropic/claude-haiku-4.5");
 
 // ── Rate limiters ─────────────────────────────────────────────────────────────
+// Tight limit on portal lookups: response shape is identical for hit/miss,
+// but 5/min * 1440 = 7200 lookups/day per IP is still enough to seed an email
+// enumeration. 3/min = 4320/day and won't inconvenience a legitimate user
+// looking up their own registration.
 const portalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 5,
+  max: 3,
   message: { error: "Too many requests. Try again in a minute." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -204,7 +214,10 @@ const portalLookupSchema = z.object({
 });
 
 const aiGenerateSchema = z.object({
-  systemPrompt: z.string().min(1).max(2000),
+  // templateId selects a server-side system prompt from a fixed whitelist.
+  // Clients can no longer supply arbitrary system prompts (prompt-injection / budget-abuse hardening).
+  templateId: z.enum(PROMPT_TEMPLATES as readonly [TemplateId, ...TemplateId[]]),
+  vars: z.record(z.string(), z.any()).optional(),
   userPrompt: z.string().max(5000).optional(),
   messages: z.array(z.object({
     role: z.string(),
@@ -329,7 +342,15 @@ app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid input", details: parsed.error.issues.map(i => i.message) });
     }
     // tools intentionally excluded — server-side only
-    const { systemPrompt, userPrompt, messages } = parsed.data;
+    const { templateId, vars, userPrompt, messages } = parsed.data;
+
+    // Render system prompt from server-side whitelist — client cannot supply raw prompts.
+    let systemPrompt: string;
+    try {
+      systemPrompt = renderSystemPrompt(templateId, vars as any);
+    } catch (err: any) {
+      return res.status(400).json({ error: err?.message || "Invalid template" });
+    }
 
     // Convert client message format to AI SDK format (Claude Haiku via Vercel AI Gateway)
     const VALID_ROLES = new Set(["user", "assistant", "model"]);
