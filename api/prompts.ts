@@ -26,6 +26,11 @@ function esc(str: string): string {
 
 export interface CommercialVars {
   seminarId: string;
+  /**
+   * Optional live stats injected by the server (see api/app.ts fetchSeminarStats).
+   * Present when the DB is reachable; omitted in graceful-degradation mode.
+   */
+  stats?: { total: number; confirmed: number };
 }
 
 export type RenderVars = CommercialVars | Record<string, never> | undefined;
@@ -56,7 +61,8 @@ Pour chaque recherche, fournis:
 Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les prix réels du marché local. Monnaie: FCFA (XOF).`;
 
     case "commercial": {
-      const seminarId = (vars as CommercialVars | undefined)?.seminarId;
+      const cv = vars as CommercialVars | undefined;
+      const seminarId = cv?.seminarId;
       if (!seminarId || typeof seminarId !== "string") {
         throw new Error("commercial template requires vars.seminarId");
       }
@@ -64,6 +70,9 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
       if (!s) {
         throw new Error("Unknown seminarId");
       }
+      const statsLine = cv?.stats
+        ? `Inscriptions actuelles: ${cv.stats.total} inscrits, ${cv.stats.confirmed} confirmés, ${Math.max(0, s.seats - cv.stats.total)} places restantes.`
+        : `Places: ${s.seats} maximum.`;
       return `Tu es un agent commercial expert pour RMK Conseils, société qui organise des séminaires de formation en Intelligence Artificielle à Abidjan, Côte d'Ivoire. La formation est délivrée par CABEXIA, Cabinet d'Expertise en IA.
 
 Voici la stratégie commerciale globale de l'événement :
@@ -81,7 +90,7 @@ Contexte marché Abidjan:
 Profils cibles: ${s.targets.map(esc).join(", ")}
 Secteurs prioritaires: ${s.sectors.map(esc).join(", ")}
 Prix: 600 000 FCFA (5 jours hybride: 3 présentiel + 2 en ligne)
-Places: ${s.seats} maximum
+${statsLine}
 
 Réponds en français. Fournis un plan de prospection journalier avec:
 1. TOP 10 entreprises/institutions à contacter en priorité à Abidjan (noms réels)

@@ -44,56 +44,31 @@ const fmt = (n: number) => typeof n === 'number' ? n.toLocaleString("fr-FR") : n
 // ─── AI AGENT HELPER ───
 // templateId selects a server-side system prompt whitelist. Clients cannot
 // supply arbitrary prompts — server renders the actual prompt from vars.
+// Live seminar stats (for templateId="commercial") are fetched server-side
+// from Supabase and injected into the prompt; the previous client-driven
+// tool-call loop was never wired through generateText() and has been removed.
 type AITemplateId = "seo" | "commercial" | "research";
 async function callAI(
   templateId: AITemplateId,
   vars: Record<string, unknown> | undefined,
-  userPrompt: string,
-  seminars: Seminar[],
-  _useSearch = false,
-  tools?: any[]
+  userPrompt: string
 ) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     if (!token) throw new Error("Non authentifié. Veuillez vous reconnecter.");
 
-    let messages: any[] = [{ role: 'user', text: userPrompt }];
-
-    for (let i = 0; i < 5; i++) {
-      const response = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ templateId, vars, messages, tools })
-      });
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
-
-      if (data.functionCalls && data.functionCalls.length > 0) {
-        messages.push({ role: 'assistant', text: '', functionCall: data.functionCalls[0] });
-
-        const call = data.functionCalls[0];
-        if (call.name === 'check_seminar_stats') {
-          const { seminarCode } = call.args;
-          const s = seminars.find(x => x.code.toLowerCase() === seminarCode.toLowerCase());
-          if (s) {
-            const { data: participants } = await supabase.from('participants').select('*').eq('seminar', s.id);
-            const confirmed = participants ? participants.filter(d => d.status === "confirmed").length : 0;
-            const result = `STATS ${s.code}: ${participants?.length || 0} inscrits, ${confirmed} confirmés, ${s.seats} places max.`;
-
-            messages.push({ role: 'user', text: result });
-          } else {
-            messages.push({ role: 'user', text: "Séminaire non trouvé" });
-          }
-        }
-      } else {
-        return { text: data.text, functionCalls: null };
-      }
-    }
-    return { text: "Max iterations reached", functionCalls: null };
+    const response = await fetch('/api/ai/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ templateId, vars, userPrompt }),
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    return { text: data.text as string, functionCalls: null };
   } catch (e: any) {
     return { text: `Erreur: ${e.message}`, functionCalls: null };
   }
@@ -240,7 +215,7 @@ function SeoAgentPage({ seminars }: { seminars: Seminar[] }) {
     3. Une meta description optimisée (max 160 caractères)
     4. Un plan de contenu (H1, H2, H3) pour une page d'atterrissage.`;
     
-    const res = await callAI("seo", undefined, prompt, seminars);
+    const res = await callAI("seo", undefined, prompt);
     setResult(res.text);
     const newHistory = [{ date: new Date().toLocaleString("fr-FR"), topic, result: res.text }, ...history.slice(0, 9)];
     setHistory(newHistory);
@@ -1509,21 +1484,11 @@ function AgentPage({ seminars }: any) {
     setLoading(true);
     setResult("");
     // System prompt is rendered server-side from templateId="commercial" + seminarId.
+    // Live seminar stats (inscrits/confirmés) are fetched server-side and injected
+    // into the prompt — no more client-driven tool-call loop.
     const userPrompt = `Génère le plan de prospection du jour pour le séminaire ${s.code} - ${s.title}. Concentre-toi sur les entreprises les plus susceptibles d'inscrire leurs cadres. Sois concret avec des noms d'entreprises réelles d'Abidjan et de Côte d'Ivoire.`;
 
-    const tools = [{
-      name: "check_seminar_stats",
-      description: "Récupère les statistiques réelles d'inscription pour un séminaire donné (nombre d'inscrits, confirmés, places restantes)",
-      parameters: {
-        type: "object",
-        properties: {
-          seminarCode: { type: "string", description: "Le code du séminaire: S1, S2, S3 ou S4" }
-        },
-        required: ["seminarCode"]
-      }
-    }];
-
-    const res = await callAI("commercial", { seminarId: s.id }, userPrompt, seminars, true, tools);
+    const res = await callAI("commercial", { seminarId: s.id }, userPrompt);
     setResult(res.text);
     const newHistory = [{ date: new Date().toLocaleString("fr-FR"), seminar: s.code, title: s.title, result: res.text }, ...history.slice(0, 9)];
     setHistory(newHistory);
@@ -1596,7 +1561,7 @@ function ResearchPage({ seminars }: { seminars: Seminar[] }) {
     setLoading(true);
     setResult("");
     // System prompt rendered server-side from templateId="research".
-    const res = await callAI("research", undefined, q, seminars, true);
+    const res = await callAI("research", undefined, q);
     setResult(res.text);
     const newHistory = [{ date: new Date().toLocaleString("fr-FR"), query: q, result: res.text }, ...history.slice(0, 9)];
     setHistory(newHistory);
