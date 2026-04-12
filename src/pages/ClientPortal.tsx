@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
-import { SEMINARS } from '../data/seminars';
+import { SEMINARS, type Seminar } from '../data/seminars';
+import type { Participant } from '../admin/types';
 
 const SYLLABUS = [
   { day: "Jour 1", mode: "Présentiel", location: "Abidjan", title: "Fondamentaux & Stratégie IA", desc: "Démystification de l'IA générative. Audit de maturité digitale de votre organisation. Cartographie des cas d'usage à fort ROI pour votre secteur.", color: "#C9A84C" },
@@ -13,50 +14,106 @@ const SYLLABUS = [
 ];
 
 import { LogoRMK } from "../components/LogoRMK";
-import { useEffect } from 'react';
+
+// ─── AUTH STEP TYPE ───
+type AuthStep = 'email' | 'sent' | 'verifying' | 'dashboard';
 
 export default function ClientPortal() {
   const [email, setEmail] = useState('');
-  const [participant, setParticipant] = useState<any>(null);
-  const [seminars, setSeminars] = useState<any[]>(SEMINARS);
+  const [authStep, setAuthStep] = useState<AuthStep>('email');
+  const [participant, setParticipant] = useState<Participant | null>(null);
+  const [seminars, setSeminars] = useState<Seminar[]>(SEMINARS);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchSeminars = async () => {
-      const { data, error } = await supabase.from('seminars').select('*');
-      if (!error && data && data.length > 0) {
-        setSeminars(data);
-      }
-    };
-    fetchSeminars();
-  }, []);
-  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'payment' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'payment' | 'community' | 'documents'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  const searchParticipant = async () => {
-    if (!email) return;
+  // ─── Load seminars from DB ───
+  useEffect(() => {
+    const fetchSeminars = async () => {
+      const { data, error: dbErr } = await supabase.from('seminars').select('*');
+      if (!dbErr && data && data.length > 0) setSeminars(data);
+    };
+    fetchSeminars();
+  }, []);
+
+  // ─── Listen for magic link callback + existing session ───
+  useEffect(() => {
+    // Check if user is already signed in (e.g., after clicking magic link)
+    const handleSession = async (userEmail: string) => {
+      setAuthStep('verifying');
+      setError('');
+      try {
+        const { data, error: dbErr } = await supabase
+          .from('participants')
+          .select('*')
+          .eq('email', userEmail.trim().toLowerCase())
+          .limit(1)
+          .maybeSingle();
+        if (dbErr || !data) {
+          setError('Aucune inscription trouvée pour cet email. Contactez-nous si vous avez bien une inscription.');
+          await supabase.auth.signOut();
+          setAuthStep('email');
+        } else {
+          setParticipant(data);
+          setAuthStep('dashboard');
+        }
+      } catch {
+        setError('Erreur lors de la vérification. Veuillez réessayer.');
+        setAuthStep('email');
+      }
+    };
+
+    // Initial session check (handles magic link redirect)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        handleSession(session.user.email);
+      }
+    });
+
+    // Auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.email && authStep !== 'dashboard') {
+        handleSession(session.user.email);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─── Send magic link OTP ───
+  const sendMagicLink = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) return;
     setLoading(true);
     setError('');
-    setParticipant(null);
     try {
-      const { data, error } = await supabase
-        .from('participants')
-        .select('*')
-        .eq('email', email.trim().toLowerCase())
-        .limit(1)
-        .maybeSingle();
-      
-      if (error || !data) {
-        setError('Aucune inscription trouvée pour cet email.');
+      const { error: otpErr } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/portal`,
+        },
+      });
+      if (otpErr) {
+        setError('Impossible d\'envoyer le lien. Vérifiez votre email et réessayez.');
       } else {
-        setParticipant(data);
+        setAuthStep('sent');
       }
-    } catch (err) {
-      setError('Erreur lors de la recherche.');
+    } catch {
+      setError('Erreur réseau. Veuillez réessayer.');
     }
     setLoading(false);
+  };
+
+  // ─── Sign out ───
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setParticipant(null);
+    setEmail('');
+    setAuthStep('email');
+    setActiveTab('overview');
   };
 
   const exportAttestation = () => {
@@ -113,48 +170,106 @@ export default function ClientPortal() {
 
   const seminar = participant ? seminars.find(s => s.id === participant.seminar) : null;
 
-  // ─── LOGIN SCREEN ───
-  if (!participant) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#FAF9F6', color: '#1B2A4A', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <div style={{ maxWidth: 460, width: '100%', background: '#FFFFFF', padding: '48px 40px', borderRadius: 24, border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40, display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <LogoRMK scale={1.2} variant="light" />
-            <div style={{ color: '#C9A84C', fontSize: 13, fontWeight: 800, letterSpacing: 5, textTransform: 'uppercase', marginTop: 20 }}>Espace Client Privé</div>
-          </div>
+  // ─── AUTH SCREENS ───
+  if (authStep !== 'dashboard') {
+    const cardStyle: React.CSSProperties = { minHeight: '100vh', background: '#FAF9F6', color: '#1B2A4A', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 };
+    const boxStyle: React.CSSProperties = { maxWidth: 460, width: '100%', background: '#FFFFFF', padding: '48px 40px', borderRadius: 24, border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' };
+    const logoBlock = (
+      <div style={{ textAlign: 'center', marginBottom: 40, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <LogoRMK scale={1.2} variant="light" />
+        <div style={{ color: '#C9A84C', fontSize: 13, fontWeight: 800, letterSpacing: 5, textTransform: 'uppercase', marginTop: 20 }}>Espace Client Privé</div>
+      </div>
+    );
+    const backBtn = (
+      <div style={{ textAlign: 'center', marginTop: 32 }}>
+        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'rgba(27,42,74,0.4)', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 auto' }}>
+          <span>←</span> Retour au site principal
+        </button>
+      </div>
+    );
 
+    // ── Verifying screen ──
+    if (authStep === 'verifying') {
+      return (
+        <div style={cardStyle}>
+          <div style={boxStyle}>
+            {logoBlock}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 20 }}>⏳</div>
+              <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1B2A4A', marginBottom: 12 }}>Vérification en cours…</h2>
+              <p style={{ color: 'rgba(27,42,74,0.6)', fontSize: 15 }}>Connexion à votre espace en cours. Un instant.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Magic link sent screen ──
+    if (authStep === 'sent') {
+      return (
+        <div style={cardStyle}>
+          <div style={boxStyle}>
+            {logoBlock}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 56, marginBottom: 20 }}>📬</div>
+              <h2 style={{ fontSize: 26, fontWeight: 700, color: '#1B2A4A', marginBottom: 16 }}>Vérifiez votre email</h2>
+              <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, lineHeight: 1.7, marginBottom: 24 }}>
+                Un lien de connexion sécurisé a été envoyé à<br />
+                <strong style={{ color: '#C9A84C' }}>{email}</strong>
+              </p>
+              <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 12, padding: 20, marginBottom: 28, textAlign: 'left' }}>
+                <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.7)', margin: 0, lineHeight: 1.7 }}>
+                  ① Ouvrez l'email reçu de <strong>RMK Conseils</strong><br />
+                  ② Cliquez sur le bouton <strong>«&nbsp;Se connecter&nbsp;»</strong><br />
+                  ③ Vous serez redirigé automatiquement ici
+                </p>
+              </div>
+              <button onClick={() => { setAuthStep('email'); setError(''); }} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.1)', color: 'rgba(27,42,74,0.5)', fontSize: 14, cursor: 'pointer', padding: '10px 20px', borderRadius: 10 }}>
+                ← Changer d'email
+              </button>
+            </div>
+            {backBtn}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Email input screen (default) ──
+    return (
+      <div style={cardStyle}>
+        <div style={boxStyle}>
+          {logoBlock}
           <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12, textAlign: 'center', color: '#1B2A4A' }}>Accès Formation</h2>
-          <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 1.6 }}>Identifiez-vous pour accéder à votre programme et vos documents.</p>
+          <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 1.6 }}>
+            Entrez l'email utilisé lors de votre inscription. Nous vous enverrons un lien de connexion sécurisé.
+          </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="email" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                placeholder="votre.email@entreprise.com" 
-                style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(0,0,0,0.03)', color: '#1B2A4A', fontSize: 16, outline: 'none', transition: 'all 0.3s', boxSizing: 'border-box' }}
-                onFocus={(e) => e.target.style.borderColor = '#C9A84C'}
-                onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}
-                onKeyDown={e => e.key === 'Enter' && searchParticipant()}
-              />
-            </div>
-            <button 
-              onClick={searchParticipant} 
-              disabled={loading}
-              style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #C9A84C, #A88A3D)', color: '#FFFFFF', fontSize: 16, fontWeight: 800, cursor: 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.3s' }}
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="votre.email@entreprise.com"
+              style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(0,0,0,0.03)', color: '#1B2A4A', fontSize: 16, outline: 'none', transition: 'all 0.3s', boxSizing: 'border-box' }}
+              onFocus={e => (e.target.style.borderColor = '#C9A84C')}
+              onBlur={e => (e.target.style.borderColor = 'rgba(0,0,0,0.1)')}
+              onKeyDown={e => e.key === 'Enter' && sendMagicLink()}
+            />
+            <button
+              onClick={sendMagicLink}
+              disabled={loading || !email.trim()}
+              style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #C9A84C, #A88A3D)', color: '#FFFFFF', fontSize: 16, fontWeight: 800, cursor: loading || !email.trim() ? 'not-allowed' : 'pointer', opacity: loading || !email.trim() ? 0.7 : 1, transition: 'all 0.3s' }}
             >
-              {loading ? 'Vérification...' : 'Se connecter'}
+              {loading ? 'Envoi en cours…' : '🔗 Recevoir mon lien de connexion'}
             </button>
           </div>
 
           {error && <div style={{ color: '#E74C3C', fontSize: 14, marginTop: 20, textAlign: 'center', background: 'rgba(231,76,60,0.05)', padding: 14, borderRadius: 10, border: '1px solid rgba(231,76,60,0.1)' }}>{error}</div>}
 
-          <div style={{ textAlign: 'center', marginTop: 32 }}>
-            <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'rgba(27,42,74,0.4)', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 auto' }}>
-              <span>←</span> Retour au site principal
-            </button>
-          </div>
+          <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(27,42,74,0.35)', marginTop: 24 }}>
+            🔒 Lien valide 24h · Aucun mot de passe requis
+          </p>
+          {backBtn}
         </div>
       </div>
     );
@@ -213,7 +328,7 @@ export default function ClientPortal() {
               <div style={{ fontSize: 11, color: 'rgba(250,249,246,0.5)' }}>Client Privé</div>
             </div>
           </div>
-          <button onClick={() => { setParticipant(null); setEmail(''); setActiveTab('overview'); }}
+          <button onClick={signOut}
             style={{ width: '100%', marginTop: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#FF7675', fontSize: 13, cursor: 'pointer', padding: '8px 12px', borderRadius: 8, transition: 'all 0.2s' }}>
             Déconnexion
           </button>

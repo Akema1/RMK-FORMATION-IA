@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
 import { LogoRMK } from "../components/LogoRMK";
-import { SEMINARS, PRICE, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, fmt } from "../data/seminars";
+import { SEMINARS, PRICE, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, fmt, type Seminar } from "../data/seminars";
 
 
 function useCountdown(target: number) {
@@ -128,7 +128,7 @@ function CountdownBlock() {
   );
 }
 
-function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: any[] }) {
+function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: Seminar[] }) {
   return (
     <section style={{
       minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
@@ -176,7 +176,7 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: a
       </div>
 
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 48, position: "relative", zIndex: 1 }}>
-        {seminars.map((s: any) => (
+        {seminars.map((s: Seminar) => (
           <div key={s.id} style={{
             background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12,
             padding: "14px 20px", display: "flex", alignItems: "center", gap: 10, minWidth: 200,
@@ -240,7 +240,13 @@ function FormatSection() {
   );
 }
 
-function SeminarCard({ sem, onSelect, delay = 0 }: any) {
+interface SeminarCardProps {
+  sem: Seminar;
+  onSelect: (id: string) => void;
+  delay?: number;
+}
+
+function SeminarCard({ sem, onSelect, delay = 0 }: SeminarCardProps) {
   const [ref, vis] = useInView();
   const [expanded, setExpanded] = useState(false);
   return (
@@ -309,7 +315,7 @@ function SeminarCard({ sem, onSelect, delay = 0 }: any) {
   );
 }
 
-function SeminarsPage({ setPage, seminars, setSelectedSem }: any) {
+function SeminarsPage({ setPage, seminars, setSelectedSem }: { setPage: (p: string) => void; seminars: Seminar[]; setSelectedSem: (id: string) => void }) {
   return (
     <section style={{ background: "#FAF9F6", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
@@ -319,7 +325,7 @@ function SeminarsPage({ setPage, seminars, setSelectedSem }: any) {
           <p style={{ color: '#1B2A4A', fontSize: 16 }}>Chaque séminaire : 3 jours présentiel à Abidjan + 2 sessions en ligne de 4h · Formation délivrée par CABEXIA</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: 24 }}>
-          {seminars.map((s: any, i: number) => (
+          {seminars.map((s: Seminar, i: number) => (
             <SeminarCard key={s.id} sem={s} delay={i * 100} onSelect={(id: string) => { setSelectedSem(id); setPage("inscription"); window.scrollTo(0, 0); }} />
           ))}
         </div>
@@ -328,7 +334,7 @@ function SeminarsPage({ setPage, seminars, setSelectedSem }: any) {
   );
 }
 
-function PricingPage({ setPage, seminars, setSelectedSem }: any) {
+function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: string) => void; seminars: Seminar[]; setSelectedSem: (id: string) => void }) {
   const [ref, vis] = useInView();
   const offers = [
     { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne"], cta: "S'inscrire", primary: false },
@@ -372,14 +378,14 @@ function PricingPage({ setPage, seminars, setSelectedSem }: any) {
   );
 }
 
-function InscriptionPage({ selectedSem, seminars }: any) {
+function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; seminars: Seminar[] }) {
   const [form, setForm] = useState({ nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [prices] = useLocalStorage("rmk_prices", { standard: 600000, earlyBird: 540000, discountPct: 10 });
   
-  const upd = (k: string) => (e: any) => {
+  const upd = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [k]: e.target.value });
     if (errors[k]) setErrors({ ...errors, [k]: "" });
   };
@@ -518,7 +524,7 @@ function InscriptionPage({ selectedSem, seminars }: any) {
   );
 }
 
-function Footer({ setPage }: any) {
+function Footer({ setPage }: { setPage: (p: string) => void }) {
   const navigate = useNavigate();
   return (
     <footer style={{ background: "#0B1120", padding: "48px 24px 24px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
@@ -605,7 +611,7 @@ function ContactLead() {
 export default function LandingPage() {
   const [page, setPage] = useState("home");
   const [selectedSem, setSelectedSem] = useState("");
-  const [seminars, setSeminars] = useState<any[]>(SEMINARS);
+  const [seminars, setSeminars] = useState<Seminar[]>(SEMINARS);
 
   useEffect(() => {
     const fetchSeminars = async () => {
@@ -648,7 +654,7 @@ export default function LandingPage() {
                 <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1B2A4A", margin: 0 }}>Choisissez votre séminaire</h2>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: 24 }}>
-                {seminars.map((s: any, i: number) => (
+                {seminars.map((s: Seminar, i: number) => (
                   <SeminarCard key={s.id} sem={s} delay={i * 100} onSelect={(id: string) => { setSelectedSem(id); setPage("inscription"); window.scrollTo(0, 0); }} />
                 ))}
               </div>
