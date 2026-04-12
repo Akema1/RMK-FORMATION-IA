@@ -120,6 +120,8 @@ CREATE POLICY "Allow authenticated full access to expenses"
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'participants_amount_check')
   THEN ALTER TABLE public.participants ADD CONSTRAINT participants_amount_check CHECK (amount >= 0); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'participants_email_format')
+  THEN ALTER TABLE public.participants ADD CONSTRAINT participants_email_format CHECK (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'); END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'participants_status_check')
   THEN ALTER TABLE public.participants ADD CONSTRAINT participants_status_check CHECK (status IN ('pending','confirmed','cancelled','waitlist')); END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'participants_payment_check')

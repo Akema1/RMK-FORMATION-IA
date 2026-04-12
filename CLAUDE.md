@@ -74,6 +74,18 @@ See `.env.example`. Required: `GEMINI_API_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPAB
 Active plugins: **gstack**, **superpowers-gemini-plugin**, **serena**.
 Third-opinion reviewer: **qwen3.6-plus via OpenRouter** (`llm` CLI, already configured).
 
+### Gemini model routing
+
+The superpowers plugin calls `gemini` without `-m`, which means the CLI default (currently **gemini-2.5-pro**) is used for every automated gate (pre-commit, plan-review, etc.). This is intentional: gemini-2.5-pro is GA, has higher quota under OAuth personal, and won't rate-limit on frequent calls.
+
+For deep manual reviews, use **gemini-3-pro-preview** via `.claude/bin/gemini-deep-review`. Don't wire it into automated gates — preview-model quota is small and you'll get flakes.
+
+```bash
+.claude/bin/gemini-deep-review              # diff main...HEAD
+.claude/bin/gemini-deep-review feat/branch  # diff against a different base
+git diff | .claude/bin/gemini-deep-review - # pipe a diff in directly
+```
+
 ### Code navigation
 
 Use serena's symbolic tools (`find_symbol`, `get_symbols_overview`, `find_referencing_symbols`, `search_for_pattern`) instead of Grep/Glob for TS/TSX source code. Only fall back to Grep/Glob for non-code files (config, SQL, markdown, `.env`).
