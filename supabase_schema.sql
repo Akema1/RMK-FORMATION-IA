@@ -65,9 +65,45 @@ CREATE TABLE IF NOT EXISTS public.expenses (
   date TEXT NOT NULL
 );
 
--- Disable Row Level Security temporarily to allow anonymous inserts from your frontend
-ALTER TABLE public.participants DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.leads DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.tasks DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.expenses DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.seminars DISABLE ROW LEVEL SECURITY;
+-- ============================================================
+-- Row Level Security
+-- ============================================================
+
+ALTER TABLE public.participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seminars ENABLE ROW LEVEL SECURITY;
+
+-- participants: public can INSERT (registration), authenticated can do everything
+CREATE POLICY "Allow public registration inserts"
+  ON public.participants FOR INSERT
+  TO anon WITH CHECK (true);
+
+CREATE POLICY "Allow authenticated full access to participants"
+  ON public.participants FOR ALL
+  TO authenticated USING (true) WITH CHECK (true);
+
+-- seminars: public can SELECT (catalog/landing page), authenticated can do everything
+CREATE POLICY "Allow public read seminars"
+  ON public.seminars FOR SELECT
+  TO anon USING (true);
+
+CREATE POLICY "Allow authenticated full access to seminars"
+  ON public.seminars FOR ALL
+  TO authenticated USING (true) WITH CHECK (true);
+
+-- leads: authenticated only
+CREATE POLICY "Allow authenticated full access to leads"
+  ON public.leads FOR ALL
+  TO authenticated USING (true) WITH CHECK (true);
+
+-- tasks: authenticated only
+CREATE POLICY "Allow authenticated full access to tasks"
+  ON public.tasks FOR ALL
+  TO authenticated USING (true) WITH CHECK (true);
+
+-- expenses: authenticated only
+CREATE POLICY "Allow authenticated full access to expenses"
+  ON public.expenses FOR ALL
+  TO authenticated USING (true) WITH CHECK (true);

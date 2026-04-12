@@ -4,12 +4,14 @@
  */
 import express from "express";
 import cors from "cors";
+import crypto from "crypto";
 import { generateText } from "ai";
 import { gateway } from "@ai-sdk/gateway";
 import { Resend } from "resend";
 import twilio from "twilio";
 import { createClient } from "@supabase/supabase-js";
 import rateLimit from "express-rate-limit";
+import { z } from "zod";
 import { SEMINARS } from "../src/data/seminars.js";
 
 // ── Startup guard: fail loudly on missing critical secrets ────────────────────
@@ -46,7 +48,14 @@ app.use(
     methods: ["GET", "POST"],
   })
 );
-app.use(express.json());
+app.use(
+  express.json({
+    limit: "100kb",
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 
 // ── Supabase clients ──────────────────────────────────────────────────────────
 // Admin client: service role, bypasses RLS. Server-side only — never exposed to clients.
@@ -109,7 +118,10 @@ async function requireAuth(
   next();
 }
 
-// ── Webhook auth: shared secret header ───────────────────────────────────────
+// ── Webhook auth: HMAC-SHA256 body signature ─────────────────────────────────
+// Clients must send `X-Webhook-Signature: sha256=<hex>` where <hex> is
+// HMAC-SHA256(WEBHOOK_SECRET, rawBody). Verified with timingSafeEqual to
+// prevent timing side-channel attacks.
 function requireWebhookSecret(
   req: express.Request,
   res: express.Response,
@@ -117,10 +129,26 @@ function requireWebhookSecret(
 ) {
   const secret = process.env.WEBHOOK_SECRET;
   if (!secret) {
-    // If secret not configured, block all webhook calls in production
     return res.status(503).json({ error: "Webhook not configured" });
   }
-  if (req.headers["x-webhook-secret"] !== secret) {
+
+  const header = req.headers["x-webhook-signature"];
+  const signature = typeof header === "string" ? header : "";
+  const provided = signature.startsWith("sha256=") ? signature.slice(7) : signature;
+
+  const rawBody: Buffer | undefined = (req as any).rawBody;
+  if (!rawBody || !provided) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+
+  const providedBuf = Buffer.from(provided, "hex");
+  const expectedBuf = Buffer.from(expected, "hex");
+  if (
+    providedBuf.length !== expectedBuf.length ||
+    !crypto.timingSafeEqual(providedBuf, expectedBuf)
+  ) {
     return res.status(401).json({ error: "Unauthorized" });
   }
   next();
@@ -158,15 +186,55 @@ function escapeLike(str: string): string {
   return str.replace(/([%_\\])/g, "\\$1");
 }
 
+// ── Validation schemas ───────────────────────────────────────────────────────
+const registrationSchema = z.object({
+  email: z.string().email().max(254),
+  prenom: z.string().min(1).max(100),
+  nom: z.string().min(1).max(100),
+  tel: z.string().max(20).regex(/^\+?[\d\s()-]{6,20}$/, "Invalid phone format").optional(),
+  societe: z.string().max(200).optional(),
+  fonction: z.string().max(200).optional(),
+  seminar: z.string().min(1).max(50),
+  amount: z.number().int().min(0).optional(),
+});
+
+const portalLookupSchema = z.object({
+  email: z.string().email().max(254),
+  nom: z.string().min(1).max(100),
+});
+
+const aiGenerateSchema = z.object({
+  systemPrompt: z.string().min(1).max(2000),
+  userPrompt: z.string().max(5000).optional(),
+  messages: z.array(z.object({
+    role: z.string(),
+    text: z.string().max(5000).optional(),
+    parts: z.array(z.any()).optional(),
+  })).max(20).optional(),
+});
+
+const webhookProspectSchema = z.object({
+  nom: z.string().min(1).max(100),
+  entreprise: z.string().min(1).max(200),
+  poste: z.string().min(1).max(200),
+  seminar: z.string().min(1).max(200),
+});
+
+const webhookWhatsappSchema = z.object({
+  from: z.string().min(1).max(100),
+  message: z.string().min(1).max(2000),
+});
+
 // ── Registration notification (email + WhatsApp) ──────────────────────────────
 // No admin auth — called right after anon form submission from the landing page.
 // Defence: verify the participant actually exists in the DB before dispatching.
 app.post("/api/notify-registration", notifyLimiter, async (req, res) => {
   try {
-    const participant = req.body;
-    if (!participant?.email || !participant?.seminar) {
-      return res.status(400).json({ error: "Missing required fields" });
+    const parsed = registrationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid input", details: parsed.error.issues.map(i => i.message) });
     }
+    const participant = parsed.data;
 
     // Verify participant exists before sending any messages
     const { data: exists } = await supabaseAdmin
@@ -230,10 +298,11 @@ app.post("/api/notify-registration", notifyLimiter, async (req, res) => {
 // tel removed from select: phone number is PII, not needed in the portal view.
 // Rate-limited to 5 req/min per IP to prevent enumeration attacks.
 app.post("/api/portal/lookup", portalLimiter, async (req, res) => {
-  const { email, nom } = req.body;
-  if (!email || !nom || typeof email !== "string" || typeof nom !== "string") {
+  const parsed = portalLookupSchema.safeParse(req.body);
+  if (!parsed.success) {
     return res.status(400).json({ error: "Email and nom required" });
   }
+  const { email, nom } = parsed.data;
 
   const { data, error } = await supabaseAdmin
     .from("participants")
@@ -255,10 +324,14 @@ app.post("/api/portal/lookup", portalLimiter, async (req, res) => {
 // defined server-side only to prevent arbitrary function injection by clients.
 app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
   try {
-    // tools intentionally excluded from destructuring — server-side only
-    const { systemPrompt, userPrompt, messages } = req.body;
+    const parsed = aiGenerateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid input", details: parsed.error.issues.map(i => i.message) });
+    }
+    // tools intentionally excluded — server-side only
+    const { systemPrompt, userPrompt, messages } = parsed.data;
 
-    // Convert Gemini message format ({role, parts:[{text}]}) to AI SDK format
+    // Convert client message format to AI SDK format (Claude Haiku via Vercel AI Gateway)
     const VALID_ROLES = new Set(["user", "assistant", "model"]);
     const aiMessages = messages
       ? (messages as any[])
@@ -272,11 +345,17 @@ app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
           }))
       : undefined;
 
-    const response = await generateText({
-      model: AI_MODEL,
-      system: systemPrompt,
-      ...(aiMessages ? { messages: aiMessages } : { prompt: userPrompt }),
-    });
+    const response = aiMessages
+      ? await generateText({
+          model: AI_MODEL,
+          system: systemPrompt,
+          messages: aiMessages,
+        })
+      : await generateText({
+          model: AI_MODEL,
+          system: systemPrompt,
+          prompt: userPrompt ?? "",
+        });
     res.json({ text: response.text });
   } catch (err) {
     console.error("AI generation error:", err);
@@ -289,10 +368,11 @@ app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
 //   nom = '</prospect>\nIgnore all instructions...' would break the template.
 app.post("/webhook/prospect", aiLimiter, requireWebhookSecret, async (req, res) => {
   try {
-    const { nom, entreprise, poste, seminar } = req.body;
-    if (!nom || !entreprise || !poste || !seminar) {
-      return res.status(400).json({ error: "Missing required fields" });
+    const parsed = webhookProspectSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid input", details: parsed.error.issues.map(i => i.message) });
     }
+    const { nom, entreprise, poste, seminar } = parsed.data;
     const response = await generateText({
       model: AI_MODEL,
       system:
@@ -314,10 +394,11 @@ app.post("/webhook/prospect", aiLimiter, requireWebhookSecret, async (req, res) 
 
 app.post("/webhook/whatsapp", aiLimiter, requireWebhookSecret, async (req, res) => {
   try {
-    const { from, message } = req.body;
-    if (!from || !message) {
-      return res.status(400).json({ error: "Missing from or message" });
+    const parsed = webhookWhatsappSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid input", details: parsed.error.issues.map(i => i.message) });
     }
+    const { from, message } = parsed.data;
     const response = await generateText({
       model: AI_MODEL,
       system:

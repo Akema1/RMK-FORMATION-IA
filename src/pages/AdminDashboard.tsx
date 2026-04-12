@@ -37,27 +37,35 @@ const DEFAULT_SEMINARS: Seminar[] = [
 const DEFAULT_PRICES = { standard: 600000, earlyBird: 540000, discountPct: 10 };
 const TEAM = [
   { id:"alexis", name:"Alexis", role:"Formateur CABEXIA + Stratégie RMK", avatar:"🧑‍💼" },
+  { id:"eric", name:"Eric", role:"Formateur CABEXIA + Stratégie RMK", avatar:"🧑‍💼" },
   { id:"rosine", name:"Rosine", role:"Opérations & Commercial RMK", avatar:"👩‍💼" },
 ];
 const fmt = (n: number) => typeof n === 'number' ? n.toLocaleString("fr-FR") : n;
 
 // ─── AI AGENT HELPER ───
-async function callGemini(systemPrompt: string, userPrompt: string, seminars: Seminar[], useSearch = false, tools?: any[]) {
+async function callAI(systemPrompt: string, userPrompt: string, seminars: Seminar[], useSearch = false, tools?: any[]) {
   try {
-    let messages: any[] = [{ role: 'user', parts: [{ text: userPrompt }] }];
-    
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("Non authentifié. Veuillez vous reconnecter.");
+
+    let messages: any[] = [{ role: 'user', text: userPrompt }];
+
     for (let i = 0; i < 5; i++) {
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ systemPrompt, messages, tools })
       });
       const data = await response.json();
       if (data.error) throw new Error(data.error);
-      
+
       if (data.functionCalls && data.functionCalls.length > 0) {
-        messages.push({ role: 'model', parts: [{ functionCall: data.functionCalls[0] }] });
-        
+        messages.push({ role: 'assistant', text: '', functionCall: data.functionCalls[0] });
+
         const call = data.functionCalls[0];
         if (call.name === 'check_seminar_stats') {
           const { seminarCode } = call.args;
@@ -66,16 +74,10 @@ async function callGemini(systemPrompt: string, userPrompt: string, seminars: Se
             const { data: participants } = await supabase.from('participants').select('*').eq('seminar', s.id);
             const confirmed = participants ? participants.filter(d => d.status === "confirmed").length : 0;
             const result = `STATS ${s.code}: ${participants?.length || 0} inscrits, ${confirmed} confirmés, ${s.seats} places max.`;
-            
-            messages.push({
-              role: 'user',
-              parts: [{ functionResponse: { name: call.name, response: { result } } }]
-            });
+
+            messages.push({ role: 'user', text: result });
           } else {
-            messages.push({
-              role: 'user',
-              parts: [{ functionResponse: { name: call.name, response: { error: "Séminaire non trouvé" } } }]
-            });
+            messages.push({ role: 'user', text: "Séminaire non trouvé" });
           }
         }
       } else {
@@ -229,7 +231,7 @@ function SeoAgentPage({ seminars }: { seminars: Seminar[] }) {
     3. Une meta description optimisée (max 160 caractères)
     4. Un plan de contenu (H1, H2, H3) pour une page d'atterrissage.`;
     
-    const res = await callGemini("Tu es un expert SEO B2B.", prompt, seminars);
+    const res = await callAI("Tu es un expert SEO B2B.", prompt, seminars);
     setResult(res.text);
     const newHistory = [{ date: new Date().toLocaleString("fr-FR"), topic, result: res.text }, ...history.slice(0, 9)];
     setHistory(newHistory);
@@ -1014,7 +1016,7 @@ function FinancePage({ participants, seminars, prices, expenses, refreshExpenses
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
             <XAxis dataKey="name" stroke="rgba(0,0,0,0.5)" />
             <YAxis stroke="rgba(0,0,0,0.5)" tickFormatter={(value) => `${value / 1000000}M`} />
-            <Tooltip formatter={(value: number) => `${fmt(value)} FCFA`} contentStyle={{ backgroundColor: '#1B2A4A', borderColor: 'rgba(0,0,0,0.1)', color: '#1B2A4A' }} />
+            <Tooltip formatter={(value) => `${fmt(Number(value))} FCFA`} contentStyle={{ backgroundColor: '#1B2A4A', borderColor: 'rgba(0,0,0,0.1)', color: '#1B2A4A' }} />
             <Legend />
             <Bar dataKey="Plan" fill="#2980B9" radius={[4, 4, 0, 0]} />
             <Bar dataKey="Réel" fill="#C9A84C" radius={[4, 4, 0, 0]} />
@@ -1047,8 +1049,8 @@ function FinancePage({ participants, seminars, prices, expenses, refreshExpenses
               { label: "Transport local", key: "transport" },
               { label: "Divers & Imprévus", key: "divers" },
             ].map((row, i) => {
-              const pVal = plan.charges[row.key] || 0;
-              const aVal = actual.charges[row.key] || 0;
+              const pVal = (plan.charges as Record<string, number>)[row.key] || 0;
+              const aVal = (actual.charges as Record<string, number>)[row.key] || 0;
               const diff = pVal - aVal;
               return (
                 <tr key={i} style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
@@ -1539,7 +1541,7 @@ Réponds en français. Fournis un plan de prospection journalier avec:
       }
     }];
 
-    const res = await callGemini(systemPrompt, userPrompt, seminars, true, tools);
+    const res = await callAI(systemPrompt, userPrompt, seminars, true, tools);
     setResult(res.text);
     const newHistory = [{ date: new Date().toLocaleString("fr-FR"), seminar: s.code, title: s.title, result: res.text }, ...history.slice(0, 9)];
     setHistory(newHistory);
@@ -1623,7 +1625,7 @@ Pour chaque recherche, fournis:
 
 Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les prix réels du marché local. Monnaie: FCFA (XOF).`;
 
-    const res = await callGemini(systemPrompt, q, seminars, true);
+    const res = await callAI(systemPrompt, q, seminars, true);
     setResult(res.text);
     const newHistory = [{ date: new Date().toLocaleString("fr-FR"), query: q, result: res.text }, ...history.slice(0, 9)];
     setHistory(newHistory);
@@ -1761,13 +1763,11 @@ export default function AdminDashboard() {
     if (e) e.preventDefault();
     setLoginError('');
     
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-    if (supabaseUrl === 'https://placeholder.supabase.co') {
-      alert("Supabase n'est pas configuré. Connexion simulée.");
-      setUser({ email: "admin@rmkconsulting.pro", user_metadata: { name: "Admin RMK" } });
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      setLoginError("Configuration Supabase manquante. Contactez l'administrateur.");
       return;
     }
-    
+
     if (!email || !password) {
       setLoginError("Veuillez remplir tous les champs.");
       return;

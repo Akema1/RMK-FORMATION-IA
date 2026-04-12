@@ -4,6 +4,7 @@
  */
 import express from "express";
 import cors from "cors";
+import crypto from "crypto";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { generateText } from "ai";
@@ -29,7 +30,14 @@ async function startServer() {
       methods: ["GET", "POST"],
     })
   );
-  app.use(express.json());
+  app.use(
+    express.json({
+      limit: "100kb",
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf;
+      },
+    })
+  );
 
   // ── Supabase clients ────────────────────────────────────────────────────────
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -104,7 +112,7 @@ async function startServer() {
     next();
   }
 
-  // ── Webhook auth: shared secret header ────────────────────────────────────
+  // ── Webhook auth: HMAC-SHA256 body signature ──────────────────────────────
   function requireWebhookSecret(
     req: express.Request,
     res: express.Response,
@@ -114,7 +122,24 @@ async function startServer() {
     if (!secret) {
       return res.status(503).json({ error: "Webhook not configured" });
     }
-    if (req.headers["x-webhook-secret"] !== secret) {
+
+    const header = req.headers["x-webhook-signature"];
+    const signature = typeof header === "string" ? header : "";
+    const provided = signature.startsWith("sha256=") ? signature.slice(7) : signature;
+
+    const rawBody: Buffer | undefined = (req as any).rawBody;
+    if (!rawBody || !provided) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+
+    const providedBuf = Buffer.from(provided, "hex");
+    const expectedBuf = Buffer.from(expected, "hex");
+    if (
+      providedBuf.length !== expectedBuf.length ||
+      !crypto.timingSafeEqual(providedBuf, expectedBuf)
+    ) {
       return res.status(401).json({ error: "Unauthorized" });
     }
     next();
@@ -247,7 +272,7 @@ async function startServer() {
     try {
       const { systemPrompt, userPrompt, messages } = req.body;
 
-      // Convert Gemini message format ({role, parts:[{text}]}) to AI SDK format
+      // Convert client message format to AI SDK format (Claude Haiku via Vercel AI Gateway)
       const VALID_ROLES = new Set(["user", "assistant", "model"]);
       const aiMessages = messages
         ? (messages as any[])
