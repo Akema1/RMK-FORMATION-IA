@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Third-opinion design/API-surface review via qwen3.6-plus.
+# Usage: qwen-design-review <design-doc-or-file>
+# Reads the design doc or a file containing the API surface and critiques it.
+set -euo pipefail
+INPUT="${1:-}"
+if [ -z "$INPUT" ] || [ ! -f "$INPUT" ]; then
+  echo "qwen-design-review: usage: qwen-design-review <file>" >&2
+  exit 1
+fi
+cat "$INPUT" | llm -m openrouter/qwen/qwen3.6-plus -s \
+"You are reviewing an API / module / component design as a third opinion alongside Gemini.
+Critique:
+- API surface — is it minimal, discoverable, hard to misuse?
+- Separation of concerns — does each piece have one job?
+- Naming — do names match what things actually do?
+- Coupling — hidden dependencies, leaky abstractions?
+- Error contract — are failure modes explicit and recoverable?
+- Requirement coverage — what's missing or underspecified?
+- Future-proofing vs YAGNI — is there speculative complexity?
+Be terse. Structure: STRENGTHS / WEAKNESSES / MISSING / SUGGESTED CHANGES.
+End with 'APPROVE' / 'APPROVE WITH CHANGES' / 'REDESIGN + reason'."

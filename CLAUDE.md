@@ -69,6 +69,100 @@ See `.env.example`. Required: `GEMINI_API_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPAB
 - **motion** — Animations
 - **date-fns** — Date formatting (French locale used throughout)
 
+## Tooling
+
+Active plugins: **gstack**, **superpowers-gemini-plugin**, **serena**.
+Third-opinion reviewer: **qwen3.6-plus via OpenRouter** (`llm` CLI, already configured).
+
+### Code navigation
+
+Use serena's symbolic tools (`find_symbol`, `get_symbols_overview`, `find_referencing_symbols`, `search_for_pattern`) instead of Grep/Glob for TS/TSX source code. Only fall back to Grep/Glob for non-code files (config, SQL, markdown, `.env`).
+
+## Workflow
+
+### Planning (non-trivial changes only)
+
+1. `superpowers-gemini-plugin:brainstorming` — only when intent is unclear or there's a fork decision.
+2. `superpowers-gemini-plugin:writing-plans` — author the plan.
+3. **Parallel plan review** — MANDATORY after any plan is written:
+   - `superpowers-gemini-plugin:gemini-plan-review` (Gemini second opinion)
+   - `.claude/bin/qwen-plan-review <plan-path>` (Qwen third opinion)
+   - Both run in parallel in one message. Synthesize disagreements before presenting options.
+4. `plan-eng-review` (gstack) — only for architecture-impacting changes (schema, auth, API surface, infra).
+
+Skip planning entirely for mechanical fixes (typos, config flips, single-file tweaks).
+
+### Implementation
+
+- **TDD**: `superpowers-gemini-plugin:test-driven-development` for any feature or non-trivial bugfix.
+- **Debugging**: start with `gstack:investigate` (4-phase, root-cause). If stuck after 3+ hypotheses, run Gemini + Qwen debug consults in parallel:
+  - `superpowers-gemini-plugin:gemini-debug-consult`
+  - `.claude/bin/qwen-debug <context-file>`
+- **Parallelism**: 2+ independent tasks → `dispatching-parallel-agents` + `using-git-worktrees`.
+
+### Review gates — qwen is MANDATORY at every gemini review point
+
+Every time the superpowers plugin invokes Gemini for a review, run Qwen in parallel on the same input. Both reviewers run in a single message (two parallel tool calls). Do not act on the diff until both have responded.
+
+| Gate | Gemini | Qwen (mandatory parallel) | Trigger |
+|---|---|---|---|
+| Pre-commit | `gemini-pre-commit-review` | `.claude/bin/qwen-pre-commit` | Every commit (auto) |
+| Code review | `gemini-code-review` | `.claude/bin/qwen-review` | >100 LOC diff, or on request |
+| Security scan | `gemini-security-scan` | `.claude/bin/qwen-security` | Edits to `api/`, `server.ts`, auth, schema |
+| Plan review | `gemini-plan-review` | `.claude/bin/qwen-plan-review` | After `writing-plans` |
+| Debug consult | `gemini-debug-consult` | `.claude/bin/qwen-debug` | Stuck 3+ hypotheses |
+| Test critique | `gemini-test-critique` | `.claude/bin/qwen-test-critique` | After test file edits |
+| Design review | `gemini-design-review` | `.claude/bin/qwen-design-review` | After brainstorming |
+
+### Presenting parallel reviews — synthesis mode
+
+After running Gemini + Qwen in parallel, **do not dump both outputs verbatim**. Synthesize:
+
+1. **Agreements** — one sentence: "Both flag X."
+2. **Disagreements** — name each reviewer, summarize their position, state which one I find more credible and why (cite the code).
+3. **My recommendation** — one paragraph. What I think matters, what I'd act on, what I'd override.
+4. Then wait for the user's decision.
+
+Raw reviewer outputs go in collapsed blocks only if the user asks to see them.
+
+### Verification (before claiming done)
+
+- `superpowers-gemini-plugin:verification-before-completion` — run commands, confirm output, cite evidence. No success claims without running the verification command.
+- For UI work: actually open the browser via `gstack:browse` or the Playwright MCP. Lint passing ≠ feature working.
+
+### Ship
+
+```
+gstack:ship → gstack:land-and-deploy → gstack:canary
+```
+
+`canary` diffs console errors + Core Web Vitals against a pre-deploy baseline. Always run it after landing on `main` since this project is already live on Vercel.
+
+### Periodic
+
+- **Weekly**: `gstack:retro` + `gstack:health`.
+- **Quarterly / pre-major-release**: `gstack:cso` (infra + supply-chain + STRIDE audit).
+
+### Tool-selection tiebreakers
+
+| Role | Primary | Do NOT use |
+|---|---|---|
+| Code review (pre-landing) | `gstack:review` + `gemini-code-review` + `qwen-review` | — |
+| Security scan (per-change) | `gemini-security-scan` + `qwen-security` | `cso` (too broad) |
+| Security audit (periodic) | `gstack:cso` | `gemini-security-scan` (too narrow) |
+| Debugging (start) | `gstack:investigate` | `systematic-debugging` alone |
+| Debugging (stuck) | `gemini-debug-consult` + `qwen-debug` | — |
+| Visual review | `gstack:design-review` | `gemini-design-review` |
+| API-surface review | `gemini-design-review` + `qwen-design-review` | `gstack:design-review` |
+| Planning author | `superpowers:writing-plans` | `gstack:autoplan` (heavier) |
+| Plan review (arch) | `gemini-plan-review` + `qwen-plan-review` + `plan-eng-review` | — |
+
+### Safety defaults
+
+- Touching prod DB, force-push, or destructive ops → `gstack:guard` mode first.
+- Scoped refactors → `gstack:freeze <dir>` to prevent drift.
+- Long sessions → `gstack:checkpoint` before context compression.
+
 ## Skill routing
 
 When the user's request matches an available skill, ALWAYS invoke it using the Skill
