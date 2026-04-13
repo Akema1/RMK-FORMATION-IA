@@ -95,6 +95,14 @@ const aiGenerateSchema = z.object({
   })).max(20).optional(),
 });
 
+const leadCaptureSchema = z.object({
+  nom: z.string().min(1).max(100),
+  contact: z.string().min(1).max(200),
+  source: z.string().min(1).max(100),
+  entreprise: z.string().max(200).optional(),
+  notes: z.string().max(500).optional(),
+});
+
 const webhookProspectSchema = z.object({
   nom: z.string().min(1).max(100),
   entreprise: z.string().min(1).max(200),
@@ -185,8 +193,21 @@ export function createApp(opts: CreateAppOptions): express.Express {
     standardHeaders: true,
     legacyHeaders: false,
   });
+  // Separate bucket from notifyLimiter: public lead-capture surface shouldn't
+  // starve the registration-notification budget on a shared limiter.
+  const leadLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    message: { error: "Too many lead submissions. Try again in a minute." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 
-  // ── Auth middleware: verify Supabase JWT ──────────────────────────────────
+  // ── Auth middleware: verify Supabase JWT + admin allowlist ──────────────
+  // requireAuth: valid session required. requireAdmin: same + caller's email
+  // must be in public.admin_users. Gating AI endpoints on requireAdmin
+  // mirrors the DB-side RLS model (is_admin() / admin_users) so that every
+  // admin surface — DB and HTTP — consults the same allowlist.
   async function requireAuth(
     req: express.Request,
     res: express.Response,
@@ -202,6 +223,36 @@ export function createApp(opts: CreateAppOptions): express.Express {
     const { data, error } = await supabaseAnon.auth.getUser(authHeader.slice(7));
     if (error || !data.user) {
       return res.status(401).json({ error: "Invalid or expired session" });
+    }
+    (req as any).userEmail = data.user.email ?? null;
+    next();
+  }
+
+  async function requireAdmin(
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) {
+    if (!supabaseAdmin) {
+      return res.status(503).json({ error: "Database not configured" });
+    }
+    const email = (req as any).userEmail as string | null;
+    if (!email) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    // Use maybeSingle() so a 0-row result returns data=null instead of throwing
+    // PGRST116 (which would bubble as a 500 and mask an auth denial as a server
+    // error). This preserves a clean 403 on "not an admin".
+    const { data, error } = await supabaseAdmin
+      .from("admin_users")
+      .select("email")
+      .eq("email", email.toLowerCase().trim())
+      .maybeSingle();
+    if (error) {
+      return res.status(500).json({ error: "Admin lookup failed" });
+    }
+    if (!data) {
+      return res.status(403).json({ error: "Forbidden" });
     }
     next();
   }
@@ -251,6 +302,11 @@ export function createApp(opts: CreateAppOptions): express.Express {
     };
   }
 
+  // ── Health check (public, no rate limit — used by uptime monitors) ───────
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // ── Registration notification (email + WhatsApp) ──────────────────────────
   app.post("/api/notify-registration", notifyLimiter, async (req, res) => {
     try {
@@ -272,6 +328,33 @@ export function createApp(opts: CreateAppOptions): express.Express {
           .single();
         if (!exists) {
           return res.status(400).json({ error: "Participant not found" });
+        }
+
+        // Blocker #2a — auto-task creation. Moved from the anon client on
+        // LandingPage to here so it survives the is_admin()-scoped RLS: the
+        // service-role key bypasses RLS and anon inserts into `tasks` are
+        // now blocked. Best-effort — a task insert failure must not roll
+        // back the registration, which is already committed.
+        try {
+          const fullName = `${participant.prenom} ${participant.nom}`;
+          await supabaseAdmin.from("tasks").insert([
+            {
+              task: `[Onboarding] Vérifier dossier & appeler ${fullName}`,
+              owner: "alexis",
+              priority: "high",
+              seminar: participant.seminar,
+              status: "todo",
+            },
+            {
+              task: `[Finance] Confirmer paiement de ${fullName}`,
+              owner: "alexis",
+              priority: "medium",
+              seminar: participant.seminar,
+              status: "todo",
+            },
+          ]);
+        } catch (taskErr) {
+          console.error("Auto-task insert failed (non-fatal):", taskErr);
         }
       }
 
@@ -348,8 +431,67 @@ export function createApp(opts: CreateAppOptions): express.Express {
     res.json(data || []);
   });
 
+  // ── Public lead capture (Blocker #2b) ─────────────────────────────────────
+  // Used by the LandingPage ContactLead (lead magnet) form. Anon inserts into
+  // `leads` and `tasks` are blocked by the is_admin()-scoped RLS, so all lead
+  // capture now goes through this endpoint with the service-role key.
+  app.post("/api/lead/capture", leadLimiter, async (req, res) => {
+    if (!supabaseAdmin) {
+      return res.status(503).json({ error: "Database not configured" });
+    }
+    const parsed = leadCaptureSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Invalid input",
+        details: parsed.error.issues.map((i) => i.message),
+      });
+    }
+    const { nom, contact, source, entreprise, notes } = parsed.data;
+
+    // Sanitize before storing — same pattern used elsewhere for text fields.
+    const safeNom = sanitizeText(nom, 100);
+    const safeContact = sanitizeText(contact, 200);
+    const safeSource = sanitizeText(source, 100);
+    const safeEntreprise = entreprise ? sanitizeText(entreprise, 200) : null;
+    const safeNotes = notes ? sanitizeText(notes, 500) : null;
+
+    try {
+      const { error: leadErr } = await supabaseAdmin.from("leads").insert([
+        {
+          nom: safeNom,
+          entreprise: safeEntreprise,
+          contact: safeContact,
+          source: safeSource,
+          status: "froid",
+          notes: safeNotes,
+        },
+      ]);
+      if (leadErr) throw leadErr;
+
+      // Best-effort follow-up task — mirrors the old ContactLead behavior.
+      try {
+        await supabaseAdmin.from("tasks").insert([
+          {
+            task: `[Commercial] Rappeler le prospect ${safeNom} (Contact: ${safeContact})`,
+            owner: "alexis",
+            priority: "high",
+            seminar: "all",
+            status: "todo",
+          },
+        ]);
+      } catch (taskErr) {
+        console.error("Lead follow-up task insert failed (non-fatal):", taskErr);
+      }
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Lead capture error:", err);
+      res.status(500).json({ error: "Lead capture failed" });
+    }
+  });
+
   // ── AI generation (admin only) ────────────────────────────────────────────
-  app.post("/api/ai/generate", aiLimiter, requireAuth, async (req, res) => {
+  app.post("/api/ai/generate", aiLimiter, requireAuth, requireAdmin, async (req, res) => {
     try {
       const parsed = aiGenerateSchema.safeParse(req.body);
       if (!parsed.success) {

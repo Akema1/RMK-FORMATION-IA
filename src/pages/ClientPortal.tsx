@@ -1,68 +1,119 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
-
-const DEFAULT_SEMINARS = [
-  { id:"s1", code:"S1", title:"IA Stratégique pour Dirigeants", week:"5–9 Mai 2026", icon: "🎯" },
-  { id:"s2", code:"S2", title:"IA appliquée à la Finance", week:"12–16 Mai 2026", icon: "💰" },
-  { id:"s3", code:"S3", title:"IA pour les Notaires", week:"19–23 Mai 2026", icon: "⚖️" },
-  { id:"s4", code:"S4", title:"IA pour les Ressources Humaines", week:"26–30 Mai 2026", icon: "👥" },
-];
+import { SEMINARS, type Seminar } from '../data/seminars';
+import type { Participant } from '../admin/types';
 
 const SYLLABUS = [
   { day: "Jour 1", mode: "Présentiel", location: "Abidjan", title: "Fondamentaux & Stratégie IA", desc: "Démystification de l'IA générative. Audit de maturité digitale de votre organisation. Cartographie des cas d'usage à fort ROI pour votre secteur.", color: "#C9A84C" },
   { day: "Jour 2", mode: "Présentiel", location: "Abidjan", title: "Ingénierie de Prompts & Outils Avancés", desc: "Maîtrise complète de ChatGPT, Claude et Gemini. Techniques avancées pour automatiser l'analyse de données, la rédaction et la prise de décision.", color: "#C9A84C" },
   { day: "Jour 3", mode: "Présentiel", location: "Abidjan", title: "Atelier Pratique : Construire vos Solutions", desc: "Déploiement sur vos propres données professionnelles. Création de workflows intelligents et d'assistants IA sur-mesure pour votre entreprise.", color: "#C9A84C" },
   { day: "Jour 4", mode: "Distanciel", location: "En ligne", title: "Accompagnement & Implémentation", desc: "Suivi à distance de la mise en œuvre. Sessions individuelles de coaching. Résolution de problèmes spécifiques à votre contexte professionnel.", color: "#27AE60" },
-  { day: "Jour 5", mode: "Distanciel", location: "En ligne", title: "Évaluation & Certification", desc: "Validation des acquis et des cas d'usage en situation réelle. Présentation des projets finaux. Remise des attestations officielles CABEXIA.", color: "#27AE60" },
+  { day: "Jour 5", mode: "Distanciel", location: "En ligne", title: "Évaluation & Certification", desc: "Validation des acquis et des cas d'usage en situation réelle. Présentation des projets finaux. Remise des attestations officielles par RMK CONSEILS.", color: "#27AE60" },
 ];
 
 import { LogoRMK } from "../components/LogoRMK";
-import { useEffect } from 'react';
+
+// ─── AUTH STEP TYPE ───
+type AuthStep = 'email' | 'sent' | 'verifying' | 'dashboard';
 
 export default function ClientPortal() {
   const [email, setEmail] = useState('');
-  const [participant, setParticipant] = useState<any>(null);
-  const [seminars, setSeminars] = useState<any[]>(DEFAULT_SEMINARS);
+  const [authStep, setAuthStep] = useState<AuthStep>('email');
+  const [participant, setParticipant] = useState<Participant | null>(null);
+  const [seminars, setSeminars] = useState<Seminar[]>(SEMINARS);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchSeminars = async () => {
-      const { data, error } = await supabase.from('seminars').select('*');
-      if (!error && data && data.length > 0) {
-        setSeminars(data);
-      }
-    };
-    fetchSeminars();
-  }, []);
-  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'payment' | 'documents' | 'community'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'payment' | 'community' | 'documents'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  const searchParticipant = async () => {
-    if (!email) return;
+  // ─── Load seminars from DB ───
+  useEffect(() => {
+    const fetchSeminars = async () => {
+      const { data, error: dbErr } = await supabase.from('seminars').select('*');
+      if (!dbErr && data && data.length > 0) setSeminars(data);
+    };
+    fetchSeminars();
+  }, []);
+
+  // ─── Listen for magic link callback + existing session ───
+  useEffect(() => {
+    // Check if user is already signed in (e.g., after clicking magic link)
+    const handleSession = async (userEmail: string) => {
+      setAuthStep('verifying');
+      setError('');
+      try {
+        const { data, error: dbErr } = await supabase
+          .from('participants')
+          .select('*')
+          .eq('email', userEmail.trim().toLowerCase())
+          .limit(1)
+          .maybeSingle();
+        if (dbErr || !data) {
+          setError('Aucune inscription trouvée pour cet email. Contactez-nous si vous avez bien une inscription.');
+          await supabase.auth.signOut();
+          setAuthStep('email');
+        } else {
+          setParticipant(data);
+          setAuthStep('dashboard');
+        }
+      } catch {
+        setError('Erreur lors de la vérification. Veuillez réessayer.');
+        setAuthStep('email');
+      }
+    };
+
+    // Initial session check (handles magic link redirect)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        handleSession(session.user.email);
+      }
+    });
+
+    // Auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.email && authStep !== 'dashboard') {
+        handleSession(session.user.email);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─── Send magic link OTP ───
+  const sendMagicLink = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) return;
     setLoading(true);
     setError('');
-    setParticipant(null);
     try {
-      const { data, error } = await supabase
-        .from('participants')
-        .select('*')
-        .eq('email', email.trim().toLowerCase())
-        .limit(1)
-        .maybeSingle();
-      
-      if (error || !data) {
-        setError('Aucune inscription trouvée pour cet email.');
+      const { error: otpErr } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/portal`,
+        },
+      });
+      if (otpErr) {
+        setError('Impossible d\'envoyer le lien. Vérifiez votre email et réessayez.');
       } else {
-        setParticipant(data);
+        setAuthStep('sent');
       }
-    } catch (err) {
-      setError('Erreur lors de la recherche.');
+    } catch {
+      setError('Erreur réseau. Veuillez réessayer.');
     }
     setLoading(false);
+  };
+
+  // ─── Sign out ───
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setParticipant(null);
+    setEmail('');
+    setAuthStep('email');
+    setActiveTab('overview');
   };
 
   const exportAttestation = () => {
@@ -85,7 +136,7 @@ export default function ClientPortal() {
     // Subtitle
     doc.setFontSize(14);
     doc.setTextColor(100, 100, 100);
-    doc.text("Délivrée par RMK Conseils & CABEXIA", 148.5, 55, { align: "center" });
+    doc.text("Délivrée par RMK Conseils", 148.5, 55, { align: "center" });
     
     // Body
     doc.setFontSize(16);
@@ -112,61 +163,123 @@ export default function ClientPortal() {
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
     doc.text("Le Directeur Général, RMK Conseils", 50, 180, { align: "center" });
-    doc.text("L'Expert Formateur, CABEXIA", 247, 180, { align: "center" });
+    doc.text("L'Expert Formateur Consultant", 247, 180, { align: "center" });
     
     doc.save(`Attestation_${participant.nom}_${s.code}.pdf`);
   };
 
   const seminar = participant ? seminars.find(s => s.id === participant.seminar) : null;
 
-  // ─── LOGIN SCREEN ───
-  if (!participant) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#FAF9F6', color: '#1B2A4A', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <div style={{ maxWidth: 460, width: '100%', background: '#FFFFFF', padding: '48px 40px', borderRadius: 24, border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40, display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <LogoRMK scale={0.9} variant="light" />
-            <div style={{ color: '#C9A84C', fontSize: 11, fontWeight: 800, letterSpacing: 4, textTransform: 'uppercase', marginTop: 16 }}>Espace Client Privé</div>
-          </div>
+  // ─── AUTH SCREENS ───
+  if (authStep !== 'dashboard') {
+    const cardStyle: React.CSSProperties = { minHeight: '100vh', background: '#FAF9F6', color: '#1B2A4A', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 };
+    const boxStyle: React.CSSProperties = { maxWidth: 460, width: '100%', background: '#FFFFFF', padding: '48px 40px', borderRadius: 24, border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' };
+    const logoBlock = (
+      <div style={{ textAlign: 'center', marginBottom: 40, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <LogoRMK scale={1.2} variant="light" />
+        <div style={{ color: '#C9A84C', fontSize: 13, fontWeight: 800, letterSpacing: 5, textTransform: 'uppercase', marginTop: 20 }}>Espace Client Privé</div>
+      </div>
+    );
+    const backBtn = (
+      <div style={{ textAlign: 'center', marginTop: 32 }}>
+        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'rgba(27,42,74,0.4)', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 auto' }}>
+          <span>←</span> Retour au site principal
+        </button>
+      </div>
+    );
 
-          <h2 style={{ fontSize: 26, fontWeight: 700, marginBottom: 12, textAlign: 'center', color: '#1B2A4A' }}>Accès Formation</h2>
-          <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 1.6 }}>Veuillez vous identifier avec l'email utilisé lors de votre inscription.</p>
+    // ── Verifying screen ──
+    if (authStep === 'verifying') {
+      return (
+        <div style={cardStyle}>
+          <div style={boxStyle}>
+            {logoBlock}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 20 }}>⏳</div>
+              <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1B2A4A', marginBottom: 12 }}>Vérification en cours…</h2>
+              <p style={{ color: 'rgba(27,42,74,0.6)', fontSize: 15 }}>Connexion à votre espace en cours. Un instant.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Magic link sent screen ──
+    if (authStep === 'sent') {
+      return (
+        <div style={cardStyle}>
+          <div style={boxStyle}>
+            {logoBlock}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 56, marginBottom: 20 }}>📬</div>
+              <h2 style={{ fontSize: 26, fontWeight: 700, color: '#1B2A4A', marginBottom: 16 }}>Vérifiez votre email</h2>
+              <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, lineHeight: 1.7, marginBottom: 24 }}>
+                Un lien de connexion sécurisé a été envoyé à<br />
+                <strong style={{ color: '#C9A84C' }}>{email}</strong>
+              </p>
+              <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 12, padding: 20, marginBottom: 28, textAlign: 'left' }}>
+                <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.7)', margin: 0, lineHeight: 1.7 }}>
+                  ① Ouvrez l'email reçu de <strong>RMK Conseils</strong><br />
+                  ② Cliquez sur le bouton <strong>«&nbsp;Se connecter&nbsp;»</strong><br />
+                  ③ Vous serez redirigé automatiquement ici
+                </p>
+              </div>
+              <button onClick={() => { setAuthStep('email'); setError(''); }} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.1)', color: 'rgba(27,42,74,0.5)', fontSize: 14, cursor: 'pointer', padding: '10px 20px', borderRadius: 10 }}>
+                ← Changer d'email
+              </button>
+            </div>
+            {backBtn}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Email input screen (default) ──
+    return (
+      <div style={cardStyle}>
+        <div style={boxStyle}>
+          {logoBlock}
+          <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12, textAlign: 'center', color: '#1B2A4A' }}>Accès Formation</h2>
+          <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 1.6 }}>
+            Entrez l'email utilisé lors de votre inscription. Nous vous enverrons un lien de connexion sécurisé.
+          </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="email" 
-                value={email} 
-                onChange={e => setEmail(e.target.value)} 
-                placeholder="votre.email@entreprise.com" 
-                style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(0,0,0,0.03)', color: '#1B2A4A', fontSize: 16, outline: 'none', transition: 'all 0.3s', boxSizing: 'border-box' }}
-                onFocus={(e) => e.target.style.borderColor = '#C9A84C'}
-                onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}
-                onKeyDown={e => e.key === 'Enter' && searchParticipant()}
-              />
-            </div>
-            <button 
-              onClick={searchParticipant} 
-              disabled={loading}
-              style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #C9A84C, #A88A3D)', color: '#FFFFFF', fontSize: 16, fontWeight: 800, cursor: 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.3s' }}
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="votre.email@entreprise.com"
+              style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(0,0,0,0.03)', color: '#1B2A4A', fontSize: 16, outline: 'none', transition: 'all 0.3s', boxSizing: 'border-box' }}
+              onFocus={e => (e.target.style.borderColor = '#C9A84C')}
+              onBlur={e => (e.target.style.borderColor = 'rgba(0,0,0,0.1)')}
+              onKeyDown={e => e.key === 'Enter' && sendMagicLink()}
+            />
+            <button
+              onClick={sendMagicLink}
+              disabled={loading || !email.trim()}
+              style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #C9A84C, #A88A3D)', color: '#FFFFFF', fontSize: 16, fontWeight: 800, cursor: loading || !email.trim() ? 'not-allowed' : 'pointer', opacity: loading || !email.trim() ? 0.7 : 1, transition: 'all 0.3s' }}
             >
-              {loading ? 'Vérification...' : 'Se connecter'}
+              {loading ? 'Envoi en cours…' : '🔗 Recevoir mon lien de connexion'}
             </button>
           </div>
 
           {error && <div style={{ color: '#E74C3C', fontSize: 14, marginTop: 20, textAlign: 'center', background: 'rgba(231,76,60,0.05)', padding: 14, borderRadius: 10, border: '1px solid rgba(231,76,60,0.1)' }}>{error}</div>}
 
-          <div style={{ textAlign: 'center', marginTop: 32 }}>
-            <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'rgba(27,42,74,0.4)', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 auto' }}>
-              <span>←</span> Retour au site principal
-            </button>
-          </div>
+          <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(27,42,74,0.35)', marginTop: 24 }}>
+            🔒 Lien valide 24h · Aucun mot de passe requis
+          </p>
+          {backBtn}
         </div>
       </div>
     );
   }
 
   // ─── DASHBOARD SCREEN (after login) ───
+  // Narrowing guard: once authStep === 'dashboard', participant must be set
+  // (see handleSession), but TS can't derive that. Short-circuit to satisfy
+  // strict null checks — never expected to render in practice.
+  if (!participant) return null;
   const sidebarItems = [
     { key: 'overview' as const, label: 'Tableau de bord', icon: '💎' },
     { key: 'syllabus' as const, label: 'Programme', icon: '📅' },
@@ -181,13 +294,13 @@ export default function ClientPortal() {
       <aside style={{
         width: 260, background: '#1B2A4A', borderRight: '1px solid rgba(255,255,255,0.06)',
         display: 'flex', flexDirection: 'column', padding: '32px 0', flexShrink: 0,
-        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
+        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
       }} className="portal-sidebar">
         <div style={{ padding: '0 24px', marginBottom: 40, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <LogoRMK scale={0.5} variant="dark" />
-          <div>
+          <LogoRMK scale={0.45} variant="dark" />
+          <div style={{ borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: 12 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#FAF9F6', letterSpacing: 1 }}>RMK CONSEILS</div>
-            <div style={{ fontSize: 10, color: '#C9A84C', fontWeight: 600, textTransform: 'uppercase' }}>Portail Client</div>
+            <div style={{ fontSize: 10, color: '#C9A84C', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Espace Privé</div>
           </div>
         </div>
 
@@ -219,7 +332,7 @@ export default function ClientPortal() {
               <div style={{ fontSize: 11, color: 'rgba(250,249,246,0.5)' }}>Client Privé</div>
             </div>
           </div>
-          <button onClick={() => { setParticipant(null); setEmail(''); setActiveTab('overview'); }}
+          <button onClick={signOut}
             style={{ width: '100%', marginTop: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#FF7675', fontSize: 13, cursor: 'pointer', padding: '8px 12px', borderRadius: 8, transition: 'all 0.2s' }}>
             Déconnexion
           </button>
@@ -228,7 +341,7 @@ export default function ClientPortal() {
 
       {/* ─── MOBILE TOP BAR ─── */}
       <div className="portal-mobile-bar" style={{
-        display: 'none', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
+        display: 'none', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
         background: '#1B2A4A',
         borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '12px 16px',
         alignItems: 'center', justifyContent: 'space-between',
@@ -245,7 +358,7 @@ export default function ClientPortal() {
       {/* ─── MOBILE DROPDOWN MENU ─── */}
       {mobileMenuOpen && (
         <div className="portal-mobile-dropdown" style={{
-          display: 'none', position: 'fixed', top: 52, left: 0, right: 0, zIndex: 199,
+          display: 'none', position: 'fixed', top: 52, left: 0, right: 0, zIndex: 29,
           background: '#1B2A4A', borderBottom: '1px solid rgba(255,255,255,0.1)',
           padding: '8px 0',
         }}>
@@ -431,7 +544,7 @@ export default function ClientPortal() {
                     <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.4)', marginBottom: 4 }}>WAVE / ORANGE</div>
                     <div style={{ fontSize: 20, fontWeight: 800, color: '#1B2A4A' }}>+225 07 02 61 15 82</div>
                   </div>
-                  <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.5)', lineHeight: 1.5 }}>Envoyez votre reçu via WhatsApp au même numéro pour une validation rapide.</p>
+                  <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.5)', lineHeight: 1.5 }}>Envoyez votre reçu via WhatsApp au même numéro (+225 07 02 61 15 82) pour une validation rapide.</p>
                 </div>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, padding: 28 }}>
@@ -449,15 +562,17 @@ export default function ClientPortal() {
             <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: '#1B2A4A' }}>🤝 Communauté RMK</h1>
             <p style={{ color: '#C9A84C', fontSize: 16, marginBottom: 40, fontWeight: 600 }}>Espace exclusif de networking pour la cohorte Mai 2026.</p>
 
-            <div style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.1)', borderRadius: 24, padding: 40, textAlign: 'center', marginBottom: 32 }}>
-              <div style={{ fontSize: 48, marginBottom: 20 }}>🚀</div>
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1B2A4A', marginBottom: 12 }}>Bievenue dans le groupe !</h2>
-              <p style={{ fontSize: 16, color: 'rgba(27,42,74,0.6)', maxWidth: 600, margin: '0 auto 28px', lineHeight: 1.6 }}>
-                Vous faites maintenant partie des dirigeants qui transforment leur vision grâce à l'IA. 
-                Rejoignez vos pairs pour échanger avant même le début de la session.
+            <div style={{ background: '#1B2A4A', border: '1px solid #C9A84C', borderRadius: 24, padding: 48, textAlign: 'center', marginBottom: 40, boxShadow: '0 20px 40px rgba(27,42,74,0.15)' }}>
+              <div style={{ fontSize: 56, marginBottom: 24 }}>🚀</div>
+              <h2 style={{ fontSize: 28, fontWeight: 700, color: '#FAF9F6', marginBottom: 16 }}>Bienvenue dans l'Élite de l'IA</h2>
+              <p style={{ fontSize: 17, color: 'rgba(250,249,246,0.7)', maxWidth: 650, margin: '0 auto 36px', lineHeight: 1.8 }}>
+                Félicitations, <strong style={{ color: '#C9A84C' }}>{participant.prenom}</strong> ! Vous faites maintenant partie d'un réseau exclusif de dirigeants ivoiriens tournés vers l'avenir. 
+                Échangez, partagez vos défis et collaborez avant même la session présentielle.
               </p>
-              <button style={{ padding: '16px 32px', borderRadius: 12, background: '#25D366', color: '#FFFFFF', border: 'none', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 10, boxShadow: '0 10px 20px rgba(37,211,102,0.1)' }}>
-                <span>Rejoindre le groupe WhatsApp Privé</span>
+              <button onClick={() => window.open('https://chat.whatsapp.com/ExempleLink', '_blank')} 
+                style={{ padding: '20px 40px', borderRadius: 14, background: '#25D366', color: '#FFFFFF', border: 'none', fontSize: 17, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 12, boxShadow: '0 10px 30px rgba(37,211,102,0.3)', transition: 'all 0.3s' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                Rejoindre le groupe WhatsApp RMK
               </button>
             </div>
 

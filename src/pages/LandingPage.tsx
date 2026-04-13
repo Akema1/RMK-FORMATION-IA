@@ -3,97 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
 import { LogoRMK } from "../components/LogoRMK";
+import { SEMINARS, PRICE, PRICE_DIRIGEANTS, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, COACHING_PRICE, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
+import { Settings, X, Menu, Building2, Monitor, Check, CheckCircle, type LucideIcon } from "lucide-react";
 
-const DEFAULT_SEMINARS = [
-  {
-    id: "s1",
-    code: "S1",
-    title: "IA Stratégique pour Dirigeants",
-    subtitle: "Leadership & Transformation Digitale",
-    week: "12 – 16 Mai 2026",
-    dates: { start: "2026-05-12", presentiel: "Mar 12 – Jeu 14 Mai", online: "Ven 15 – Sam 16 Mai" },
-    target: "DG, CEO, Cadres dirigeants, Directeurs de département",
-    seats: 20,
-    color: "#C9A84C",
-    gradient: "linear-gradient(135deg, #C9A84C 0%, #D4B865 100%)",
-    icon: "👔",
-    highlights: [
-      "Comprendre les transformations économiques liées à l'IA",
-      "Prompt engineering stratégique pour la prise de décision",
-      "Construction d'agents IA personnalisés (Claude Projects)",
-      "Connecteurs MCP, Skills & Plugins pour l'entreprise",
-      "Plan d'action IA individuel avec feuille de route",
-    ],
-    modules: ["IA & Transformation du Leadership", "Prompt Engineering Stratégique", "IA & Décision Augmentée", "Construction d'Agents IA", "Feuille de Route Personnelle"],
-  },
-  {
-    id: "s2",
-    code: "S2",
-    title: "IA appliquée à la Finance",
-    subtitle: "Analyse Financière & Gestion des Risques",
-    week: "19 – 23 Mai 2026",
-    dates: { start: "2026-05-19", presentiel: "Mar 19 – Jeu 21 Mai", online: "Ven 22 – Sam 23 Mai" },
-    target: "DAF, Analystes financiers, Banquiers, Risk Managers, Contrôleurs de gestion",
-    seats: 20,
-    color: "#27AE60",
-    gradient: "linear-gradient(135deg, #27AE60 0%, #6FCF97 100%)",
-    icon: "📊",
-    highlights: [
-      "Analyse automatisée des bilans et comptes de résultat",
-      "Prompting appliqué à l'analyse financière et au reporting",
-      "Identification et anticipation des risques financiers",
-      "Simulation de scénarios économiques avec l'IA",
-      "IA et conformité bancaire (BCEAO, UEMOA)",
-    ],
-    modules: ["IA & Métiers de la Finance", "Prompt Engineering Financier", "Analyse des États Financiers", "Gestion des Risques", "Prise de Décision & Conformité"],
-  },
-  {
-    id: "s3",
-    code: "S3",
-    title: "IA pour les Notaires",
-    subtitle: "Modernisation des Études Notariales",
-    week: "26 – 30 Mai 2026",
-    dates: { start: "2026-05-26", presentiel: "Mar 26 – Jeu 28 Mai", online: "Ven 29 – Sam 30 Mai" },
-    target: "Notaires, Clercs de notaires, Collaborateurs d'études, Juristes",
-    seats: 15,
-    color: "#2980B9",
-    gradient: "linear-gradient(135deg, #2980B9 0%, #74B9FF 100%)",
-    icon: "⚖️",
-    highlights: [
-      "Rédaction assistée d'actes notariaux avec l'IA",
-      "Analyse de clauses contractuelles et risques juridiques",
-      "Organisation intelligente des dossiers et documents",
-      "Prompt engineering juridique professionnel",
-      "Sécurité des données et responsabilité professionnelle",
-    ],
-    modules: ["IA & Pratique Notariale", "Prompt Engineering Juridique", "Rédaction d'Actes Assistée", "Analyse de Contrats", "Modernisation des Études"],
-  },
-  {
-    id: "s4",
-    code: "S4",
-    title: "IA pour les Ressources Humaines",
-    subtitle: "Transformer la Fonction RH",
-    week: "2 – 6 Juin 2026",
-    dates: { start: "2026-06-02", presentiel: "Mar 2 – Jeu 4 Juin", online: "Ven 5 – Sam 6 Juin" },
-    target: "DRH, Responsables RH, Chargés de recrutement, Responsables formation",
-    seats: 15,
-    color: "#F39C12",
-    gradient: "linear-gradient(135deg, #F39C12 0%, #F7DC6F 100%)",
-    icon: "🤝",
-    highlights: [
-      "Rédaction d'offres d'emploi et analyse de CV avec l'IA",
-      "Préparation d'entretiens et évaluation des compétences",
-      "Gestion des talents et plans de carrière augmentés",
-      "Communication RH et notes internes optimisées",
-      "Planification stratégique des ressources humaines",
-    ],
-    modules: ["IA & Transformation RH", "Prompt Engineering RH", "Recrutement & Talents", "Communication RH", "Gestion Stratégique"],
-  },
-];
+const ICON_MAP: Record<string, LucideIcon> = { Briefcase, BarChart3, Scale, Users };
 
-const PRICE = 600000;
-const EARLY_BIRD_PRICE = 540000;
-const EARLY_BIRD_DEADLINE = new Date("2026-04-30T23:59:59");
 
 function useCountdown(target: number) {
   const [diff, setDiff] = useState(target - Date.now());
@@ -124,7 +38,6 @@ function useInView(threshold = 0.15) {
 
 
 
-const fmt = (n: number) => n.toLocaleString("fr-FR");
 
 // ─── COMPONENTS ───
 
@@ -145,7 +58,7 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
   ];
   return (
     <nav style={{
-      position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000,
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 30,
       background: scrolled ? "rgba(27,42,74,0.97)" : "rgba(27,42,74,0.85)",
       backdropFilter: "blur(20px)", borderBottom: scrolled ? "1px solid rgba(201,168,76,0.3)" : "none",
       transition: "all 0.4s ease",
@@ -155,7 +68,7 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
           <LogoRMK scale={0.5} variant="dark" />
           <div>
             <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, letterSpacing: 0.5, lineHeight: 1.1 }}>RMK <span style={{ color: "#C9A84C" }}>×</span> CABEXIA</div>
-            <div style={{ color: '#1B2A4A', fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase" }}>Formation IA · Abidjan</div>
+            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 500 }}>Formation IA · Abidjan</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 4, alignItems: "center" }} className="nav-desktop">
@@ -176,15 +89,17 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
                 transition: "all 0.2s", letterSpacing: 0.3, marginLeft: 8
               }}>Portail Client</button>
           <button onClick={() => navigate('/admin')}
+              aria-label="Administration"
+              title="Administration"
               style={{
                 background: "transparent",
-                border: "1px solid rgba(255,255,255,0.2)", color: "#E2E8F0",
-                padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
-                transition: "all 0.2s", letterSpacing: 0.3, marginLeft: 8
-              }}>Admin</button>
+                border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C",
+                padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600,
+                transition: "all 0.2s", marginLeft: 4
+              }}><Settings size={16} /></button>
         </div>
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="nav-mobile-btn" style={{ display: "none", background: "none", border: "none", color: "#1B2A4A", fontSize: 24, cursor: "pointer" }}>
-          {mobileOpen ? "✕" : "☰"}
+        <button onClick={() => setMobileOpen(!mobileOpen)} className="nav-mobile-btn" aria-label={mobileOpen ? "Fermer le menu" : "Ouvrir le menu"} style={{ display: "none", background: "none", border: "none", color: "#fff", fontSize: 24, cursor: "pointer", minWidth: 44, minHeight: 44 }}>
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
       {mobileOpen && (
@@ -196,12 +111,12 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
             </button>
           ))}
           <button onClick={() => navigate('/portal')}
-              style={{ background: "transparent", border: "1px solid rgba(0,0,0,0.2)", color: "#1B2A4A", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
+              style={{ background: "transparent", border: "1px solid rgba(0,0,0,0.2)", color: "#fff", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
               Portail Client
           </button>
           <button onClick={() => navigate('/admin')}
-              style={{ background: "transparent", border: "1px solid rgba(0,0,0,0.2)", color: "#1B2A4A", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
-              Admin
+              style={{ background: "transparent", border: "1px solid rgba(201,168,76,0.3)", color: "#C9A84C", padding: "12px 16px", borderRadius: 8, cursor: "pointer", fontSize: 15, fontWeight: 600, textAlign: "left" }}>
+              <Settings size={16} style={{ marginRight: 6 }} /> Administration
           </button>
         </div>
       )}
@@ -229,11 +144,11 @@ function CountdownBlock() {
   );
 }
 
-function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: any[] }) {
+function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: Seminar[] }) {
   return (
     <section style={{
       minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center",
-      background: "#FAF9F6",
+      background: "#F5F0E8",
       position: "relative", overflow: "hidden", padding: "120px 24px 60px",
     }}>
       <div style={{ position: "absolute", top: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.15) 0%, transparent 70%)" }} />
@@ -277,16 +192,16 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: a
       </div>
 
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 48, position: "relative", zIndex: 1 }}>
-        {seminars.map((s: any) => (
+        {seminars.map((s: Seminar) => (
           <div key={s.id} style={{
             background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: 12,
-            padding: "14px 20px", display: "flex", alignItems: "center", gap: 10, minWidth: 200,
+            padding: "14px 24px", display: "flex", alignItems: "center", gap: 12, minWidth: 260,
             borderLeft: `3px solid ${s.color}`,
           }}>
-            <span style={{ fontSize: 24 }}>{s.icon}</span>
+            {(() => { const I = ICON_MAP[s.icon]; return I ? <I size={24} style={{ color: s.color }} /> : null; })()}
             <div>
-              <div style={{ color: "#1B2A4A", fontSize: 13, fontWeight: 700 }}>{s.code} · {s.title.split(" ").slice(-1)}</div>
-              <div style={{ color: '#1B2A4A', fontSize: 11 }}>{s.week}</div>
+              <div style={{ color: "#1B2A4A", fontSize: 14, fontWeight: 700 }}>{s.code} · {s.title.split(" ").slice(-1)}</div>
+              <div style={{ color: '#1B2A4A', fontSize: 12 }}>{s.week}</div>
             </div>
           </div>
         ))}
@@ -298,22 +213,22 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: a
 function FormatSection() {
   const [ref, vis] = useInView();
   const steps = [
-    { day: "Jour 1–3", mode: "Présentiel", icon: "🏢", desc: "Immersion complète en salle à Abidjan. Ateliers pratiques, démonstrations live, exercices sur vos propres documents." },
-    { day: "Jour 4–5", mode: "En ligne", icon: "💻", desc: "Sessions Zoom de 4h (9h–13h). Approfondissement, retour d'expérience, feuille de route personnelle." },
+    { day: "Jour 1–3", mode: "Présentiel", Icon: Building2, desc: "Matinée Jour 1 : module commun d'introduction à l'IA (identique pour les 4 séminaires). Puis immersion complète en salle à Abidjan. Ateliers pratiques, démonstrations live et études de cas." },
+    { day: "Jour 4–5", mode: "En ligne", Icon: Monitor, desc: "Sessions Zoom de 4h (9h–13h). Approfondissement, retour d'expérience, feuille de route personnelle." },
   ];
   return (
-    <section ref={ref} style={{ background: "#FAF9F6", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
+    <section ref={ref} style={{ background: "#F5F0E8", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
       <div style={{ maxWidth: 900, margin: "0 auto", opacity: vis ? 1 : 0, transform: vis ? "none" : "translateY(30px)", transition: "all 0.8s ease" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Format Hybride</div>
           <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1B2A4A", margin: 0 }}>5 jours qui transforment votre pratique</h2>
           <p style={{ color: '#1B2A4A', fontSize: 16, marginTop: 12 }}>Le meilleur du présentiel et du distanciel, combinés pour un impact maximal.</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(340px, 100%), 1fr))", gap: 24 }}>
           {steps.map((s, i) => (
             <div key={i} style={{ background: "rgba(0,0,0,0.03)", borderRadius: 16, padding: 32, border: "1px solid rgba(0,0,0,0.08)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                <span style={{ fontSize: 32 }}>{s.icon}</span>
+                <s.Icon size={28} style={{ color: "#C9A84C" }} />
                 <div>
                   <div style={{ fontWeight: 800, color: "#1B2A4A", fontSize: 18 }}>{s.day}</div>
                   <div style={{ color: "#C9A84C", fontWeight: 700, fontSize: 13, letterSpacing: 1 }}>{s.mode.toUpperCase()}</div>
@@ -341,7 +256,13 @@ function FormatSection() {
   );
 }
 
-function SeminarCard({ sem, onSelect, delay = 0 }: any) {
+interface SeminarCardProps {
+  sem: Seminar;
+  onSelect: (id: string) => void;
+  delay?: number;
+}
+
+function SeminarCard({ sem, onSelect, delay = 0 }: SeminarCardProps) {
   const [ref, vis] = useInView();
   const [expanded, setExpanded] = useState(false);
   return (
@@ -357,11 +278,11 @@ function SeminarCard({ sem, onSelect, delay = 0 }: any) {
             <h3 style={{ fontSize: 22, fontWeight: 800, margin: "8px 0 4px", lineHeight: 1.2 }}>{sem.title}</h3>
             <p style={{ fontSize: 14, opacity: 0.85, margin: 0 }}>{sem.subtitle}</p>
           </div>
-          <span style={{ fontSize: 40 }}>{sem.icon}</span>
+          {(() => { const I = ICON_MAP[sem.icon]; return I ? <I size={36} /> : null; })()}
         </div>
         <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 12, opacity: 0.8 }}>
-          <span>🏢 {sem.dates.presentiel}</span>
-          <span>💻 {sem.dates.online}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Building2 size={14} /> {sem.dates.presentiel}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Monitor size={14} /> {sem.dates.online}</span>
         </div>
       </div>
       <div style={{ padding: "24px 28px" }}>
@@ -410,17 +331,17 @@ function SeminarCard({ sem, onSelect, delay = 0 }: any) {
   );
 }
 
-function SeminarsPage({ setPage, seminars, setSelectedSem }: any) {
+function SeminarsPage({ setPage, seminars, setSelectedSem }: { setPage: (p: string) => void; seminars: Seminar[]; setSelectedSem: (id: string) => void }) {
   return (
-    <section style={{ background: "#FAF9F6", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
+    <section style={{ background: "#F5F0E8", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Programme Complet</div>
           <h2 style={{ fontSize: 40, fontWeight: 800, color: "#1B2A4A", margin: "0 0 12px" }}>4 Séminaires, 4 Expertises</h2>
           <p style={{ color: '#1B2A4A', fontSize: 16 }}>Chaque séminaire : 3 jours présentiel à Abidjan + 2 sessions en ligne de 4h · Formation délivrée par CABEXIA</p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: 24 }}>
-          {seminars.map((s: any, i: number) => (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(480px, 100%), 1fr))", gap: 24 }}>
+          {seminars.map((s: Seminar, i: number) => (
             <SeminarCard key={s.id} sem={s} delay={i * 100} onSelect={(id: string) => { setSelectedSem(id); setPage("inscription"); window.scrollTo(0, 0); }} />
           ))}
         </div>
@@ -429,20 +350,20 @@ function SeminarsPage({ setPage, seminars, setSelectedSem }: any) {
   );
 }
 
-function PricingPage({ setPage, seminars, setSelectedSem }: any) {
+function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: string) => void; seminars: Seminar[]; setSelectedSem: (id: string) => void }) {
   const [ref, vis] = useInView();
   const offers = [
-    { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne"], cta: "S'inscrire", primary: false },
-    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "Réduction de 60 000 FCFA", "Inscription avant le 30 avril", "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
-    { name: "Pack Entreprise", price: "Sur devis", unit: "dès 3 inscrits", features: ["-15% dès 3 inscrits même entreprise", "Pack 2 séminaires : -10%", "Pack 4 séminaires : -20%", "Facturation entreprise", "Coaching post-formation inclus"], cta: "Nous contacter", primary: false },
+    { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne", `Séminaire Dirigeants (S1) : ${fmt(PRICE_DIRIGEANTS)} FCFA`], cta: "S'inscrire", primary: false },
+    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "Réduction de 60 000 FCFA", "Inscription avant le 10 mai 2026", "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
+    { name: "Pack Entreprise", price: "Sur devis", unit: "dès 3 inscrits", features: ["-15% dès 3 inscrits même entreprise", "Pack 2 séminaires : -10%", "Pack 4 séminaires : -20%", "Facturation entreprise", `Coaching personnalisé : ${fmt(COACHING_PRICE)} FCFA / 2h`], cta: "Nous contacter", primary: false },
   ];
   return (
-    <section style={{ background: "linear-gradient(170deg, #FAF9F6, #E0DCCD)", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
+    <section style={{ background: "linear-gradient(170deg, #F5F0E8, #E0DCCD)", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
       <div ref={ref} style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", opacity: vis ? 1 : 0, transform: vis ? "none" : "translateY(30px)", transition: "all 0.8s" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Tarifs</div>
           <h2 style={{ fontSize: 40, fontWeight: 800, color: "#1B2A4A", margin: "0 0 12px" }}>Investissez dans votre avenir</h2>
-          <p style={{ color: '#1B2A4A', fontSize: 16 }}>Tarif identique pour les 4 séminaires · Formation complète 5 jours hybride</p>
+          <p style={{ color: '#1B2A4A', fontSize: 16 }}>Formation complète 5 jours hybride · Coaching personnalisé disponible</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, alignItems: "start" }}>
           {offers.map((o, i) => (
@@ -457,7 +378,7 @@ function PricingPage({ setPage, seminars, setSelectedSem }: any) {
               <div style={{ fontSize: 13, color: o.primary ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.4)", marginBottom: 24 }}>{o.unit}</div>
               {o.features.map((f, j) => (
                 <div key={j} style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 0", color: o.primary ? "#fff" : "rgba(0,0,0,0.7)", fontSize: 14 }}>
-                  <span style={{ color: o.primary ? "#fff" : "#27AE60" }}>✓</span> {f}
+                  <Check size={16} style={{ color: o.primary ? "#fff" : "#27AE60", flexShrink: 0 }} /> {f}
                 </div>
               ))}
               <button onClick={() => { setPage("inscription"); window.scrollTo(0, 0); }} style={{
@@ -473,14 +394,14 @@ function PricingPage({ setPage, seminars, setSelectedSem }: any) {
   );
 }
 
-function InscriptionPage({ selectedSem, seminars }: any) {
+function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; seminars: Seminar[] }) {
   const [form, setForm] = useState({ nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [prices] = useLocalStorage("rmk_prices", { standard: 600000, earlyBird: 540000, discountPct: 10 });
   
-  const upd = (k: string) => (e: any) => {
+  const upd = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [k]: e.target.value });
     if (errors[k]) setErrors({ ...errors, [k]: "" });
   };
@@ -523,15 +444,21 @@ function InscriptionPage({ selectedSem, seminars }: any) {
       seminar: form.seminaire,
       amount: amount,
       status: "pending",
-      payment: "",
+      // payment column has a CHECK constraint (NULL or one of
+      // pending|partial|paid|refunded). Upstream's merge sent "" which fails
+      // the check and silently breaks registration. Omit until the user
+      // actually pays so the DB stores NULL.
+      payment: null,
       notes: form.message.trim()
     };
     
     try {
       const { error: dbError } = await supabase.from('participants').insert([newParticipant]);
       if (dbError) throw dbError;
-      
-      // Send notifications
+
+      // Send notifications + auto-task creation (onboarding + finance) —
+      // both handled server-side by /api/notify-registration since RLS now
+      // blocks anon inserts into `tasks`. Best-effort; non-blocking.
       try {
         await fetch('/api/notify-registration', {
           method: 'POST',
@@ -546,16 +473,16 @@ function InscriptionPage({ selectedSem, seminars }: any) {
       setSubmitted(true);
     } catch (error) {
       console.error("Error saving participant:", error);
-      alert("Une erreur est survenue lors de l'inscription. Veuillez réessayer.");
+      setErrors({ ...errors, _global: "Une erreur est survenue lors de l'inscription. Veuillez réessayer." });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (submitted) return (
-    <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#FAF9F6", paddingTop: 80 }}>
+    <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F5F0E8", paddingTop: 80 }}>
       <div style={{ textAlign: "center", maxWidth: 500, padding: 40 }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+        <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><CheckCircle size={56} style={{ color: "#27AE60" }} /></div>
         <h2 style={{ fontSize: 32, fontWeight: 800, color: "#1B2A4A", marginBottom: 12 }}>Demande envoyée !</h2>
         <p style={{ color: '#1B2A4A', fontSize: 16, lineHeight: 1.7 }}>Merci {form.prenom}. L'équipe RMK vous contactera sous 24h pour confirmer votre inscription et les modalités de paiement.</p>
         <p style={{ color: "#C9A84C", fontWeight: 600, fontSize: 14, marginTop: 16 }}>Vous recevrez un email de confirmation à {form.email}</p>
@@ -564,7 +491,7 @@ function InscriptionPage({ selectedSem, seminars }: any) {
   );
 
   return (
-    <section style={{ minHeight: "100vh", background: "#FAF9F6", paddingTop: 100, paddingBottom: 80 }}>
+    <section style={{ minHeight: "100vh", background: "#F5F0E8", paddingTop: 100, paddingBottom: 80 }}>
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Inscription</div>
@@ -572,15 +499,16 @@ function InscriptionPage({ selectedSem, seminars }: any) {
           <p style={{ color: '#1B2A4A', fontSize: 15 }}>Sélection exclusive par séminaire · Inscription confirmée après validation du paiement</p>
         </div>
         <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 20, padding: 36, border: "1px solid rgba(0,0,0,0.08)" }}>
+          {errors._global && <div style={{ ...errorStyle, padding: "12px 16px", background: "rgba(231,76,60,0.08)", borderRadius: 10, marginBottom: 16, textAlign: "center" }}>{errors._global}</div>}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Nom *</label><input id="field-nom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.nom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.nom} onChange={upd("nom")} placeholder="Votre nom" />{errors.nom && <div style={errorStyle}>{errors.nom}</div>}</div>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Prénom *</label><input id="field-prenom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.prenom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.prenom} onChange={upd("prenom")} placeholder="Votre prénom" />{errors.prenom && <div style={errorStyle}>{errors.prenom}</div>}</div>
+            <div><label htmlFor="field-nom" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Nom *</label><input id="field-nom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.nom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.nom} onChange={upd("nom")} placeholder="Votre nom" />{errors.nom && <div style={errorStyle}>{errors.nom}</div>}</div>
+            <div><label htmlFor="field-prenom" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Prénom *</label><input id="field-prenom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.prenom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.prenom} onChange={upd("prenom")} placeholder="Votre prénom" />{errors.prenom && <div style={errorStyle}>{errors.prenom}</div>}</div>
           </div>
-          <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Email professionnel *</label><input id="field-email" type="email" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.email ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.email} onChange={upd("email")} placeholder="email@entreprise.com" />{errors.email && <div style={errorStyle}>{errors.email}</div>}</div>
-          <div style={{ marginTop: 16 }}><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence)</label><input id="field-tel" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.tel ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 02 61 15 82" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
+          <div style={{ marginTop: 16 }}><label htmlFor="field-email" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Email professionnel *</label><input id="field-email" type="email" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.email ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.email} onChange={upd("email")} placeholder="email@entreprise.com" />{errors.email && <div style={errorStyle}>{errors.email}</div>}</div>
+          <div style={{ marginTop: 16 }}><label htmlFor="field-tel" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence)</label><input id="field-tel" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.tel ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 02 61 15 82" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Société *</label><input id="field-societe" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.societe ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.societe} onChange={upd("societe")} placeholder="Nom de l'entreprise" />{errors.societe && <div style={errorStyle}>{errors.societe}</div>}</div>
-            <div><label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Fonction *</label><input id="field-fonction" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.fonction ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." />{errors.fonction && <div style={errorStyle}>{errors.fonction}</div>}</div>
+            <div><label htmlFor="field-societe" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Société *</label><input id="field-societe" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.societe ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.societe} onChange={upd("societe")} placeholder="Nom de l'entreprise" />{errors.societe && <div style={errorStyle}>{errors.societe}</div>}</div>
+            <div><label htmlFor="field-fonction" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Fonction *</label><input id="field-fonction" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.fonction ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." />{errors.fonction && <div style={errorStyle}>{errors.fonction}</div>}</div>
           </div>
           <div style={{ marginTop: 16 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Séminaire souhaité *</label>
@@ -613,7 +541,7 @@ function InscriptionPage({ selectedSem, seminars }: any) {
   );
 }
 
-function Footer({ setPage }: any) {
+function Footer({ setPage }: { setPage: (p: string) => void }) {
   const navigate = useNavigate();
   return (
     <footer style={{ background: "#0B1120", padding: "48px 24px 24px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
@@ -640,19 +568,13 @@ function Footer({ setPage }: any) {
                   Portail Client
                 </button>
             </div>
-            <div style={{ marginBottom: 8 }}>
-                <button onClick={() => navigate('/admin')} style={{ background: "none", border: "none", color: "#CBD5E1", cursor: "pointer", fontSize: 14, padding: 0 }}>
-                  Admin
-                </button>
-            </div>
           </div>
           <div>
             <div style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, letterSpacing: 1, marginBottom: 12, textTransform: "uppercase" }}>Contact</div>
             <div style={{ color: "#CBD5E1", fontSize: 14, lineHeight: 2 }}>
-              📍 Abidjan, Côte d'Ivoire<br />
-              📧 contact@rmk-formations.com<br />
-              📱 +225 07 02 61 15 82<br />
-              💬 WhatsApp disponible
+              📧 contact@rmkconsulting.pro<br />
+              📧 rkedem@rmkconsulting.pro<br />
+              📱 +225 07 02 61 15 82 WhatsApp
             </div>
           </div>
         </div>
@@ -665,12 +587,67 @@ function Footer({ setPage }: any) {
   );
 }
 
+// ─── LEAD MAGNET ───
+function ContactLead() {
+  const [lead, setLead] = useState({ nom: "", contact: "", source: "Téléchargement Brochure" });
+  const [sent, setSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const saveLead = async () => {
+    if (isSubmitting || !lead.nom || !lead.contact) return;
+    // Anon inserts into `leads`/`tasks` are blocked by the is_admin()-scoped
+    // RLS, so the lead magnet now goes through the backend capture endpoint.
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/lead/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lead),
+      });
+      // Only mark sent on an actual successful write — otherwise the user sees
+      // a success screen after a 4xx/5xx and the lead is silently lost.
+      if (res.ok) {
+        setSent(true);
+      } else {
+        console.error('Lead capture failed:', res.status, await res.text().catch(() => ''));
+      }
+    } catch (err) {
+      console.error('Lead capture failed:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (sent) return (
+    <section style={{ padding: "60px 24px", background: "#1B2A4A", textAlign: "center" }}>
+      <div style={{ marginBottom: 12, display: "flex", justifyContent: "center" }}><CheckCircle size={40} style={{ color: "#27AE60" }} /></div>
+      <h3 style={{ color: "#fff", fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Demande bien reçue !</h3>
+      <p style={{ color: "rgba(255,255,255,0.7)" }}>Notre équipe vous contactera très rapidement avec les informations demandées.</p>
+    </section>
+  );
+
+  return (
+    <section style={{ padding: "80px 24px", background: "#1B2A4A", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
+        <h3 style={{ fontSize: 28, fontWeight: 800, color: "#fff", marginBottom: 16 }}>Pas encore décidé ? Recevez la brochure complète.</h3>
+        <p style={{ color: "rgba(255,255,255,0.7)", marginBottom: 32 }}>Laissez-nous vos coordonnées. Un conseiller RMK vous rappellera pour répondre à vos questions et vous envoyer le PDF détaillé du programme.</p>
+        
+        <div style={{ display: "flex", gap: 12, flexDirection: "column", maxWidth: 400, margin: "0 auto" }}>
+          <input style={{ padding: "16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.2)", color: "#fff", fontSize: 15 }} value={lead.nom} onChange={e => setLead({...lead, nom: e.target.value})} placeholder="Votre Nom & Prénom" />
+          <input style={{ padding: "16px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.2)", color: "#fff", fontSize: 15 }} value={lead.contact} onChange={e => setLead({...lead, contact: e.target.value})} placeholder="Numéro de téléphone / Email" />
+          <button onClick={saveLead} disabled={isSubmitting} style={{ background: isSubmitting ? "rgba(201,168,76,0.5)" : "#C9A84C", color: "#1B2A4A", border: "none", padding: "16px", borderRadius: 8, fontSize: 16, fontWeight: 700, cursor: isSubmitting ? "not-allowed" : "pointer", marginTop: 8 }}>{isSubmitting ? "Envoi..." : "M'envoyer la brochure"}</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── MAIN APP ───
 
 export default function LandingPage() {
   const [page, setPage] = useState("home");
   const [selectedSem, setSelectedSem] = useState("");
-  const [seminars, setSeminars] = useState<any[]>(DEFAULT_SEMINARS);
+  const [seminars, setSeminars] = useState<Seminar[]>(SEMINARS);
 
   useEffect(() => {
     const fetchSeminars = async () => {
@@ -683,7 +660,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", margin: 0, minHeight: "100vh", background: "#FAF9F6" }}>
+    <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", margin: 0, minHeight: "100vh", background: "#F5F0E8" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
         * { box-sizing: border-box; margin: 0; }
@@ -706,14 +683,14 @@ export default function LandingPage() {
         <>
           <Hero setPage={setPage} seminars={seminars} />
           <FormatSection />
-          <section style={{ background: "#FAF9F6", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
+          <section style={{ background: "#F5F0E8", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
             <div style={{ maxWidth: 1100, margin: "0 auto" }}>
               <div style={{ textAlign: "center", marginBottom: 48 }}>
                 <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Séminaires</div>
                 <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1B2A4A", margin: 0 }}>Choisissez votre séminaire</h2>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: 24 }}>
-                {seminars.map((s: any, i: number) => (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(480px, 100%), 1fr))", gap: 24 }}>
+                {seminars.map((s: Seminar, i: number) => (
                   <SeminarCard key={s.id} sem={s} delay={i * 100} onSelect={(id: string) => { setSelectedSem(id); setPage("inscription"); window.scrollTo(0, 0); }} />
                 ))}
               </div>
@@ -733,7 +710,7 @@ export default function LandingPage() {
       {page === "seminaires" && <SeminarsPage setPage={setPage} seminars={seminars} setSelectedSem={setSelectedSem} />}
       {page === "tarifs" && <PricingPage setPage={setPage} seminars={seminars} setSelectedSem={setSelectedSem} />}
       {page === "inscription" && <InscriptionPage selectedSem={selectedSem} seminars={seminars} />}
-      
+      {page === "home" && <ContactLead />}
       <Footer setPage={setPage} />
     </div>
   );
