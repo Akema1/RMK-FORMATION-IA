@@ -12,3 +12,4 @@ coverage/
 /.serena/
 playwright-report/
 test-results/
+.gstack/
