@@ -34,13 +34,13 @@ export const SEMINARS: Seminar[] = [
     code: "S1",
     title: "IA Stratégique pour Dirigeants",
     subtitle: "Leadership & Transformation Digitale",
-    week: "5 – 9 Mai 2026",
-    dates: { start: "2026-05-05", presentiel: "Lun 5 – Mer 7 Mai", online: "Jeu 8 – Ven 9 Mai" },
+    week: "19 – 23 Mai 2026",
+    dates: { start: "2026-05-19", presentiel: "Lun 19 – Mer 21 Mai", online: "Jeu 22 – Ven 23 Mai" },
     target: "DG, CEO, Cadres dirigeants, Directeurs de département",
     seats: 20,
     color: "#E8651A",
     gradient: "linear-gradient(135deg, #E8651A 0%, #F4A261 100%)",
-    icon: "👔",
+    icon: "Briefcase",
     highlights: [
       "Comprendre les transformations économiques liées à l'IA",
       "Prompt engineering stratégique pour la prise de décision",
@@ -57,13 +57,13 @@ export const SEMINARS: Seminar[] = [
     code: "S2",
     title: "IA appliquée à la Finance",
     subtitle: "Analyse Financière & Gestion des Risques",
-    week: "12 – 16 Mai 2026",
-    dates: { start: "2026-05-12", presentiel: "Lun 12 – Mer 14 Mai", online: "Jeu 15 – Ven 16 Mai" },
+    week: "26 – 30 Mai 2026",
+    dates: { start: "2026-05-26", presentiel: "Lun 26 – Mer 28 Mai", online: "Jeu 29 – Ven 30 Mai" },
     target: "DAF, Analystes financiers, Banquiers, Risk Managers, Contrôleurs de gestion",
     seats: 20,
     color: "#27AE60",
     gradient: "linear-gradient(135deg, #27AE60 0%, #6FCF97 100%)",
-    icon: "📊",
+    icon: "BarChart3",
     highlights: [
       "Analyse automatisée des bilans et comptes de résultat",
       "Prompting appliqué à l'analyse financière et au reporting",
@@ -80,13 +80,13 @@ export const SEMINARS: Seminar[] = [
     code: "S3",
     title: "IA pour les Notaires",
     subtitle: "Modernisation des Études Notariales",
-    week: "19 – 23 Mai 2026",
-    dates: { start: "2026-05-19", presentiel: "Lun 19 – Mer 21 Mai", online: "Jeu 22 – Ven 23 Mai" },
+    week: "2 – 6 Juin 2026",
+    dates: { start: "2026-06-02", presentiel: "Lun 2 – Mer 4 Juin", online: "Jeu 5 – Ven 6 Juin" },
     target: "Notaires, Clercs de notaires, Collaborateurs d'études, Juristes",
     seats: 15,
     color: "#2980B9",
     gradient: "linear-gradient(135deg, #2980B9 0%, #74B9FF 100%)",
-    icon: "⚖️",
+    icon: "Scale",
     highlights: [
       "Rédaction assistée d'actes notariaux avec l'IA",
       "Analyse de clauses contractuelles et risques juridiques",
@@ -103,13 +103,13 @@ export const SEMINARS: Seminar[] = [
     code: "S4",
     title: "IA pour les Ressources Humaines",
     subtitle: "Transformer la Fonction RH",
-    week: "26 – 30 Mai 2026",
-    dates: { start: "2026-05-26", presentiel: "Lun 26 – Mer 28 Mai", online: "Jeu 29 – Ven 30 Mai" },
+    week: "9 – 13 Juin 2026",
+    dates: { start: "2026-06-09", presentiel: "Lun 9 – Mer 11 Juin", online: "Jeu 12 – Ven 13 Juin" },
     target: "DRH, Responsables RH, Chargés de recrutement, Responsables formation",
     seats: 15,
     color: "#F39C12",
     gradient: "linear-gradient(135deg, #F39C12 0%, #F7DC6F 100%)",
-    icon: "🤝",
+    icon: "Users",
     highlights: [
       "Rédaction d'offres d'emploi et analyse de CV avec l'IA",
       "Préparation d'entretiens et évaluation des compétences",
@@ -123,10 +123,21 @@ export const SEMINARS: Seminar[] = [
   },
 ];
 
+// Lucide icon name → component map (used by rendering components)
+export { Briefcase, BarChart3, Scale, Users } from 'lucide-react';
+export const SEMINAR_ICONS: Record<string, string> = {
+  Briefcase: "Briefcase",
+  BarChart3: "BarChart3",
+  Scale: "Scale",
+  Users: "Users",
+};
+
 // Pricing constants
 export const PRICE = 600000;
+export const PRICE_DIRIGEANTS = 680000;
 export const EARLY_BIRD_PRICE = 540000;
-export const EARLY_BIRD_DEADLINE = new Date("2026-04-30T23:59:59");
+export const EARLY_BIRD_DEADLINE = new Date("2026-05-10T23:59:59");
+export const COACHING_PRICE = 100000; // par session de 2h (inclus pour dirigeants, optionnel pour les autres)
 
 // Formatting helper
 export const fmt = (n: number) => typeof n === 'number' ? n.toLocaleString("fr-FR") : n;

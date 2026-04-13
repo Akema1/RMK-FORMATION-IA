@@ -19,6 +19,7 @@ CREATE INDEX IF NOT EXISTS participants_email_idx ON public.participants (email)
 CREATE INDEX IF NOT EXISTS participants_seminar_idx ON public.participants (seminar);
 
 -- Table: leads (Prospects CRM)
+-- Status enum aligned with upstream ui-ux-audit merge: froid|tiede|chaud|signé.
 CREATE TABLE IF NOT EXISTS public.leads (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -26,7 +27,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
   entreprise TEXT,
   contact TEXT,
   source TEXT,
-  status TEXT DEFAULT 'froid'::text CHECK (status IN ('froid', 'tiede', 'chaud', 'converti', 'perdu')),
+  status TEXT DEFAULT 'froid'::text CHECK (status IN ('froid', 'tiede', 'chaud', 'signé')),
   notes TEXT
 );
 
@@ -49,67 +50,155 @@ CREATE TABLE IF NOT EXISTS public.seminars (
 );
 
 -- Table: tasks (Tâches opérationnelles)
+-- Column model aligned with upstream ui-ux-audit merge (task/owner/priority/seminar).
 CREATE TABLE IF NOT EXISTS public.tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  title TEXT NOT NULL,
-  assignee TEXT NOT NULL,
-  deadline TEXT NOT NULL,
-  status TEXT DEFAULT 'pending'::text CHECK (status IN ('pending', 'in_progress', 'done', 'blocked'))
+  task TEXT NOT NULL,
+  owner TEXT NOT NULL,
+  deadline TEXT,
+  seminar TEXT,
+  priority TEXT DEFAULT 'medium'::text CHECK (priority IN ('high', 'medium', 'low')),
+  status TEXT DEFAULT 'todo'::text CHECK (status IN ('todo', 'progress', 'done'))
 );
 
 -- Table: expenses (Dépenses budgétaires)
+-- Column model aligned with upstream ui-ux-audit merge (label/category/paid bool).
 CREATE TABLE IF NOT EXISTS public.expenses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  label TEXT NOT NULL,
   category TEXT NOT NULL,
   amount INTEGER NOT NULL CHECK (amount >= 0),
-  status TEXT DEFAULT 'planned'::text CHECK (status IN ('planned', 'approved', 'paid', 'cancelled')),
-  date TEXT NOT NULL
+  seminar TEXT,
+  paid BOOLEAN NOT NULL DEFAULT false
 );
+
+-- Table: settings (Admin key/value config — e.g. budget_config)
+-- Introduced by the upstream ui-ux-audit merge. Used by AdminDashboard to
+-- persist BudgetConfig and similar admin-only state across sessions.
+CREATE TABLE IF NOT EXISTS public.settings (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+-- ============================================================
+-- admin_users allowlist + is_admin() helper
+-- ============================================================
+-- Source of truth for who counts as an admin. Populated via migrations /
+-- service-role, never via client. is_admin() is SECURITY DEFINER so it
+-- bypasses RLS on admin_users (avoids recursion when called from other
+-- tables' policies) and has a pinned search_path to block redirection.
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  email TEXT PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.admin_users
+    WHERE email = (auth.jwt() ->> 'email')
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 
 -- ============================================================
 -- Row Level Security
 -- ============================================================
 
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seminars ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 
--- participants: public can INSERT (registration), authenticated can do everything
+-- All CREATE POLICY statements are idempotent via preceding DROP IF EXISTS —
+-- required for re-applying supabase_schema.sql against an existing install.
+
+-- admin_users: self read only; writes via service role / migrations
+DROP POLICY IF EXISTS "admin_users self read" ON public.admin_users;
+CREATE POLICY "admin_users self read"
+  ON public.admin_users FOR SELECT
+  TO authenticated
+  USING (email = (auth.jwt() ->> 'email'));
+
+-- participants: anon INSERT (public registration), authenticated SELECT on own
+-- row (ClientPortal magic-link lookup), admin full access via is_admin()
+DROP POLICY IF EXISTS "Allow public registration inserts" ON public.participants;
 CREATE POLICY "Allow public registration inserts"
   ON public.participants FOR INSERT
   TO anon WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated full access to participants"
-  ON public.participants FOR ALL
-  TO authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "participants self read" ON public.participants;
+CREATE POLICY "participants self read"
+  ON public.participants FOR SELECT
+  TO authenticated
+  USING (email = (auth.jwt() ->> 'email'));
 
--- seminars: public can SELECT (catalog/landing page), authenticated can do everything
+DROP POLICY IF EXISTS "participants admin all" ON public.participants;
+CREATE POLICY "participants admin all"
+  ON public.participants FOR ALL
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+-- seminars: public SELECT (catalog/landing page), admin-only writes
+DROP POLICY IF EXISTS "Allow public read seminars" ON public.seminars;
 CREATE POLICY "Allow public read seminars"
   ON public.seminars FOR SELECT
   TO anon USING (true);
 
-CREATE POLICY "Allow authenticated full access to seminars"
+DROP POLICY IF EXISTS "seminars admin all" ON public.seminars;
+CREATE POLICY "seminars admin all"
   ON public.seminars FOR ALL
-  TO authenticated USING (true) WITH CHECK (true);
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
--- leads: authenticated only
-CREATE POLICY "Allow authenticated full access to leads"
+-- leads: admin only (anon lead capture goes through backend with service role)
+DROP POLICY IF EXISTS "leads admin all" ON public.leads;
+CREATE POLICY "leads admin all"
   ON public.leads FOR ALL
-  TO authenticated USING (true) WITH CHECK (true);
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
--- tasks: authenticated only
-CREATE POLICY "Allow authenticated full access to tasks"
+-- tasks: admin only (auto-task creation on registration goes through backend)
+DROP POLICY IF EXISTS "tasks admin all" ON public.tasks;
+CREATE POLICY "tasks admin all"
   ON public.tasks FOR ALL
-  TO authenticated USING (true) WITH CHECK (true);
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
--- expenses: authenticated only
-CREATE POLICY "Allow authenticated full access to expenses"
+-- expenses: admin only
+DROP POLICY IF EXISTS "expenses admin all" ON public.expenses;
+CREATE POLICY "expenses admin all"
   ON public.expenses FOR ALL
-  TO authenticated USING (true) WITH CHECK (true);
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+-- settings: admin only (admin key/value store)
+DROP POLICY IF EXISTS "settings admin all" ON public.settings;
+CREATE POLICY "settings admin all"
+  ON public.settings FOR ALL
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 -- ============================================================
 -- Idempotent migration: add CHECK constraints on existing installs
@@ -129,11 +218,25 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'seminars_seats_check')
   THEN ALTER TABLE public.seminars ADD CONSTRAINT seminars_seats_check CHECK (seats > 0); END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'leads_status_check')
-  THEN ALTER TABLE public.leads ADD CONSTRAINT leads_status_check CHECK (status IN ('froid','tiede','chaud','converti','perdu')); END IF;
+  THEN ALTER TABLE public.leads ADD CONSTRAINT leads_status_check CHECK (status IN ('froid','tiede','chaud','signé')); END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tasks_status_check')
-  THEN ALTER TABLE public.tasks ADD CONSTRAINT tasks_status_check CHECK (status IN ('pending','in_progress','done','blocked')); END IF;
+  THEN ALTER TABLE public.tasks ADD CONSTRAINT tasks_status_check CHECK (status IN ('todo','progress','done')); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tasks_priority_check')
+  THEN ALTER TABLE public.tasks ADD CONSTRAINT tasks_priority_check CHECK (priority IN ('high','medium','low')); END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_amount_check')
   THEN ALTER TABLE public.expenses ADD CONSTRAINT expenses_amount_check CHECK (amount >= 0); END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_status_check')
-  THEN ALTER TABLE public.expenses ADD CONSTRAINT expenses_status_check CHECK (status IN ('planned','approved','paid','cancelled')); END IF;
+END $$;
+
+-- ============================================================
+-- Idempotent migration: add expenses.seminar column on existing installs
+-- ============================================================
+-- New column introduced by the upstream ui-ux-audit merge for per-seminar
+-- expense tracking. Safe to re-run.
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'expenses' AND column_name = 'seminar'
+  ) THEN
+    ALTER TABLE public.expenses ADD COLUMN seminar TEXT;
+  END IF;
 END $$;
