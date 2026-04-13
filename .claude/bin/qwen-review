@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Third-opinion code review via qwen3.6-plus on OpenRouter.
+# Usage: qwen-review [base-ref]
+# Default base: main
+set -euo pipefail
+BASE="${1:-main}"
+DIFF=$(git diff "$BASE...HEAD" 2>/dev/null || git diff --staged)
+if [ -z "$DIFF" ]; then
+  echo "qwen-review: no diff to review (base=$BASE)" >&2
+  exit 0
+fi
+printf '%s' "$DIFF" | llm -m openrouter/qwen/qwen3.6-plus -s \
+"You are a senior code reviewer providing a third-opinion review alongside Claude and Gemini.
+Focus on: logic errors, race conditions, security issues (injection, authz, data exposure), resource leaks, error handling gaps, and missed edge cases.
+Cite file:line for each finding. Be terse. Do not restate the diff.
+End with either 'LGTM' or a 'BLOCKERS' section listing must-fix items."

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Third-opinion security scan via qwen3.6-plus.
+# Usage: qwen-security [base-ref]
+set -euo pipefail
+BASE="${1:-main}"
+DIFF=$(git diff "$BASE...HEAD" 2>/dev/null || git diff --staged)
+if [ -z "$DIFF" ]; then
+  echo "qwen-security: no diff to review (base=$BASE)" >&2
+  exit 0
+fi
+printf '%s' "$DIFF" | llm -m openrouter/qwen/qwen3.6-plus -s \
+"You are a security reviewer focused on this diff only. Check for:
+- Injection (SQL, NoSQL, command, LDAP, XSS, prompt injection)
+- Authentication gaps (missing auth middleware, JWT not verified, session fixation)
+- Authorization gaps (missing RLS, IDOR, privilege escalation, broken access control)
+- Data exposure (secrets in logs, PII in responses, verbose errors, email enumeration)
+- Unsafe defaults (permissive CORS, missing CSRF, weak crypto, hardcoded fallbacks)
+- Input validation gaps (no schema, missing size limits, unsafe deserialization)
+Cite file:line for each finding with a 1-line explanation of the exploit.
+Rank findings: CRITICAL / HIGH / MEDIUM / LOW.
+End with 'CLEAN' if nothing material."

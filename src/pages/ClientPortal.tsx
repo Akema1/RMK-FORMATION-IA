@@ -37,7 +37,7 @@ export default function ClientPortal() {
     };
     fetchSeminars();
   }, []);
-  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'payment' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'payment' | 'documents' | 'community'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 

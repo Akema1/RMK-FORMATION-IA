@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# On-demand deep code review via gemini-3-pro-preview.
+#
+# Use for manual reviews where you want maximum reasoning depth — architecture
+# decisions, tricky security diffs, post-incident post-mortems. Do NOT use
+# in the automated pre-commit gate: gemini-3-pro-preview shares a small
+# preview quota with OAuth personal and will rate-limit on frequent calls.
+#
+# The automated gate uses the `gemini` CLI's default (gemini-2.5-pro),
+# which is invoked from the superpowers-gemini-plugin skills without an
+# explicit -m flag.
+#
+# Usage:
+#   gemini-deep-review [base-ref]    # diff base...HEAD (default base=main)
+#   git diff | gemini-deep-review -  # pipe a diff in directly
+set -euo pipefail
+
+MODEL="gemini-3-pro-preview"
+
+if [ "${1:-}" = "-" ]; then
+  DIFF=$(cat)
+else
+  BASE="${1:-main}"
+  DIFF=$(git diff "$BASE...HEAD" 2>/dev/null || git diff --staged)
+fi
+
+if [ -z "$DIFF" ]; then
+  echo "gemini-deep-review: no diff to review" >&2
+  exit 0
+fi
+
+printf '%s' "$DIFF" | gemini -m "$MODEL" -p \
+"You are a senior code reviewer. Give a deep, reasoned review of this diff.
+Focus on: logic errors, subtle concurrency/ordering bugs, security (injection, authz, data exposure, timing), architectural smells, and requirements coverage.
+Cite file:line for each finding. Explain *why* — not just *what*.
+End with either 'LGTM' or a 'BLOCKERS' section listing must-fix items."

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Third-opinion plan review via qwen3.6-plus.
+# Usage: qwen-plan-review <path-to-plan.md>
+set -euo pipefail
+PLAN="${1:-}"
+if [ -z "$PLAN" ] || [ ! -f "$PLAN" ]; then
+  echo "qwen-plan-review: usage: qwen-plan-review <path-to-plan.md>" >&2
+  exit 1
+fi
+cat "$PLAN" | llm -m openrouter/qwen/qwen3.6-plus -s \
+"You are reviewing an implementation plan as a third opinion alongside Gemini.
+Critique:
+- Architecture soundness — does the design fit the constraints?
+- Missing edge cases, failure modes, or rollback plans
+- Step ordering — hidden dependencies, risky sequences, things that should be parallel
+- Test strategy — gaps in coverage, wrong abstraction level
+- Scope — is it too broad (risky) or too narrow (incomplete)?
+- Security implications that weren't addressed
+Be terse. One-page max. Structure as: STRENGTHS / RISKS / MISSING / RECOMMENDATIONS.
+End with 'APPROVE' / 'APPROVE WITH CHANGES' / 'REJECT + reason'."

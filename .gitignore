@@ -7,3 +7,8 @@ coverage/
 .env*
 !.env.example
 .vercel
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+/.serena/
+playwright-report/
+test-results/
