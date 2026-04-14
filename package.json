@@ -9,8 +9,9 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run --dir api",
+    "test:watch": "vitest --dir api",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.95",
