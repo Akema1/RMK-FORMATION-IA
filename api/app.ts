@@ -97,12 +97,14 @@ const aiGenerateSchema = z.object({
 
 // Public chat endpoint — stricter schema than aiGenerateSchema:
 // - templateId locked to "chat" (can't jailbreak into commercial/seo/research)
-// - vars shape validated (mode enum + capped seminar array)
-// - messages: role is a strict enum (not z.string), 20 entry cap, 5000 chars each
+// - mode locked to "client" (unauthenticated callers cannot request the admin
+//   persona — see Gemini security scan finding #2 during Phase 1 review)
+// - messages: role is a strict enum, 20 entry cap, 5000 chars each
+// - parts: strict object shape with bounded text (prevents DoS via z.any())
 const aiChatSchema = z.object({
   templateId: z.literal("chat"),
   vars: z.object({
-    mode: z.enum(["client", "admin"]),
+    mode: z.literal("client"),
     seminars: z.array(z.object({
       id: z.string().max(100),
       code: z.string().max(20),
@@ -114,7 +116,9 @@ const aiChatSchema = z.object({
   messages: z.array(z.object({
     role: z.enum(["user", "assistant", "model"]),
     text: z.string().max(5000).optional(),
-    parts: z.array(z.any()).optional(),
+    parts: z.array(z.object({
+      text: z.string().max(5000),
+    })).max(10).optional(),
   })).min(1).max(20),
 });
 

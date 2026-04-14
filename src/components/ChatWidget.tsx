@@ -17,10 +17,15 @@ interface ChatMessage {
 }
 
 // ─── Server-rendered chat call ───
-// No client-side system prompt. We send (templateId, mode, seminars) and let
+// No client-side system prompt. We send (templateId, seminars) and let
 // api/prompts.ts render the system prompt server-side. See api/app.ts:/api/ai/chat.
+//
+// SECURITY: the public /api/ai/chat endpoint only accepts mode='client' by
+// design (the server-side schema uses z.literal("client")). If Phase 2 adds
+// an admin chat surface, it must go through a separate authed route — do NOT
+// unlock admin mode on this public endpoint. userName is still forwarded for
+// potential future use but is ignored by the client-mode prompt.
 async function sendChatMessage(
-  mode: 'client' | 'admin',
   seminars: Seminar[] | undefined,
   messages: ChatMessage[],
   userName: string | undefined
@@ -42,7 +47,7 @@ async function sendChatMessage(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       templateId: 'chat',
-      vars: { mode, seminars: varsSeminars, userName },
+      vars: { mode: 'client', seminars: varsSeminars, userName },
       messages: apiMessages,
     }),
   });
@@ -110,7 +115,7 @@ export function ChatWidget({ mode, seminars, userName }: ChatWidgetProps) {
     setIsLoading(true);
 
     try {
-      const responseText = await sendChatMessage(mode, seminars, updatedMessages, userName);
+      const responseText = await sendChatMessage(seminars, updatedMessages, userName);
 
       const assistantMessage: ChatMessage = {
         role: 'assistant',
