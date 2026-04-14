@@ -95,6 +95,29 @@ const aiGenerateSchema = z.object({
   })).max(20).optional(),
 });
 
+// Public chat endpoint — stricter schema than aiGenerateSchema:
+// - templateId locked to "chat" (can't jailbreak into commercial/seo/research)
+// - vars shape validated (mode enum + capped seminar array)
+// - messages: role is a strict enum (not z.string), 20 entry cap, 5000 chars each
+const aiChatSchema = z.object({
+  templateId: z.literal("chat"),
+  vars: z.object({
+    mode: z.enum(["client", "admin"]),
+    seminars: z.array(z.object({
+      id: z.string().max(100),
+      code: z.string().max(20),
+      title: z.string().max(200),
+      week: z.string().max(100),
+    })).max(10),
+    userName: z.string().max(100).optional(),
+  }),
+  messages: z.array(z.object({
+    role: z.enum(["user", "assistant", "model"]),
+    text: z.string().max(5000).optional(),
+    parts: z.array(z.any()).optional(),
+  })).min(1).max(20),
+});
+
 const leadCaptureSchema = z.object({
   nom: z.string().min(1).max(100),
   contact: z.string().min(1).max(200),
@@ -548,6 +571,61 @@ export function createApp(opts: CreateAppOptions): express.Express {
     } catch (err) {
       console.error("AI generation error:", err);
       res.status(500).json({ error: "AI generation failed" });
+    }
+  });
+
+  // ── Public AI chat (ChatWidget) ───────────────────────────────────────────
+  // Public, rate-limited. Accepts ONLY templateId='chat' — any other templateId
+  // is rejected by the Zod schema, so there's no way to jailbreak this endpoint
+  // into the admin-only commercial/seo/research templates. The system prompt is
+  // rendered server-side from the registry (api/prompts.ts), so the client never
+  // supplies raw prompt text. This is stricter than both the upstream Sprint 7
+  // design and our prior /api/chat checkpoint proposal.
+  app.post("/api/ai/chat", aiLimiter, async (req, res) => {
+    try {
+      const parsed = aiChatSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid input",
+          details: parsed.error.issues.map((i) => i.message),
+        });
+      }
+      const { templateId, vars, messages } = parsed.data;
+
+      let systemPrompt: string;
+      try {
+        systemPrompt = renderSystemPrompt(templateId, vars as any);
+      } catch (e: any) {
+        return res.status(400).json({ error: e?.message || "Invalid template" });
+      }
+
+      // Zod has already validated role ∈ {user,assistant,model}. Map "model"
+      // → "assistant" (Gemini legacy alias) and reject any message whose
+      // rendered content is empty, to avoid a downstream 400 from the AI SDK.
+      const aiMessages = messages
+        .map((m) => ({
+          role: (m.role === "model" ? "assistant" : m.role) as
+            | "user"
+            | "assistant",
+          content:
+            m.parts?.map((p: any) => p.text).join("") ||
+            String(m.text || ""),
+        }))
+        .filter((m) => m.content.trim().length > 0);
+
+      if (aiMessages.length === 0) {
+        return res.status(400).json({ error: "messages array must contain at least one non-empty message" });
+      }
+
+      const response = await generateText({
+        model: AI_MODEL,
+        system: systemPrompt,
+        messages: aiMessages,
+      });
+      res.json({ text: response.text });
+    } catch (err) {
+      console.error("AI chat error:", err);
+      res.status(500).json({ error: "AI chat failed" });
     }
   });
 
