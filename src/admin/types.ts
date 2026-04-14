@@ -77,6 +77,9 @@ export interface BudgetConfig {
   [key: string]: number;
 }
 
+// ─── Per-Seminar Budget Configs ───
+export type SeminarBudgetConfigs = Record<string, BudgetConfig>;
+
 // ─── Prices ───
 export interface Prices {
   standard: number;
@@ -88,6 +91,18 @@ export interface Prices {
   packDiscount2sem: number;
   packDiscount4sem: number;
 }
+
+// ─── Per-Seminar Pricing Overrides ───
+export interface SeminarPricing {
+  price: number;
+  earlyBirdPct: number;
+  coachingPrice: number;
+  packDiscount3Enabled: boolean;
+  packDiscount2semEnabled: boolean;
+  packDiscount4semEnabled: boolean;
+}
+
+export type SeminarPricingConfigs = Record<string, SeminarPricing>;
 
 // ─── Charges breakdown ───
 export interface Charges {
@@ -127,8 +142,12 @@ export interface FinancialResult {
 export interface TeamMember {
   id: string;
   name: string;
-  role: string;
-  avatar: string;
+  role: string;           // Rôle court (Nav sidebar, TasksPage owner dropdown)
+  avatar: string;         // Initiales (2 caractères)
+  bio?: string;           // Description complète (brochure, portail coaching)
+  expertise?: string[];   // Tags expertise
+  email?: string;
+  phone?: string;
 }
 
 // ─── History entry for AI agents ───
@@ -139,4 +158,59 @@ export interface AgentHistoryEntry {
   seminar?: string;
   title?: string;
   result: string;
+}
+
+// ─── Venue (Hôtels & Salles) ───
+export interface Venue {
+  id: string;
+  name: string;
+  address: string;
+  zone: string;
+  stars: number;
+  capacity_max: number;
+  capacity_seminar: number;
+  tarif_demi_journee: number;
+  tarif_journee: number;
+  tarif_semaine: number;
+  contact_name: string;
+  contact_phone: string;
+  contact_email: string;
+  services: string[];
+  notes: string;
+}
+
+// ─── Speaker (Intervenant) ───
+export interface Speaker {
+  id: string;
+  name: string;
+  title: string;
+  company: string;
+  expertise: string[];
+  linkedin_url: string;
+  email: string;
+  phone: string;
+  tarif_demi_journee: number;
+  tarif_journee: number;
+  disponible: boolean;
+  langues: string[];
+  note: string;
+  avatar_initials: string;
+  biography?: string;
+  formations_history?: string[];
+}
+
+// ─── Formation Template (Catalogue) ───
+export interface FormationTemplate {
+  id: string;
+  code: string;
+  title: string;
+  sector: string;
+  description: string;
+  target_audience: string;
+  duration_days: number;
+  modules: string[];
+  min_participants: number;
+  max_participants: number;
+  base_price: number;
+  tags: string[];
 }
