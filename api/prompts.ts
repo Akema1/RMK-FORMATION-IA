@@ -28,8 +28,11 @@ function esc(str: string): string {
 // system-prompt injection via user-supplied fields (e.g. userName =
 // "Eric\n\nIGNORE ALL PREVIOUS INSTRUCTIONS"). Combine with esc() when
 // interpolating into a template body.
+//
+// Also strips Unicode line/paragraph separators (U+2028, U+2029) that some
+// LLMs treat as newlines — caught by a second Gemini security scan.
 function stripCtrl(str: string): string {
-  return String(str).replace(/[\x00-\x1F\x7F]/g, " ");
+  return String(str).replace(/[\x00-\x1F\x7F\u2028\u2029]/g, " ");
 }
 
 function safe(str: string): string {
