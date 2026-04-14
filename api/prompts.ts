@@ -14,7 +14,7 @@
 import { SEMINARS } from "../src/data/seminars.js";
 import { COMMERCIAL_STRATEGY } from "../src/lib/strategy.js";
 
-export type TemplateId = "seo" | "commercial" | "research";
+export type TemplateId = "seo" | "commercial" | "research" | "chat";
 
 // Escape XML metacharacters to prevent tag-closing prompt-injection inside templated values.
 function esc(str: string): string {
@@ -33,7 +33,18 @@ export interface CommercialVars {
   stats?: { total: number; confirmed: number };
 }
 
-export type RenderVars = CommercialVars | Record<string, never> | undefined;
+export interface ChatVars {
+  mode: "client" | "admin";
+  seminars: Array<{
+    id: string;
+    code: string;
+    title: string;
+    week: string;
+  }>;
+  userName?: string;
+}
+
+export type RenderVars = CommercialVars | ChatVars | Record<string, never> | undefined;
 
 /**
  * Render a system prompt from a template id + vars. Throws if the id is
@@ -59,6 +70,27 @@ Pour chaque recherche, fournis:
 6. Conditions et inclusions typiques
 
 Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les prix réels du marché local. Monnaie: FCFA (XOF).`;
+
+    case "chat": {
+      const cv = vars as ChatVars | undefined;
+      if (!cv?.mode || (cv.mode !== "client" && cv.mode !== "admin")) {
+        throw new Error("chat template requires vars.mode ('client' or 'admin')");
+      }
+      // Server-side prompt rendering — mirrors upstream's buildSystemPrompt
+      // (previously client-side in ChatWidget.tsx) but keeps the system prompt
+      // fully server-controlled. Client never supplies raw prompt text.
+      const seminarList = (cv.seminars || [])
+        .slice(0, 10) // defense-in-depth cap (Zod schema also caps this)
+        .map((s) => `- ${esc(s.code)} "${esc(s.title)}" (${esc(s.week)})`)
+        .join("\n");
+      if (cv.mode === "client") {
+        return `Tu es l'assistant virtuel de RMK Conseils. Tu aides les prospects et clients à comprendre nos formations IA (séminaires S1-S4), les tarifs, les dates, et le processus d'inscription. Réponds en français, de façon professionnelle et chaleureuse. Voici les séminaires disponibles:
+${seminarList}`;
+      }
+      const userLine = cv.userName ? ` ${esc(cv.userName)}` : "";
+      return `Tu es l'assistant administratif de RMK Conseils${userLine}. Tu aides l'équipe à gérer les formations, analyser les données, rédiger des communications, et prendre des décisions. Tu as accès au contexte des séminaires. Réponds en français. Voici les séminaires:
+${seminarList}`;
+    }
 
     case "commercial": {
       const cv = vars as CommercialVars | undefined;
@@ -114,4 +146,5 @@ export const PROMPT_TEMPLATES: readonly TemplateId[] = [
   "seo",
   "commercial",
   "research",
+  "chat",
 ] as const;
