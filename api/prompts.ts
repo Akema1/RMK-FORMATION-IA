@@ -14,7 +14,7 @@
 import { SEMINARS } from "../src/data/seminars.js";
 import { COMMERCIAL_STRATEGY } from "../src/lib/strategy.js";
 
-export type TemplateId = "seo" | "commercial" | "research" | "chat";
+export type TemplateId = "seo" | "commercial" | "research" | "chat" | "prospection";
 
 // Escape XML metacharacters to prevent tag-closing prompt-injection inside templated values.
 function esc(str: string): string {
@@ -63,7 +63,14 @@ export interface ChatVars {
   userName?: string;
 }
 
-export type RenderVars = CommercialVars | ChatVars | Record<string, never> | undefined;
+export interface ProspectionVars {
+  sector: string;
+  zone: string;
+  need: string;
+  seminarsContext?: Array<{ code: string; title: string; week: string }>;
+}
+
+export type RenderVars = CommercialVars | ChatVars | ProspectionVars | Record<string, never> | undefined;
 
 /**
  * Render a system prompt from a template id + vars. Throws if the id is
@@ -154,6 +161,61 @@ Réponds en français. Fournis un plan de prospection journalier avec:
 7. Canaux de contact recommandés par cible`;
     }
 
+    case "prospection": {
+      const pv = vars as ProspectionVars | undefined;
+      const sector = typeof pv?.sector === "string" ? pv.sector.slice(0, 200) : "";
+      const zone = typeof pv?.zone === "string" ? pv.zone.slice(0, 200) : "";
+      const need = typeof pv?.need === "string" ? pv.need.slice(0, 500) : "";
+      if (!sector || !zone || !need) {
+        throw new Error(
+          "prospection template requires vars.sector, vars.zone, vars.need"
+        );
+      }
+
+      // Optional seminars catalog projection — grounds the LLM in what RMK
+      // actually sells. Accepts { code, title, week }[]; silently drops
+      // anything that doesn't match the shape. Cap at 20 entries so the
+      // prompt stays tight even if a caller forgets to slice.
+      type SeminarCtx = { code: string; title: string; week: string };
+      const rawCtx = Array.isArray(pv?.seminarsContext) ? pv.seminarsContext : [];
+      const seminarsCtx: SeminarCtx[] = rawCtx
+        .filter(
+          (s: unknown): s is SeminarCtx =>
+            !!s &&
+            typeof (s as SeminarCtx).code === "string" &&
+            typeof (s as SeminarCtx).title === "string" &&
+            typeof (s as SeminarCtx).week === "string"
+        )
+        .slice(0, 20);
+
+      const catalogBlock =
+        seminarsCtx.length > 0
+          ? `\n\nCatalogue RMK (ce que tu dois vendre — utilise ces titres mot-pour-mot dans tes messages d'approche) :\n${seminarsCtx
+              .map((s) => `- [${s.code}] ${s.title} (${s.week})`)
+              .join("\n")}`
+          : "";
+
+      return `Tu es un analyste commercial B2B pour RMK Conseils (Abidjan). Ta mission : identifier des prospects ENTREPRISES réels pour nos séminaires de formation IA.
+
+Contexte : sector="${sector}" | zone="${zone}" | besoin="${need}"${catalogBlock}
+
+Retourne UNIQUEMENT un tableau JSON (rien d'autre — pas de markdown, pas de commentaire), format strict :
+
+[
+  {
+    "nom": "Nom réel de l'entreprise",
+    "secteur": "Sous-secteur précis",
+    "taille": "TPE / PME / Grande",
+    "besoin": "Besoin identifié en IA (1-2 phrases)",
+    "decideur": "Titre du profil décideur à contacter",
+    "score": "Elevee / Moyenne / Faible",
+    "message": "Message d'approche personnalisé (2-3 phrases, cite le séminaire RMK le plus pertinent si catalogue fourni)"
+  }
+]
+
+Fournis entre 8 et 12 prospects. Utilise des entreprises RÉELLES du contexte. Réponds en français.`;
+    }
+
     default: {
       // Exhaustiveness check
       const _never: never = templateId;
@@ -167,4 +229,5 @@ export const PROMPT_TEMPLATES: readonly TemplateId[] = [
   "commercial",
   "research",
   "chat",
+  "prospection",
 ] as const;

@@ -93,7 +93,39 @@ const aiGenerateSchema = z.object({
     text: z.string().max(5000).optional(),
     parts: z.array(z.any()).optional(),
   })).max(20).optional(),
-});
+})
+.refine(
+  (v) => {
+    if (v.templateId !== "prospection") return true;
+    const vars = v.vars ?? {};
+    return (
+      typeof vars.sector === "string" &&
+      typeof vars.zone === "string" &&
+      typeof vars.need === "string" &&
+      (vars.sector as string).length > 0 &&
+      (vars.zone as string).length > 0 &&
+      (vars.need as string).length > 0
+    );
+  },
+  { message: "prospection template requires vars.sector, vars.zone, vars.need", path: ["vars"] }
+)
+.refine(
+  (v) => {
+    if (v.templateId !== "prospection") return true;
+    const ctx = v.vars?.seminarsContext;
+    if (ctx === undefined) return true;
+    if (!Array.isArray(ctx)) return false;
+    return ctx.every(
+      (s) =>
+        s &&
+        typeof s === "object" &&
+        typeof (s as Record<string, unknown>).code === "string" &&
+        typeof (s as Record<string, unknown>).title === "string" &&
+        typeof (s as Record<string, unknown>).week === "string"
+    );
+  },
+  { message: "prospection seminarsContext must be Array<{code,title,week}>", path: ["vars", "seminarsContext"] }
+);
 
 // Public chat endpoint — stricter schema than aiGenerateSchema:
 // - templateId locked to "chat" (can't jailbreak into commercial/seo/research)
