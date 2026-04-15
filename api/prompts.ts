@@ -191,10 +191,16 @@ Réponds en français. Fournis un plan de prospection journalier avec:
         )
         .slice(0, 20);
 
+      // SECURITY: every field goes through safe() (stripCtrl + XML escape),
+      // matching the discipline applied to sector/zone/need above. Without
+      // this, a caller with control of seminarsContext could inject newlines
+      // or XML metachars via title/week and break out of the template body.
+      // Admin-only surface (requireAdmin gates /api/ai/generate), low blast
+      // radius, but the consistency avoids a future mistake.
       const catalogBlock =
         seminarsCtx.length > 0
           ? `\n\nCatalogue RMK (ce que tu dois vendre — utilise ces titres mot-pour-mot dans tes messages d'approche) :\n${seminarsCtx
-              .map((s) => `- [${s.code}] ${s.title} (${s.week})`)
+              .map((s) => `- [${safe(s.code)}] ${safe(s.title)} (${safe(s.week)})`)
               .join("\n")}`
           : "";
 

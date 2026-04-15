@@ -20,6 +20,16 @@ import PortalCommunity from './portal/PortalCommunity';
 import PortalCoaching from './portal/PortalCoaching';
 import PortalProgramme from './portal/PortalProgramme';
 
+// ─────────────────────────────────────────────
+// FEATURE FLAGS
+// ─────────────────────────────────────────────
+// COACHING_ENABLED=false for PR #3: PortalCoaching.tsx calls /api/ai/generate
+// with the wrong shape (no templateId, no admin auth) so the AI call ALWAYS
+// fails and a hardcoded mock string is shown, misleading paying participants
+// into believing they got live AI analysis. The proper fix is a new authed
+// /api/ai/coaching endpoint (follow-up PR). Until that ships, hide the tab.
+// Also hides the dashboard quick-action and the section render.
+const COACHING_ENABLED = false;
 
 // ─────────────────────────────────────────────
 // MAIN COMPONENT
@@ -796,7 +806,9 @@ export default function ClientPortal() {
   const sidebarItems: { key: PortalSection; label: string; icon: string; locked?: boolean; tag?: string }[] = [
     { key: 'dashboard', label: 'Tableau de bord', icon: '◆' },
     { key: 'programme', label: 'Mon Programme', icon: '◉', locked: participant.status !== 'confirmed' },
-    { key: 'coaching', label: 'Coaching IA', icon: '⭐', locked: participant.status !== 'confirmed', tag: isDirigeants ? 'Inclus' : undefined },
+    ...(COACHING_ENABLED
+      ? [{ key: 'coaching' as PortalSection, label: 'Coaching IA', icon: '⭐', locked: participant.status !== 'confirmed', tag: isDirigeants ? 'Inclus' : undefined }]
+      : []),
     { key: 'community', label: 'Communaute', icon: '◎' },
     { key: 'discovery', label: 'Decouverte IA', icon: '✦' },
     { key: 'profile', label: 'Mon Profil', icon: '○' },
@@ -851,7 +863,9 @@ export default function ClientPortal() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 32 }}>
         {[
           { icon: '◉', label: 'Mon Programme', section: 'programme' as const, locked: participant.status !== 'confirmed' },
-          { icon: '⭐', label: 'Coaching IA', section: 'coaching' as const, locked: participant.status !== 'confirmed' },
+          ...(COACHING_ENABLED
+            ? [{ icon: '⭐', label: 'Coaching IA', section: 'coaching' as const, locked: participant.status !== 'confirmed' }]
+            : []),
           { icon: '◎', label: 'Communaute', section: 'community' as const, locked: false },
           { icon: '✦', label: 'Decouverte IA', section: 'discovery' as const, locked: false },
         ].map(item => (
@@ -1109,7 +1123,7 @@ export default function ClientPortal() {
         {/* Sections */}
         {activeSection === 'dashboard' && renderDashboard()}
         {activeSection === 'programme' && <PortalProgramme participant={participant} seminar={seminar} openModule={openModule} setOpenModule={setOpenModule} />}
-        {activeSection === 'coaching' && <PortalCoaching participant={participant} seminar={seminar} coachingForm={coachingForm} setCoachingForm={setCoachingForm} coachingResult={coachingResult} setCoachingResult={setCoachingResult} coachingLoading={coachingLoading} setCoachingLoading={setCoachingLoading} coachingSubmitted={coachingSubmitted} setCoachingSubmitted={setCoachingSubmitted} />}
+        {COACHING_ENABLED && activeSection === 'coaching' && <PortalCoaching participant={participant} seminar={seminar} coachingForm={coachingForm} setCoachingForm={setCoachingForm} coachingResult={coachingResult} setCoachingResult={setCoachingResult} coachingLoading={coachingLoading} setCoachingLoading={setCoachingLoading} coachingSubmitted={coachingSubmitted} setCoachingSubmitted={setCoachingSubmitted} />}
         {activeSection === 'community' && <PortalCommunity participant={participant} communityPosts={communityPosts} setCommunityPosts={setCommunityPosts} newPostText={newPostText} setNewPostText={setNewPostText} communityFilter={communityFilter} setCommunityFilter={setCommunityFilter} />}
         {activeSection === 'discovery' && (
           <div>

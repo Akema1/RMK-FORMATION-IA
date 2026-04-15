@@ -612,23 +612,32 @@ export function createApp(opts: CreateAppOptions): express.Express {
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      // Look up the participant row by email. maybeSingle() so a 0-row result
-      // returns null instead of throwing PGRST116 (which would bubble as a 500
-      // and mask the denial).
-      const { data: participant, error: lookupErr } = await supabaseAdmin
+      // Look up the participant row by email. Multi-seminar registration is
+      // supported (one email can register for S1, S2, etc.), so participants
+      // has no unique constraint on email. Query for all confirmed rows and
+      // pick the most recent one — the user posts into whichever seminar
+      // they most recently registered for. A dedicated "post into which
+      // seminar" selector is tracked as a follow-up (see TODOS.md).
+      //
+      // Using .limit(1) + array index instead of .maybeSingle() is what
+      // prevents PGRST116 when the same email has multiple confirmed rows.
+      const { data: participants, error: lookupErr } = await supabaseAdmin
         .from("participants")
         .select("id, nom, prenom, email, seminar, status")
         .eq("email", email.toLowerCase().trim())
-        .maybeSingle();
+        .eq("status", "confirmed")
+        .order("created_at", { ascending: false })
+        .limit(1);
 
       if (lookupErr) {
         console.error("Participant lookup failed:", lookupErr);
         return res.status(500).json({ error: "Participant lookup failed" });
       }
+      const participant = participants?.[0] ?? null;
       if (!participant) {
-        return res.status(403).json({ error: "Not a registered participant" });
-      }
-      if (participant.status !== "confirmed") {
+        // Unified 403 for both "no registration" and "not confirmed" — the
+        // previous split leaked information about whether an email was
+        // registered. Both are access denials from the caller's perspective.
         return res.status(403).json({
           error: "Community access requires a confirmed registration",
         });
@@ -636,6 +645,14 @@ export function createApp(opts: CreateAppOptions): express.Express {
 
       // Derive every identity + scope field from the DB row.
       const safeText = sanitizeText(text, 2000);
+      // Zod's .min(1) runs on the raw text, but sanitizeText strips control
+      // characters — a payload of 2000 control chars would pass validation
+      // and then collapse to an empty string. Re-check after sanitizing.
+      if (!safeText) {
+        return res.status(400).json({
+          error: "Text cannot be empty after sanitization",
+        });
+      }
       const author = `${participant.prenom} ${participant.nom}`.trim();
       const initials = `${(participant.prenom || "?")[0] ?? "?"}${
         (participant.nom || "?")[0] ?? "?"
