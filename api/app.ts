@@ -671,7 +671,9 @@ export function createApp(opts: CreateAppOptions): express.Express {
           .from("community_posts")
           .insert([row]);
         if (insertErr) throw insertErr;
-        return res.status(201).json({ post: row });
+        // Return only public-facing fields — never expose participant_id (internal FK)
+        const { participant_id: _omit, ...publicRow } = row;
+        return res.status(201).json({ post: publicRow });
       } catch (err) {
         console.error("Community post insert failed:", err);
         return res.status(500).json({ error: "Failed to save post" });

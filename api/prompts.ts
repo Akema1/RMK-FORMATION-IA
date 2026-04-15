@@ -163,9 +163,12 @@ Réponds en français. Fournis un plan de prospection journalier avec:
 
     case "prospection": {
       const pv = vars as ProspectionVars | undefined;
-      const sector = typeof pv?.sector === "string" ? pv.sector.slice(0, 200) : "";
-      const zone = typeof pv?.zone === "string" ? pv.zone.slice(0, 200) : "";
-      const need = typeof pv?.need === "string" ? pv.need.slice(0, 500) : "";
+      // SECURITY: safe() strips control characters (including newlines that could
+      // break prompt structure) and XML-escapes quotes/brackets — same hardening
+      // as the chat template. .slice() alone only bounds length, not injection.
+      const sector = typeof pv?.sector === "string" ? safe(pv.sector.slice(0, 200)) : "";
+      const zone = typeof pv?.zone === "string" ? safe(pv.zone.slice(0, 200)) : "";
+      const need = typeof pv?.need === "string" ? safe(pv.need.slice(0, 500)) : "";
       if (!sector || !zone || !need) {
         throw new Error(
           "prospection template requires vars.sector, vars.zone, vars.need"
