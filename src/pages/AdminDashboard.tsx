@@ -3,21 +3,17 @@ import { supabase } from "../lib/supabaseClient";
 import { LogoRMK } from "../components/LogoRMK";
 
 // Admin modules
-import { DEFAULT_SEMINARS, DEFAULT_PRICES, DEFAULT_BUDGET_CONFIG, SURFACE_BG, ORANGE, card, btnPrimary } from "../admin/config";
-import type { Seminar, Participant, Expense, Task, Lead, BudgetConfig, Prices } from "../admin/types";
+import { DEFAULT_SEMINARS, DEFAULT_PRICES, SURFACE_BG, ORANGE, card, btnPrimary } from "../admin/config";
+import type { Seminar, Participant, Expense, Task, Lead, Prices, SeminarBudgetConfigs, SeminarPricingConfigs } from "../admin/types";
 import { Nav } from "../admin/Nav";
 import { DashboardPage } from "../admin/DashboardPage";
-import { SeoAgentPage } from "../admin/SeoAgentPage";
-import { FlyerPage } from "../admin/FlyerPage";
 import { SeminarsManagement } from "../admin/SeminarsManagement";
 import { InscriptionsPage } from "../admin/InscriptionsPage";
 import { FinancePage } from "../admin/FinancePage";
-import { LeadsPage } from "../admin/LeadsPage";
 import { TasksPage } from "../admin/TasksPage";
-import { PricesPage } from "../admin/PricesPage";
-import { AgentPage } from "../admin/AgentPage";
-import { ResearchPage } from "../admin/ResearchPage";
 import { FormationTrackingPage } from "../admin/FormationTrackingPage";
+import { ContentStudio } from "../admin/ContentStudio";
+import { AgentHub } from "../admin/AgentHub";
 
 // ─── Supabase User type ───
 interface SupabaseUser {
@@ -35,7 +31,8 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
 
   const [prices, setPrices] = useState<Prices>(DEFAULT_PRICES);
-  const [budgetConfig, setBudgetConfig] = useState<BudgetConfig>(DEFAULT_BUDGET_CONFIG);
+  const [seminarBudgets, setSeminarBudgets] = useState<SeminarBudgetConfigs>({});
+  const [seminarPricing, setSeminarPricing] = useState<SeminarPricingConfigs>({});
   const [seminars, setSeminars] = useState<Seminar[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -84,9 +81,12 @@ export default function AdminDashboard() {
           fetchExpenses().catch(() => { /* expenses fetch failed silently */ }),
           fetchTasks().catch(() => { /* tasks fetch failed silently */ }),
           fetchLeads().catch(() => { /* leads fetch failed silently */ }),
-          Promise.resolve(supabase.from('settings').select('*').eq('id', 'budget_config').single()).then(({ data }) => {
-            if (data && data.value) setBudgetConfig(data.value as BudgetConfig);
-          }).catch(() => { /* config fetch failed silently */ })
+          Promise.resolve(supabase.from('settings').select('*').eq('id', 'seminar_budgets').single()).then(({ data }) => {
+            if (data && data.value) setSeminarBudgets(data.value as SeminarBudgetConfigs);
+          }).catch(() => { /* seminar budgets fetch failed silently */ }),
+          Promise.resolve(supabase.from('settings').select('*').eq('id', 'seminar_pricing').single()).then(({ data }) => {
+            if (data && data.value) setSeminarPricing(data.value as SeminarPricingConfigs);
+          }).catch(() => { /* seminar pricing fetch failed silently */ })
         ]);
       } catch {
         // Critical initialization error handled silently
@@ -211,18 +211,14 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
-            {page === "dashboard" && <DashboardPage participants={participants} prices={prices} tasks={tasks} leads={leads} seminars={seminars} />}
-            {page === "seminaires" && <SeminarsManagement seminars={seminars} refreshSeminars={fetchSeminars} />}
+            {page === "dashboard" && <DashboardPage participants={participants} prices={prices} tasks={tasks} leads={leads} seminars={seminars} seminarBudgets={seminarBudgets} />}
+            {page === "seminaires" && <SeminarsManagement seminars={seminars} refreshSeminars={fetchSeminars} prices={prices} setPrices={setPrices} seminarPricing={seminarPricing} setSeminarPricing={setSeminarPricing} />}
             {page === "inscriptions" && <InscriptionsPage participants={participants} seminars={seminars} refreshParticipants={fetchParticipants} />}
-            {page === "leads" && <LeadsPage leads={leads} refreshLeads={fetchLeads} />}
-            {page === "finance" && <FinancePage participants={participants} seminars={seminars} prices={prices} expenses={expenses} refreshExpenses={fetchExpenses} budgetConfig={budgetConfig} setBudgetConfig={setBudgetConfig} />}
+            {page === "finance" && <FinancePage participants={participants} seminars={seminars} prices={prices} expenses={expenses} refreshExpenses={fetchExpenses} seminarBudgets={seminarBudgets} setSeminarBudgets={setSeminarBudgets} />}
             {page === "tasks" && <TasksPage tasks={tasks} seminars={seminars} refreshTasks={fetchTasks} />}
-            {page === "prices" && <PricesPage prices={prices} setPrices={setPrices} seminars={seminars} />}
             {page === "formation" && <FormationTrackingPage seminars={seminars} participants={participants} />}
-            {page === "agent" && <AgentPage seminars={seminars} />}
-            {page === "seo" && <SeoAgentPage seminars={seminars} />}
-            {page === "flyer" && <FlyerPage seminars={seminars} />}
-            {page === "research" && <ResearchPage seminars={seminars} />}
+            {page === "contenus" && <ContentStudio seminars={seminars} participants={participants} />}
+            {page === "agents" && <AgentHub seminars={seminars} leads={leads} refreshLeads={fetchLeads} />}
           </>
         )}
       </main>
