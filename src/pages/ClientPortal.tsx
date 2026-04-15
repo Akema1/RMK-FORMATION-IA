@@ -1,32 +1,102 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
-import { SEMINARS, type Seminar } from '../data/seminars';
+import { SEMINARS, type Seminar, fmt, PRICE, EARLY_BIRD_PRICE, COACHING_PRICE } from '../data/seminars';
 import type { Participant } from '../admin/types';
+import { LogoRMK } from '../components/LogoRMK';
+import { ChatWidget } from '../components/ChatWidget';
 
-const SYLLABUS = [
-  { day: "Jour 1", mode: "Présentiel", location: "Abidjan", title: "Fondamentaux & Stratégie IA", desc: "Démystification de l'IA générative. Audit de maturité digitale de votre organisation. Cartographie des cas d'usage à fort ROI pour votre secteur.", color: "#C9A84C" },
-  { day: "Jour 2", mode: "Présentiel", location: "Abidjan", title: "Ingénierie de Prompts & Outils Avancés", desc: "Maîtrise complète de ChatGPT, Claude et Gemini. Techniques avancées pour automatiser l'analyse de données, la rédaction et la prise de décision.", color: "#C9A84C" },
-  { day: "Jour 3", mode: "Présentiel", location: "Abidjan", title: "Atelier Pratique : Construire vos Solutions", desc: "Déploiement sur vos propres données professionnelles. Création de workflows intelligents et d'assistants IA sur-mesure pour votre entreprise.", color: "#C9A84C" },
-  { day: "Jour 4", mode: "Distanciel", location: "En ligne", title: "Accompagnement & Implémentation", desc: "Suivi à distance de la mise en œuvre. Sessions individuelles de coaching. Résolution de problèmes spécifiques à votre contexte professionnel.", color: "#27AE60" },
-  { day: "Jour 5", mode: "Distanciel", location: "En ligne", title: "Évaluation & Certification", desc: "Validation des acquis et des cas d'usage en situation réelle. Présentation des projets finaux. Remise des attestations officielles par RMK CONSEILS.", color: "#27AE60" },
-];
+// ── Extracted portal modules ──
+import {
+  NAVY, GOLD, GOLD_DARK, SURFACE, WHITE, RED, GREEN,
+  cardBase, goldButton, navyButton, generateId, getInitials,
+} from './portal/tokens';
+import type { PortalSection, OnboardingProfile, SurveyAnswer, CommunityPost } from './portal/tokens';
+import { SURVEY_QUESTIONS, getRecommendation } from './portal/surveyConfig';
+import { FORMATION_CONTENT } from './portal/formationContent';
+import PortalSurvey from './portal/PortalSurvey';
+import PortalCommunity from './portal/PortalCommunity';
+import PortalCoaching from './portal/PortalCoaching';
+import PortalProgramme from './portal/PortalProgramme';
 
-import { LogoRMK } from "../components/LogoRMK";
 
-// ─── AUTH STEP TYPE ───
-type AuthStep = 'email' | 'sent' | 'verifying' | 'dashboard';
-
+// ─────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────
 export default function ClientPortal() {
+  // ── Auth state ──
   const [email, setEmail] = useState('');
-  const [authStep, setAuthStep] = useState<AuthStep>('email');
+  const [authStep, setAuthStep] = useState<'onboarding' | 'sent' | 'verifying' | 'dashboard'>('onboarding');
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [seminars, setSeminars] = useState<Seminar[]>(SEMINARS);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'payment' | 'community' | 'documents'>('overview');
+
+  // ── Onboarding state ──
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingProfile, setOnboardingProfile] = useState<OnboardingProfile>({
+    name: '', email: '', company: '', fonction: '',
+  });
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [wantsCoaching, setWantsCoaching] = useState(false);
+
+  // ── Portal state ──
+  const [activeSection, setActiveSection] = useState<PortalSection>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // ── Survey state ──
+  const [surveyStep, setSurveyStep] = useState(0);
+  const [surveyStarted, setSurveyStarted] = useState(false);
+  const [surveyComplete, setSurveyComplete] = useState(false);
+  const [surveyAnswers, setSurveyAnswers] = useState<SurveyAnswer>({
+    secteur: '', collaborateurs: '', aiUsage: '', defi: '', attentes: [], source: '',
+  });
+  const [showEncouragement, setShowEncouragement] = useState(false);
+
+  // ── Community state (loaded from Supabase) ──
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
+
+  useEffect(() => {
+    supabase.from('community_posts').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setCommunityPosts(data.map(d => ({
+            id: d.id,
+            author: d.author,
+            initials: d.initials,
+            date: d.date,
+            text: d.text,
+            seminarTag: d.seminar_tag,
+          })));
+        } else {
+          // Seed posts if table is empty
+          setCommunityPosts([
+            { id: '1', author: 'Jean-Baptiste K.', initials: 'JK', date: '2026-04-10', text: "Hate de commencer la formation S1 ! Quelqu'un d'autre du secteur bancaire ?", seminarTag: 'S1' },
+            { id: '2', author: 'Mariam T.', initials: 'MT', date: '2026-04-09', text: "J'ai commence a tester ChatGPT pour mes rapports mensuels, les resultats sont impressionnants.", seminarTag: 'S2' },
+            { id: '3', author: 'Assane O.', initials: 'AO', date: '2026-04-08', text: "Qui a deja utilise des agents IA dans son entreprise ? J'aimerais echanger sur le sujet.", seminarTag: 'Tous' },
+          ]);
+        }
+      });
+  }, []);
+  const [newPostText, setNewPostText] = useState('');
+  const [communityFilter, setCommunityFilter] = useState('Tous');
+
+  // ── Coaching form state (dashboard quick card) ──
+  const [showCoachingForm, setShowCoachingForm] = useState(false);
+  const [coachingMessage, setCoachingMessage] = useState('');
+
+  // ── Full coaching section state ──
+  const [coachingForm, setCoachingForm] = useState({
+    entreprise: '', secteur: '', role: '', defi: '', objectif: 'Intégration IA dans mon activité',
+  });
+  const [coachingResult, setCoachingResult] = useState('');
+  const [coachingLoading, setCoachingLoading] = useState(false);
+  const [coachingSubmitted, setCoachingSubmitted] = useState(false);
+
+  // ── Programme accordion state ──
+  const [openModule, setOpenModule] = useState<number | null>(null);
+
   const navigate = useNavigate();
 
   // ─── Load seminars from DB ───
@@ -40,7 +110,6 @@ export default function ClientPortal() {
 
   // ─── Listen for magic link callback + existing session ───
   useEffect(() => {
-    // Check if user is already signed in (e.g., after clicking magic link)
     const handleSession = async (userEmail: string) => {
       setAuthStep('verifying');
       setError('');
@@ -52,27 +121,25 @@ export default function ClientPortal() {
           .limit(1)
           .maybeSingle();
         if (dbErr || !data) {
-          setError('Aucune inscription trouvée pour cet email. Contactez-nous si vous avez bien une inscription.');
+          setError("Aucune inscription trouvee pour cet email. Contactez-nous si vous avez bien une inscription.");
           await supabase.auth.signOut();
-          setAuthStep('email');
+          setAuthStep('onboarding');
         } else {
           setParticipant(data);
           setAuthStep('dashboard');
         }
       } catch {
-        setError('Erreur lors de la vérification. Veuillez réessayer.');
-        setAuthStep('email');
+        setError('Erreur lors de la verification. Veuillez reessayer.');
+        setAuthStep('onboarding');
       }
     };
 
-    // Initial session check (handles magic link redirect)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) {
         handleSession(session.user.email);
       }
     });
 
-    // Auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user?.email && authStep !== 'dashboard') {
         handleSession(session.user.email);
@@ -84,148 +151,287 @@ export default function ClientPortal() {
   }, []);
 
   // ─── Send magic link OTP ───
-  const sendMagicLink = async () => {
-    const trimmedEmail = email.trim().toLowerCase();
+  const sendMagicLink = useCallback(async (targetEmail?: string) => {
+    const trimmedEmail = (targetEmail ?? email).trim().toLowerCase();
     if (!trimmedEmail) return;
     setLoading(true);
     setError('');
     try {
       const { error: otpErr } = await supabase.auth.signInWithOtp({
         email: trimmedEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/portal`,
-        },
+        options: { emailRedirectTo: `${window.location.origin}/portal` },
       });
       if (otpErr) {
-        setError('Impossible d\'envoyer le lien. Vérifiez votre email et réessayez.');
+        setError("Impossible d'envoyer le lien. Verifiez votre email et reessayez.");
       } else {
         setAuthStep('sent');
       }
     } catch {
-      setError('Erreur réseau. Veuillez réessayer.');
+      setError('Erreur reseau. Veuillez reessayer.');
     }
     setLoading(false);
-  };
+  }, [email]);
 
   // ─── Sign out ───
   const signOut = async () => {
     await supabase.auth.signOut();
     setParticipant(null);
     setEmail('');
-    setAuthStep('email');
-    setActiveTab('overview');
+    setAuthStep('onboarding');
+    setActiveSection('dashboard');
+    setOnboardingStep(0);
   };
 
+  // ─── Export attestation PDF (NAVY / GOLD / IVORY palette) ───
   const exportAttestation = () => {
     if (!participant || participant.status !== 'confirmed') return;
     const s = seminars.find(x => x.id === participant.seminar);
     if (!s) return;
 
-    const doc = new jsPDF({ orientation: 'landscape' });
-    
-    // Background / Border
-    doc.setLineWidth(2);
-    doc.setDrawColor(232, 101, 26); // ORANGE
-    doc.rect(10, 10, 277, 190);
-    
-    // Header
-    doc.setFontSize(30);
-    doc.setTextColor(15, 23, 42); // NAVY
-    doc.text("ATTESTATION DE FORMATION", 148.5, 40, { align: "center" });
-    
-    // Subtitle
-    doc.setFontSize(14);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Délivrée par RMK Conseils", 148.5, 55, { align: "center" });
-    
-    // Body
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text("Nous soussignés, certifions que :", 148.5, 80, { align: "center" });
-    
-    doc.setFontSize(24);
-    doc.setTextColor(232, 101, 26); // ORANGE
-    doc.text(`${participant.prenom} ${participant.nom}`.toUpperCase(), 148.5, 100, { align: "center" });
-    
-    doc.setFontSize(16);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`a suivi avec succès le séminaire de formation :`, 148.5, 120, { align: "center" });
-    
-    doc.setFontSize(20);
-    doc.setTextColor(15, 23, 42); // NAVY
-    doc.text(s.title, 148.5, 135, { align: "center" });
-    
-    doc.setFontSize(14);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Date : ${s.week} | Lieu : Hôtel Movenpick, Abidjan`, 148.5, 150, { align: "center" });
-    
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const W = 297, H = 210, cx = W / 2;
+
+    const navy: [number, number, number] = [27, 42, 74];
+    const gold: [number, number, number] = [201, 168, 76];
+    const lightGold: [number, number, number] = [230, 210, 150];
+    const paleBlue: [number, number, number] = [230, 236, 248];
+    const textGray: [number, number, number] = [100, 100, 100];
+    const lightGray: [number, number, number] = [180, 180, 180];
+    const navyLight: [number, number, number] = [40, 58, 95];
+
+    // Pale blue background (shade of site navy #1B2A4A)
+    doc.setFillColor(...paleBlue);
+    doc.rect(0, 0, W, H, 'F');
+
+    // Navy top/bottom bands + gold accent lines
+    doc.setFillColor(...navy);
+    doc.rect(0, 0, W, 5, 'F');
+    doc.rect(0, H - 5, W, 5, 'F');
+    doc.setFillColor(...gold);
+    doc.rect(0, 5, W, 1, 'F');
+    doc.rect(0, H - 6, W, 1, 'F');
+
+    // Double border
+    doc.setDrawColor(...navyLight);
+    doc.setLineWidth(0.4);
+    doc.rect(8, 10, W - 16, H - 20);
+    doc.setDrawColor(...gold);
+    doc.setLineWidth(1.2);
+    doc.rect(12, 14, W - 24, H - 28);
+
+    // Gold corner L-brackets
+    const cLen = 18, cW = 1.8, ins = 18;
+    doc.setLineWidth(cW);
+    doc.setDrawColor(...gold);
+    doc.line(ins, ins, ins + cLen, ins); doc.line(ins, ins, ins, ins + cLen);
+    doc.line(W - ins, ins, W - ins - cLen, ins); doc.line(W - ins, ins, W - ins, ins + cLen);
+    doc.line(ins, H - ins, ins + cLen, H - ins); doc.line(ins, H - ins, ins, H - ins - cLen);
+    doc.line(W - ins, H - ins, W - ins - cLen, H - ins); doc.line(W - ins, H - ins, W - ins, H - ins - cLen);
+
+    // Diamond ornaments at corners
+    const drawDiamond = (dx: number, dy: number, sz: number) => {
+      doc.setFillColor(...gold);
+      doc.triangle(dx, dy - sz, dx + sz, dy, dx, dy + sz, 'F');
+      doc.triangle(dx, dy - sz, dx - sz, dy, dx, dy + sz, 'F');
+    };
+    drawDiamond(ins, ins, 2); drawDiamond(W - ins, ins, 2);
+    drawDiamond(ins, H - ins, 2); drawDiamond(W - ins, H - ins, 2);
+
+    // Triple-line divider helper
+    const drawTripleLine = (y: number, mx: number) => {
+      doc.setDrawColor(...lightGold); doc.setLineWidth(0.2);
+      doc.line(mx, y - 1.5, W - mx, y - 1.5);
+      doc.setDrawColor(...gold); doc.setLineWidth(0.7);
+      doc.line(mx, y, W - mx, y);
+      doc.setDrawColor(...lightGold); doc.setLineWidth(0.2);
+      doc.line(mx, y + 1.5, W - mx, y + 1.5);
+    };
+
+    // Content
+    let curY = 30;
+
+    // Issuing organizations
+    doc.setFont('times', 'bold'); doc.setFontSize(10); doc.setTextColor(...gold);
+    doc.text('R M K   C O N S E I L S     \u00D7     C A B E X I A', cx, curY, { align: 'center' });
+    curY += 14;
+
+    // Main title
+    doc.setFont('times', 'bold'); doc.setFontSize(28); doc.setTextColor(...navy);
+    doc.text('ATTESTATION DE FORMATION', cx, curY, { align: 'center' });
+    curY += 8;
+    drawTripleLine(curY, 60);
+    curY += 6;
+    drawDiamond(cx, curY, 2.2);
+    curY += 10;
+
+    // Certification text
+    doc.setFont('times', 'italic'); doc.setFontSize(12); doc.setTextColor(...textGray);
+    doc.text('Nous certifions que', cx, curY, { align: 'center' });
+    curY += 14;
+
+    // Participant name
+    doc.setFont('times', 'bolditalic'); doc.setFontSize(26); doc.setTextColor(...navy);
+    const fullName = `${participant.prenom} ${participant.nom}`.toUpperCase();
+    doc.text(fullName, cx, curY, { align: 'center' });
+    curY += 6;
+    const nameW = doc.getTextWidth(fullName);
+    doc.setDrawColor(...lightGold); doc.setLineWidth(0.3);
+    doc.line(cx - nameW / 2 - 5, curY, cx + nameW / 2 + 5, curY);
+    curY += 7;
+
+    // Company + function
+    if (participant.societe || participant.fonction) {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(...textGray);
+      doc.text([participant.societe, participant.fonction].filter(Boolean).join('  \u2014  '), cx, curY, { align: 'center' });
+      curY += 8;
+    }
+
+    doc.setFont('times', 'italic'); doc.setFontSize(12); doc.setTextColor(...textGray);
+    doc.text('a suivi avec succ\u00E8s la formation :', cx, curY, { align: 'center' });
+    curY += 12;
+
+    // Seminar title
+    doc.setFont('times', 'bold'); doc.setFontSize(20); doc.setTextColor(...navy);
+    const semTitle = `\u00AB  ${s.title}  \u00BB`;
+    doc.text(semTitle, cx, curY, { align: 'center' });
+    curY += 3;
+    const stW = doc.getTextWidth(semTitle);
+    doc.setDrawColor(...gold); doc.setLineWidth(0.6);
+    doc.line(cx - stW / 2 + 10, curY, cx + stW / 2 - 10, curY);
+    curY += 10;
+
+    // Dates + location
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(...textGray);
+    doc.text(`${s.week}  \u2014  Abidjan, C\u00F4te d'Ivoire`, cx, curY, { align: 'center' });
+    curY += 7;
+    doc.setFontSize(10); doc.setTextColor(...lightGray);
+    doc.text('Formation hybride : 3 jours pr\u00E9sentiel  +  2 sessions en ligne', cx, curY, { align: 'center' });
+    curY += 8;
+
+    drawTripleLine(curY, 50);
+    curY += 4;
+    drawDiamond(cx, curY, 2.2);
+    curY += 10;
+
     // Signatures
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text("Le Directeur Général, RMK Conseils", 50, 180, { align: "center" });
-    doc.text("L'Expert Formateur Consultant", 247, 180, { align: "center" });
-    
+    const sigL = 80, sigR = W - 80, sigHalf = 35;
+    doc.setDrawColor(...gold); doc.setLineWidth(0.4);
+    doc.line(sigL - sigHalf, curY, sigL + sigHalf, curY);
+    doc.line(sigR - sigHalf, curY, sigR + sigHalf, curY);
+    curY += 5;
+    doc.setFont('times', 'bold'); doc.setFontSize(10); doc.setTextColor(...navy);
+    doc.text('Le Directeur G\u00E9n\u00E9ral', sigL, curY, { align: 'center' });
+    doc.text("L'Expert Formateur", sigR, curY, { align: 'center' });
+    curY += 5;
+    doc.setFont('times', 'italic'); doc.setFontSize(9); doc.setTextColor(...textGray);
+    doc.text('RMK Conseils', sigL, curY, { align: 'center' });
+    doc.text('CABEXIA', sigR, curY, { align: 'center' });
+
+    // Footer
+    const footY = H - 18;
+    doc.setDrawColor(...lightGold); doc.setLineWidth(0.2);
+    doc.line(40, footY - 3, W - 40, footY - 3);
+    const ref = `ATT-${s.code}-${participant.nom.substring(0, 3).toUpperCase()}${String(Date.now()).slice(-4)}`;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...lightGray);
+    doc.text(`R\u00E9f\u00E9rence : ${ref}`, 30, footY);
+    doc.text(`D\u00E9livr\u00E9 le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`, cx, footY, { align: 'center' });
+    doc.setFillColor(...gold);
+    drawDiamond(cx, footY + 4, 1.2);
+
     doc.save(`Attestation_${participant.nom}_${s.code}.pdf`);
   };
 
+
   const seminar = participant ? seminars.find(s => s.id === participant.seminar) : null;
 
-  // ─── AUTH SCREENS ───
-  if (authStep !== 'dashboard') {
-    const cardStyle: React.CSSProperties = { minHeight: '100vh', background: '#FAF9F6', color: '#1B2A4A', fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 };
-    const boxStyle: React.CSSProperties = { maxWidth: 460, width: '100%', background: '#FFFFFF', padding: '48px 40px', borderRadius: 24, border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 20px 40px rgba(0,0,0,0.05)' };
-    const logoBlock = (
-      <div style={{ textAlign: 'center', marginBottom: 40, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <LogoRMK scale={1.2} variant="light" />
-        <div style={{ color: '#C9A84C', fontSize: 13, fontWeight: 800, letterSpacing: 5, textTransform: 'uppercase', marginTop: 20 }}>Espace Client Privé</div>
+  // ═══════════════════════════════════════════
+  // ONBOARDING FLOW (replaces direct login)
+  // ═══════════════════════════════════════════
+  if (authStep === 'onboarding') {
+    const totalSteps = 4;
+    const containerStyle: React.CSSProperties = {
+      minHeight: '100vh', background: SURFACE, color: NAVY,
+      fontFamily: "'DM Sans', sans-serif",
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 24,
+    };
+    const boxStyle: React.CSSProperties = {
+      maxWidth: 560, width: '100%', background: WHITE,
+      padding: '48px 40px', borderRadius: 24,
+      border: '1px solid rgba(0,0,0,0.08)',
+      boxShadow: '0 20px 40px rgba(0,0,0,0.05)',
+    };
+
+    // ── Progress dots ──
+    const progressDots = (
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 36 }}>
+        {Array.from({ length: totalSteps }, (_, i) => (
+          <div key={i} style={{
+            width: i === onboardingStep ? 32 : 10, height: 10, borderRadius: 5,
+            background: i <= onboardingStep ? GOLD : 'rgba(0,0,0,0.1)',
+            transition: 'all 0.4s ease',
+          }} />
+        ))}
       </div>
     );
+
     const backBtn = (
       <div style={{ textAlign: 'center', marginTop: 32 }}>
-        <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'rgba(27,42,74,0.4)', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '0 auto' }}>
-          <span>←</span> Retour au site principal
+        <button onClick={() => navigate('/')} style={{
+          background: 'none', border: 'none', color: 'rgba(27,42,74,0.4)',
+          fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', gap: 8, margin: '0 auto',
+        }}>
+          <span>&larr;</span> Retour au site principal
         </button>
       </div>
     );
 
-    // ── Verifying screen ──
-    if (authStep === 'verifying') {
+    // ── STEP 0: Welcome ──
+    if (onboardingStep === 0) {
       return (
-        <div style={cardStyle}>
+        <div style={containerStyle}>
           <div style={boxStyle}>
-            {logoBlock}
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 48, marginBottom: 20 }}>⏳</div>
-              <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1B2A4A', marginBottom: 12 }}>Vérification en cours…</h2>
-              <p style={{ color: 'rgba(27,42,74,0.6)', fontSize: 15 }}>Connexion à votre espace en cours. Un instant.</p>
+            <div style={{ textAlign: 'center', marginBottom: 32, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <LogoRMK scale={1.2} variant="light" />
             </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ── Magic link sent screen ──
-    if (authStep === 'sent') {
-      return (
-        <div style={cardStyle}>
-          <div style={boxStyle}>
-            {logoBlock}
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 56, marginBottom: 20 }}>📬</div>
-              <h2 style={{ fontSize: 26, fontWeight: 700, color: '#1B2A4A', marginBottom: 16 }}>Vérifiez votre email</h2>
-              <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, lineHeight: 1.7, marginBottom: 24 }}>
-                Un lien de connexion sécurisé a été envoyé à<br />
-                <strong style={{ color: '#C9A84C' }}>{email}</strong>
-              </p>
-              <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 12, padding: 20, marginBottom: 28, textAlign: 'left' }}>
-                <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.7)', margin: 0, lineHeight: 1.7 }}>
-                  ① Ouvrez l'email reçu de <strong>RMK Conseils</strong><br />
-                  ② Cliquez sur le bouton <strong>«&nbsp;Se connecter&nbsp;»</strong><br />
-                  ③ Vous serez redirigé automatiquement ici
-                </p>
+            {progressDots}
+            <h1 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 16, color: NAVY }}>
+              Bienvenue chez RMK Conseils
+            </h1>
+            <p style={{ textAlign: 'center', color: 'rgba(27,42,74,0.65)', fontSize: 16, lineHeight: 1.7, marginBottom: 12, maxWidth: 420, margin: '0 auto 24px' }}>
+              Decouvrez nos formations en Intelligence Artificielle conçues pour les dirigeants et professionnels d'Afrique francophone.
+            </p>
+            <div style={{
+              background: `linear-gradient(135deg, rgba(201,168,76,0.08), rgba(201,168,76,0.03))`,
+              border: '1px solid rgba(201,168,76,0.15)', borderRadius: 14,
+              padding: 20, marginBottom: 32,
+            }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {[
+                  { icon: '🎓', label: '4 seminaires specialises' },
+                  { icon: '🤝', label: 'Coaching individuel' },
+                  { icon: '📍', label: 'Presentiel + en ligne' },
+                  { icon: '🏆', label: 'Certification officielle' },
+                ].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 18 }}>{item.icon}</span>
+                    <span style={{ fontSize: 13, color: 'rgba(27,42,74,0.7)' }}>{item.label}</span>
+                  </div>
+                ))}
               </div>
-              <button onClick={() => { setAuthStep('email'); setError(''); }} style={{ background: 'none', border: '1px solid rgba(0,0,0,0.1)', color: 'rgba(27,42,74,0.5)', fontSize: 14, cursor: 'pointer', padding: '10px 20px', borderRadius: 10 }}>
-                ← Changer d'email
+            </div>
+            <button onClick={() => setOnboardingStep(1)} style={{ ...goldButton(), width: '100%', fontSize: 16, padding: '16px 28px' }}>
+              Commencer
+            </button>
+            <div style={{ textAlign: 'center', marginTop: 20 }}>
+              <button onClick={() => {
+                setOnboardingStep(3);
+              }} style={{
+                background: 'none', border: 'none', color: 'rgba(27,42,74,0.45)',
+                fontSize: 13, cursor: 'pointer', textDecoration: 'underline',
+              }}>
+                J'ai deja un compte &mdash; me connecter
               </button>
             </div>
             {backBtn}
@@ -234,107 +440,590 @@ export default function ClientPortal() {
       );
     }
 
-    // ── Email input screen (default) ──
-    return (
-      <div style={cardStyle}>
-        <div style={boxStyle}>
-          {logoBlock}
-          <h2 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12, textAlign: 'center', color: '#1B2A4A' }}>Accès Formation</h2>
-          <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, textAlign: 'center', marginBottom: 32, lineHeight: 1.6 }}>
-            Entrez l'email utilisé lors de votre inscription. Nous vous enverrons un lien de connexion sécurisé.
-          </p>
+    // ── STEP 1: Quick Profile ──
+    if (onboardingStep === 1) {
+      const inputStyle: React.CSSProperties = {
+        width: '100%', padding: '14px 18px', borderRadius: 12,
+        border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(0,0,0,0.02)',
+        color: NAVY, fontSize: 15, outline: 'none', transition: 'border-color 0.3s',
+        boxSizing: 'border-box',
+      };
+      const labelStyle: React.CSSProperties = {
+        fontSize: 13, fontWeight: 600, color: 'rgba(27,42,74,0.6)',
+        marginBottom: 6, display: 'block',
+      };
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="votre.email@entreprise.com"
-              style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(0,0,0,0.03)', color: '#1B2A4A', fontSize: 16, outline: 'none', transition: 'all 0.3s', boxSizing: 'border-box' }}
-              onFocus={e => (e.target.style.borderColor = '#C9A84C')}
-              onBlur={e => (e.target.style.borderColor = 'rgba(0,0,0,0.1)')}
-              onKeyDown={e => e.key === 'Enter' && sendMagicLink()}
-            />
-            <button
-              onClick={sendMagicLink}
-              disabled={loading || !email.trim()}
-              style={{ width: '100%', padding: '16px 20px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #C9A84C, #A88A3D)', color: '#FFFFFF', fontSize: 16, fontWeight: 800, cursor: loading || !email.trim() ? 'not-allowed' : 'pointer', opacity: loading || !email.trim() ? 0.7 : 1, transition: 'all 0.3s' }}
-            >
-              {loading ? 'Envoi en cours…' : '🔗 Recevoir mon lien de connexion'}
-            </button>
+      return (
+        <div style={containerStyle}>
+          <div style={boxStyle}>
+            {progressDots}
+            <h2 style={{ fontSize: 24, fontWeight: 700, textAlign: 'center', marginBottom: 8, color: NAVY }}>
+              Faisons connaissance
+            </h2>
+            <p style={{ textAlign: 'center', color: 'rgba(27,42,74,0.55)', fontSize: 14, marginBottom: 28 }}>
+              Quelques informations pour personnaliser votre experience.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div>
+                <label style={labelStyle}>Nom complet</label>
+                <input
+                  value={onboardingProfile.name}
+                  onChange={e => setOnboardingProfile(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Ex: Kouadio Marie"
+                  style={inputStyle}
+                  onFocus={e => { e.target.style.borderColor = GOLD; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,0.1)'; }}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Email professionnel</label>
+                <input
+                  type="email"
+                  value={onboardingProfile.email}
+                  onChange={e => {
+                    setOnboardingProfile(p => ({ ...p, email: e.target.value }));
+                    setEmail(e.target.value);
+                  }}
+                  placeholder="vous@entreprise.com"
+                  style={inputStyle}
+                  onFocus={e => { e.target.style.borderColor = GOLD; }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,0.1)'; }}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <label style={labelStyle}>Entreprise</label>
+                  <input
+                    value={onboardingProfile.company}
+                    onChange={e => setOnboardingProfile(p => ({ ...p, company: e.target.value }))}
+                    placeholder="Nom de votre societe"
+                    style={inputStyle}
+                    onFocus={e => { e.target.style.borderColor = GOLD; }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,0.1)'; }}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Fonction</label>
+                  <input
+                    value={onboardingProfile.fonction}
+                    onChange={e => setOnboardingProfile(p => ({ ...p, fonction: e.target.value }))}
+                    placeholder="Ex: Directeur General"
+                    style={inputStyle}
+                    onFocus={e => { e.target.style.borderColor = GOLD; }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,0.1)'; }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
+              <button onClick={() => setOnboardingStep(0)} style={{
+                flex: 1, padding: '14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)',
+                background: 'transparent', color: 'rgba(27,42,74,0.5)', fontSize: 15,
+                fontWeight: 600, cursor: 'pointer',
+              }}>
+                Retour
+              </button>
+              <button
+                onClick={() => setOnboardingStep(2)}
+                disabled={!onboardingProfile.name.trim() || !onboardingProfile.email.trim()}
+                style={{ ...goldButton(!onboardingProfile.name.trim() || !onboardingProfile.email.trim()), flex: 2 }}
+              >
+                Continuer
+              </button>
+            </div>
+            {backBtn}
           </div>
+        </div>
+      );
+    }
 
-          {error && <div style={{ color: '#E74C3C', fontSize: 14, marginTop: 20, textAlign: 'center', background: 'rgba(231,76,60,0.05)', padding: 14, borderRadius: 10, border: '1px solid rgba(231,76,60,0.1)' }}>{error}</div>}
+    // ── STEP 2: Formation Interest ──
+    if (onboardingStep === 2) {
+      const toggleInterest = (id: string) => {
+        setSelectedInterests(prev =>
+          prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+      };
 
-          <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(27,42,74,0.35)', marginTop: 24 }}>
-            🔒 Lien valide 24h · Aucun mot de passe requis
-          </p>
-          {backBtn}
+      return (
+        <div style={containerStyle}>
+          <div style={{ ...boxStyle, maxWidth: 640 }}>
+            {progressDots}
+            <h2 style={{ fontSize: 24, fontWeight: 700, textAlign: 'center', marginBottom: 8, color: NAVY }}>
+              Qu'est-ce qui vous interesse ?
+            </h2>
+            <p style={{ textAlign: 'center', color: 'rgba(27,42,74,0.55)', fontSize: 14, marginBottom: 28 }}>
+              Selectionnez les formations qui correspondent a vos besoins.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
+              {SEMINARS.map(s => {
+                const isSelected = selectedInterests.includes(s.id);
+                return (
+                  <button key={s.id} onClick={() => toggleInterest(s.id)} style={{
+                    padding: '20px 18px', borderRadius: 16, textAlign: 'left',
+                    border: isSelected ? `2px solid ${s.color}` : '2px solid rgba(0,0,0,0.08)',
+                    background: isSelected ? `${s.color}10` : 'rgba(0,0,0,0.02)',
+                    cursor: 'pointer', transition: 'all 0.3s',
+                    position: 'relative', overflow: 'hidden',
+                  }}>
+                    {isSelected && (
+                      <div style={{
+                        position: 'absolute', top: 10, right: 10, width: 22, height: 22,
+                        borderRadius: '50%', background: s.color, color: WHITE,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 13, fontWeight: 800,
+                      }}>
+                        &#10003;
+                      </div>
+                    )}
+                    <div style={{ fontSize: 12, fontWeight: 800, color: s.color, letterSpacing: 1, marginBottom: 6 }}>
+                      {s.code}
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: NAVY, marginBottom: 4, lineHeight: 1.3 }}>
+                      {s.title}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.5)', lineHeight: 1.4 }}>
+                      {s.week}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(27,42,74,0.4)', marginTop: 6 }}>
+                      {s.target.split(',').slice(0, 2).join(', ')}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Coaching option */}
+            <button onClick={() => setWantsCoaching(!wantsCoaching)} style={{
+              width: '100%', padding: '18px 20px', borderRadius: 14, textAlign: 'left',
+              border: wantsCoaching ? `2px solid ${GOLD}` : '2px solid rgba(0,0,0,0.08)',
+              background: wantsCoaching ? 'rgba(201,168,76,0.08)' : 'rgba(0,0,0,0.02)',
+              cursor: 'pointer', transition: 'all 0.3s', display: 'flex', alignItems: 'center', gap: 14,
+              marginBottom: 24,
+            }}>
+              <div style={{ fontSize: 28 }}>🎯</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: NAVY }}>Coaching Personnalise</div>
+                <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.5)' }}>
+                  Sessions individuelles de 2h &mdash; {fmt(COACHING_PRICE)} FCFA/session
+                </div>
+              </div>
+              {wantsCoaching && (
+                <div style={{
+                  width: 22, height: 22, borderRadius: '50%', background: GOLD, color: WHITE,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 800, flexShrink: 0,
+                }}>
+                  &#10003;
+                </div>
+              )}
+            </button>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setOnboardingStep(1)} style={{
+                flex: 1, padding: '14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)',
+                background: 'transparent', color: 'rgba(27,42,74,0.5)', fontSize: 15,
+                fontWeight: 600, cursor: 'pointer',
+              }}>
+                Retour
+              </button>
+              <button onClick={() => setOnboardingStep(3)} style={{ ...goldButton(), flex: 2 }}>
+                Continuer
+              </button>
+            </div>
+            {backBtn}
+          </div>
+        </div>
+      );
+    }
+
+    // ── STEP 3: Magic Link ──
+    if (onboardingStep === 3) {
+      const inputEmail = onboardingProfile.email || email;
+
+      return (
+        <div style={containerStyle}>
+          <div style={boxStyle}>
+            {progressDots}
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`, color: WHITE, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 16px' }}>
+                &#9993;
+              </div>
+              <h2 style={{ fontSize: 24, fontWeight: 700, color: NAVY, marginBottom: 8 }}>
+                Connectez-vous a votre espace
+              </h2>
+              <p style={{ color: 'rgba(27,42,74,0.55)', fontSize: 14, lineHeight: 1.6 }}>
+                Nous vous enverrons un lien de connexion securise. Aucun mot de passe requis.
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <input
+                type="email"
+                value={inputEmail}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  setOnboardingProfile(p => ({ ...p, email: e.target.value }));
+                }}
+                placeholder="votre.email@entreprise.com"
+                style={{
+                  width: '100%', padding: '16px 20px', borderRadius: 12,
+                  border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(0,0,0,0.02)',
+                  color: NAVY, fontSize: 16, outline: 'none', transition: 'all 0.3s',
+                  boxSizing: 'border-box',
+                }}
+                onFocus={e => { e.target.style.borderColor = GOLD; }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(0,0,0,0.1)'; }}
+                onKeyDown={e => e.key === 'Enter' && sendMagicLink(inputEmail)}
+              />
+              <button
+                onClick={() => sendMagicLink(inputEmail)}
+                disabled={loading || !inputEmail.trim()}
+                style={{ ...goldButton(loading || !inputEmail.trim()), width: '100%', fontSize: 16, padding: '16px 28px' }}
+              >
+                {loading ? 'Envoi en cours...' : 'Recevoir mon lien de connexion'}
+              </button>
+            </div>
+            {error && (
+              <div style={{
+                color: RED, fontSize: 14, marginTop: 16, textAlign: 'center',
+                background: 'rgba(231,76,60,0.05)', padding: 14, borderRadius: 10,
+                border: '1px solid rgba(231,76,60,0.1)',
+              }}>
+                {error}
+              </div>
+            )}
+            <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(27,42,74,0.35)', marginTop: 20 }}>
+              Lien valide 24h &middot; Connexion securisee
+            </p>
+            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+              <button onClick={() => setOnboardingStep(2)} style={{
+                flex: 1, padding: '14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)',
+                background: 'transparent', color: 'rgba(27,42,74,0.5)', fontSize: 15,
+                fontWeight: 600, cursor: 'pointer',
+              }}>
+                Retour
+              </button>
+            </div>
+            {backBtn}
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // ── Verifying screen ──
+  if (authStep === 'verifying') {
+    return (
+      <div style={{
+        minHeight: '100vh', background: SURFACE, color: NAVY,
+        fontFamily: "'DM Sans', sans-serif",
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+      }}>
+        <div style={{
+          maxWidth: 460, width: '100%', background: WHITE,
+          padding: '48px 40px', borderRadius: 24,
+          border: '1px solid rgba(0,0,0,0.08)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.05)', textAlign: 'center',
+        }}>
+          <LogoRMK scale={1.2} variant="light" />
+          <div style={{ marginTop: 32 }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%', border: '3px solid rgba(201,168,76,0.3)',
+              borderTopColor: GOLD, margin: '0 auto 20px',
+              animation: 'spin 1s linear infinite',
+            }} />
+            <h2 style={{ fontSize: 24, fontWeight: 700, color: NAVY, marginBottom: 12 }}>Verification en cours...</h2>
+            <p style={{ color: 'rgba(27,42,74,0.6)', fontSize: 15 }}>Connexion a votre espace en cours.</p>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
     );
   }
 
-  // ─── DASHBOARD SCREEN (after login) ───
-  // Narrowing guard: once authStep === 'dashboard', participant must be set
-  // (see handleSession), but TS can't derive that. Short-circuit to satisfy
-  // strict null checks — never expected to render in practice.
+  // ── Magic link sent screen ──
+  if (authStep === 'sent') {
+    return (
+      <div style={{
+        minHeight: '100vh', background: SURFACE, color: NAVY,
+        fontFamily: "'DM Sans', sans-serif",
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+      }}>
+        <div style={{
+          maxWidth: 460, width: '100%', background: WHITE,
+          padding: '48px 40px', borderRadius: 24,
+          border: '1px solid rgba(0,0,0,0.08)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.05)', textAlign: 'center',
+        }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: 'rgba(201,168,76,0.1)', color: GOLD,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 32, margin: '0 auto 24px',
+          }}>
+            &#9993;
+          </div>
+          <h2 style={{ fontSize: 26, fontWeight: 700, color: NAVY, marginBottom: 16 }}>Verifiez votre email</h2>
+          <p style={{ color: 'rgba(27,42,74,0.7)', fontSize: 15, lineHeight: 1.7, marginBottom: 24 }}>
+            Un lien de connexion securise a ete envoye a<br />
+            <strong style={{ color: GOLD }}>{email || onboardingProfile.email}</strong>
+          </p>
+          <div style={{
+            background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)',
+            borderRadius: 12, padding: 20, marginBottom: 28, textAlign: 'left',
+          }}>
+            <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.7)', margin: 0, lineHeight: 1.8 }}>
+              1. Ouvrez l'email recu de <strong>RMK Conseils</strong><br />
+              2. Cliquez sur le bouton <strong>&laquo;&nbsp;Se connecter&nbsp;&raquo;</strong><br />
+              3. Vous serez redirige automatiquement ici
+            </p>
+          </div>
+          <button onClick={() => { setAuthStep('onboarding'); setOnboardingStep(3); setError(''); }} style={{
+            background: 'none', border: '1px solid rgba(0,0,0,0.1)', color: 'rgba(27,42,74,0.5)',
+            fontSize: 14, cursor: 'pointer', padding: '10px 20px', borderRadius: 10,
+          }}>
+            &larr; Changer d'email
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════
+  // AUTHENTICATED DASHBOARD
+  // ═══════════════════════════════════════════
   if (!participant) return null;
-  const sidebarItems = [
-    { key: 'overview' as const, label: 'Tableau de bord', icon: '💎' },
-    { key: 'syllabus' as const, label: 'Programme', icon: '📅' },
-    { key: 'payment' as const, label: 'Paiement', icon: '💳' },
-    { key: 'community' as const, label: 'Communauté', icon: '🤝', locked: participant.status !== 'confirmed' },
-    { key: 'documents' as const, label: 'Documents', icon: '📄' },
+
+  const isDirigeants = seminar?.code === 'S1' || seminar?.id === 's1';
+  const sidebarItems: { key: PortalSection; label: string; icon: string; locked?: boolean; tag?: string }[] = [
+    { key: 'dashboard', label: 'Tableau de bord', icon: '◆' },
+    { key: 'programme', label: 'Mon Programme', icon: '◉', locked: participant.status !== 'confirmed' },
+    { key: 'coaching', label: 'Coaching IA', icon: '⭐', locked: participant.status !== 'confirmed', tag: isDirigeants ? 'Inclus' : undefined },
+    { key: 'community', label: 'Communaute', icon: '◎' },
+    { key: 'discovery', label: 'Decouverte IA', icon: '✦' },
+    { key: 'profile', label: 'Mon Profil', icon: '○' },
   ];
 
+  // ── DASHBOARD RENDER ──
+  const renderDashboard = () => (
+    <div>
+      {/* Welcome header */}
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: NAVY, marginBottom: 4 }}>
+          Bonjour, {participant.prenom} 👋
+        </h1>
+        <p style={{ color: 'rgba(27,42,74,0.55)', fontSize: 15 }}>
+          Bienvenue dans votre espace de formation RMK Conseils.
+        </p>
+      </div>
+
+      {/* Status card */}
+      <div style={{ ...cardBase, padding: 28, marginBottom: 28 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(27,42,74,0.4)', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8 }}>
+              Votre Formation
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: NAVY, marginBottom: 4 }}>
+              {seminar?.code} — {seminar?.title ?? 'Formation RMK'}
+            </div>
+            <div style={{ fontSize: 14, color: 'rgba(27,42,74,0.55)', marginBottom: 12 }}>
+              {seminar?.week}
+            </div>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px',
+              borderRadius: 10, fontSize: 13, fontWeight: 700,
+              background: participant.status === 'confirmed' ? 'rgba(39,174,96,0.1)' : 'rgba(243,156,18,0.1)',
+              color: participant.status === 'confirmed' ? GREEN : '#F39C12',
+              border: `1px solid ${participant.status === 'confirmed' ? 'rgba(39,174,96,0.2)' : 'rgba(243,156,18,0.2)'}`,
+            }}>
+              {participant.status === 'confirmed' ? '✓ INSCRIPTION VALIDEE' : '⏳ ATTENTE PAIEMENT'}
+            </span>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.4)', marginBottom: 4 }}>Investissement</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: NAVY }}>
+              {fmt(Number(participant.amount || EARLY_BIRD_PRICE))} <span style={{ fontSize: 13, color: 'rgba(27,42,74,0.35)' }}>FCFA</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 32 }}>
+        {[
+          { icon: '◉', label: 'Mon Programme', section: 'programme' as const, locked: participant.status !== 'confirmed' },
+          { icon: '⭐', label: 'Coaching IA', section: 'coaching' as const, locked: participant.status !== 'confirmed' },
+          { icon: '◎', label: 'Communaute', section: 'community' as const, locked: false },
+          { icon: '✦', label: 'Decouverte IA', section: 'discovery' as const, locked: false },
+        ].map(item => (
+          <button key={item.section} className="portal-card-3d" onClick={() => !item.locked && setActiveSection(item.section)}
+            style={{
+              ...cardBase,
+              padding: '20px 16px', cursor: item.locked ? 'not-allowed' : 'pointer',
+              textAlign: 'center', border: 'none',
+              opacity: item.locked ? 0.5 : 1,
+            }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>{item.icon}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>{item.label}</div>
+            {item.locked && <div style={{ fontSize: 11, color: 'rgba(27,42,74,0.4)', marginTop: 4 }}>🔒 Après confirmation</div>}
+          </button>
+        ))}
+      </div>
+
+      {/* Explorer d'autres formations */}
+      {seminars.filter(s => s.id !== participant.seminar).length > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'rgba(27,42,74,0.45)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 16 }}>
+            Explorer d'autres formations
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+            {seminars.filter(s => s.id !== participant.seminar).map(s => (
+              <div key={s.id} className="portal-card-3d" style={{ ...cardBase, padding: 20, borderTop: `3px solid ${s.color}` }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: s.color, letterSpacing: 1, marginBottom: 6 }}>{s.code}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: NAVY, marginBottom: 6, lineHeight: 1.4 }}>{s.title}</div>
+                <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.5)' }}>{s.week}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Coaching CTA */}
+      {!isDirigeants && (
+        <div style={{ ...cardBase, padding: 28, background: `linear-gradient(135deg, rgba(27,42,74,0.03), rgba(201,168,76,0.05))`, borderLeft: `4px solid ${GOLD}`, marginBottom: 28 }}>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ width: 52, height: 52, borderRadius: 12, flexShrink: 0, background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`, color: WHITE, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
+              &#9733;
+            </div>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: NAVY, marginBottom: 4 }}>Coaching IA Individuel</div>
+              <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.6)', lineHeight: 1.5, margin: 0 }}>
+                Sessions privees de 2h avec un expert IA. Travaillez sur vos cas d'usage specifiques.
+              </p>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: NAVY }}>{fmt(COACHING_PRICE)}</div>
+              <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.4)' }}>FCFA / 2h</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Attestation */}
+      {participant.status === 'confirmed' && (
+        <button onClick={exportAttestation} style={{ ...cardBase, padding: 20, cursor: 'pointer', textAlign: 'left', width: '100%', border: 'none', borderTop: `3px solid ${GREEN}`, transition: 'box-shadow 0.2s' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: GREEN, letterSpacing: 1, marginBottom: 6 }}>DOCUMENT OFFICIEL</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: NAVY }}>Attestation de Formation</div>
+          <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.4)', marginTop: 4 }}>Telecharger le PDF certifie</div>
+        </button>
+      )}
+    </div>
+  );
+
+  // ── PROFILE RENDER ──
+  const renderProfile = () => (
+    <div>
+      <h1 style={{ fontSize: 28, fontWeight: 800, color: NAVY, marginBottom: 32 }}>Mon Profil</h1>
+      <div style={{ ...cardBase, padding: 32, maxWidth: 560 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 28, paddingBottom: 24, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%',
+            background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
+            color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 800, fontSize: 22,
+          }}>
+            {participant.prenom[0]}{participant.nom[0]}
+          </div>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: NAVY }}>{participant.prenom} {participant.nom}</div>
+            <div style={{ fontSize: 14, color: 'rgba(27,42,74,0.5)' }}>{participant.email}</div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gap: 16 }}>
+          {[
+            { label: 'Societe', value: participant.societe || 'Non renseigne' },
+            { label: 'Fonction', value: participant.fonction || 'Non renseigne' },
+            { label: 'Telephone', value: participant.tel || 'Non renseigne' },
+            { label: 'Formation', value: seminar?.title ?? 'Non renseigne' },
+            { label: 'Statut', value: participant.status === 'confirmed' ? 'Inscription validee' : 'En attente de paiement' },
+            { label: "Inscrit depuis", value: new Date(participant.created_at).toLocaleDateString('fr-FR') },
+          ].map((item, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+              <span style={{ fontSize: 14, color: 'rgba(27,42,74,0.5)', fontWeight: 600 }}>{item.label}</span>
+              <span style={{ fontSize: 14, color: NAVY, fontWeight: 600 }}>{item.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ═══════════════════════════════════════════
+  // PORTAL LAYOUT
+  // ═══════════════════════════════════════════
   return (
-    <div style={{ minHeight: '100vh', background: '#FAF9F6', color: '#1B2A4A', fontFamily: "'DM Sans', sans-serif", display: 'flex' }}>
-      {/* ─── SIDEBAR (Desktop) ─── */}
+    <div style={{ minHeight: '100vh', background: SURFACE, color: NAVY, fontFamily: "'DM Sans', sans-serif", display: 'flex' }}>
+      {/* ─── SIDEBAR (200px) ─── */}
       <aside style={{
-        width: 260, background: '#1B2A4A', borderRight: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex', flexDirection: 'column', padding: '32px 0', flexShrink: 0,
+        width: 200, background: NAVY,
+        display: 'flex', flexDirection: 'column', padding: '28px 0', flexShrink: 0,
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
       }} className="portal-sidebar">
-        <div style={{ padding: '0 24px', marginBottom: 40, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <LogoRMK scale={0.45} variant="dark" />
-          <div style={{ borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: 12 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#FAF9F6', letterSpacing: 1 }}>RMK CONSEILS</div>
-            <div style={{ fontSize: 10, color: '#C9A84C', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Espace Privé</div>
+        <div style={{ padding: '0 16px', marginBottom: 32, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <LogoRMK scale={0.35} variant="dark" />
+          <div style={{ borderLeft: '1px solid rgba(255,255,255,0.12)', paddingLeft: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#FAF9F6', letterSpacing: 1 }}>RMK</div>
+            <div style={{ fontSize: 9, color: GOLD, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>Mon Espace</div>
           </div>
         </div>
 
         <nav style={{ flex: 1 }}>
           {sidebarItems.map(item => (
-            <button key={item.key} onClick={() => !item.locked && setActiveTab(item.key)}
+            <button key={item.key} onClick={() => setActiveSection(item.key)}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 24px',
-                background: activeTab === item.key ? 'rgba(201,168,76,0.15)' : 'transparent',
-                border: 'none', borderLeft: activeTab === item.key ? '4px solid #C9A84C' : '4px solid transparent',
-                color: activeTab === item.key ? '#C9A84C' : 'rgba(250,249,246,0.6)',
-                fontSize: 14, fontWeight: activeTab === item.key ? 700 : 500, cursor: item.locked ? 'not-allowed' : 'pointer', textAlign: 'left', transition: 'all 0.3s',
-                opacity: item.locked ? 0.4 : 1,
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px',
+                background: activeSection === item.key ? 'rgba(201,168,76,0.12)' : 'transparent',
+                border: 'none',
+                borderLeft: activeSection === item.key ? `3px solid ${GOLD}` : '3px solid transparent',
+                color: activeSection === item.key ? GOLD : item.locked ? 'rgba(250,249,246,0.3)' : 'rgba(250,249,246,0.55)',
+                fontSize: 13, fontWeight: activeSection === item.key ? 700 : 500,
+                cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s',
               }}>
-              <span style={{ fontSize: 18 }}>{item.icon}</span>
-              {item.label}
-              {item.locked && <span style={{ fontSize: 10, marginLeft: 'auto' }}>🔒</span>}
+              <span style={{ fontSize: 16, width: 20, textAlign: 'center' }}>{item.icon}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.tag && !item.locked && (
+                <span style={{ fontSize: 9, fontWeight: 800, color: GOLD, background: 'rgba(201,168,76,0.15)', padding: '2px 6px', borderRadius: 4, letterSpacing: 0.5 }}>
+                  {item.tag}
+                </span>
+              )}
+              {item.locked && <span style={{ fontSize: 10, opacity: 0.5 }}>🔒</span>}
             </button>
           ))}
         </nav>
 
-        <div style={{ padding: '0 24px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #C9A84C, #A88A3D)', color: '#1B2A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+        <div style={{ padding: '0 16px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: '50%',
+              background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
+              color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 800, fontSize: 12,
+            }}>
               {participant.prenom[0]}{participant.nom[0]}
             </div>
-            <div>
-              <div style={{ fontSize: 13, color: '#FAF9F6', fontWeight: 600 }}>{participant.prenom} {participant.nom}</div>
-              <div style={{ fontSize: 11, color: 'rgba(250,249,246,0.5)' }}>Client Privé</div>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontSize: 12, color: '#FAF9F6', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                {participant.prenom} {participant.nom}
+              </div>
             </div>
           </div>
           <button onClick={signOut}
-            style={{ width: '100%', marginTop: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#FF7675', fontSize: 13, cursor: 'pointer', padding: '8px 12px', borderRadius: 8, transition: 'all 0.2s' }}>
-            Déconnexion
+            style={{
+              width: '100%', marginTop: 4, background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)', color: '#FF7675',
+              fontSize: 12, cursor: 'pointer', padding: '7px 10px', borderRadius: 8,
+              transition: 'all 0.2s',
+            }}>
+            Deconnexion
           </button>
         </div>
       </aside>
@@ -342,16 +1031,18 @@ export default function ClientPortal() {
       {/* ─── MOBILE TOP BAR ─── */}
       <div className="portal-mobile-bar" style={{
         display: 'none', position: 'fixed', top: 0, left: 0, right: 0, zIndex: 30,
-        background: '#1B2A4A',
+        background: NAVY,
         borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '12px 16px',
         alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <LogoRMK scale={0.35} variant="dark" forceText={true} />
+          <LogoRMK scale={0.3} variant="dark" forceText={true} />
           <span style={{ color: '#FAF9F6', fontWeight: 700, fontSize: 14 }}>Mon Espace</span>
         </div>
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{ background: 'none', border: 'none', color: '#FAF9F6', fontSize: 22, cursor: 'pointer' }}>
-          {mobileMenuOpen ? '✕' : '☰'}
+        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={{
+          background: 'none', border: 'none', color: '#FAF9F6', fontSize: 22, cursor: 'pointer',
+        }}>
+          {mobileMenuOpen ? '\u2715' : '\u2630'}
         </button>
       </div>
 
@@ -359,289 +1050,79 @@ export default function ClientPortal() {
       {mobileMenuOpen && (
         <div className="portal-mobile-dropdown" style={{
           display: 'none', position: 'fixed', top: 52, left: 0, right: 0, zIndex: 29,
-          background: '#1B2A4A', borderBottom: '1px solid rgba(255,255,255,0.1)',
+          background: NAVY, borderBottom: '1px solid rgba(255,255,255,0.1)',
           padding: '8px 0',
         }}>
           {sidebarItems.map(item => (
-            <button key={item.key} onClick={() => !item.locked && (setActiveTab(item.key), setMobileMenuOpen(false))}
+            <button key={item.key} onClick={() => { setActiveSection(item.key); setMobileMenuOpen(false); }}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px',
-                background: activeTab === item.key ? 'rgba(201,168,76,0.1)' : 'transparent',
-                border: 'none', color: activeTab === item.key ? '#C9A84C' : 'rgba(250,249,246,0.6)',
-                fontSize: 15, fontWeight: activeTab === item.key ? 700 : 500, cursor: item.locked ? 'not-allowed' : 'pointer', textAlign: 'left',
-                opacity: item.locked ? 0.4 : 1,
+                background: activeSection === item.key ? 'rgba(201,168,76,0.1)' : 'transparent',
+                border: 'none',
+                color: activeSection === item.key ? GOLD : 'rgba(250,249,246,0.6)',
+                fontSize: 15, fontWeight: activeSection === item.key ? 700 : 500,
+                cursor: 'pointer', textAlign: 'left',
               }}>
-              <span style={{ fontSize: 18 }}>{item.icon}</span>
+              <span style={{ fontSize: 16 }}>{item.icon}</span>
               {item.label}
-              {item.locked && <span style={{ fontSize: 12, marginLeft: 'auto' }}>🔒</span>}
             </button>
           ))}
+          <button onClick={signOut} style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px',
+            background: 'transparent', border: 'none', color: '#FF7675',
+            fontSize: 15, fontWeight: 500, cursor: 'pointer', textAlign: 'left',
+          }}>
+            Deconnexion
+          </button>
         </div>
       )}
 
       {/* ─── MAIN CONTENT ─── */}
-      <main className="portal-main" style={{ flex: 1, marginLeft: 260, padding: '40px 48px', minHeight: '100vh', overflowY: 'auto' }}>
-
-              {/* NOTIFICATION BAREER (DATE CHANGES) */}
-        <div style={{ background: 'rgba(231, 76, 60, 0.1)', border: '1px solid rgba(231, 76, 60, 0.3)', borderRadius: 12, padding: '16px 20px', marginBottom: 32, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 24 }}>📅</span>
+      <main className="portal-main" style={{
+        flex: 1, marginLeft: 200, padding: '36px 40px', minHeight: '100vh', overflowY: 'auto',
+      }}>
+        {/* Header bar */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: 32, paddingBottom: 20, borderBottom: '1px solid rgba(0,0,0,0.06)',
+        }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#E74C3C' }}>ALERTE DE CALENDRIER</div>
-            <div style={{ fontSize: 13, color: '#1B2A4A' }}>Attention : Veuillez vérifier les dates de vos sessions dans l'onglet 'Programme' suite à de récentes mises à jour.</div>
+            <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 2 }}>
+              {sidebarItems.find(i => i.key === activeSection)?.label}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 13, color: 'rgba(27,42,74,0.5)', textAlign: 'right' }}>
+              <span style={{ fontWeight: 600, color: NAVY }}>{participant.prenom} {participant.nom}</span>
+            </div>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})`,
+              color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 800, fontSize: 13,
+            }}>
+              {participant.prenom[0]}{participant.nom[0]}
+            </div>
           </div>
         </div>
 
-        {/* ─── TAB: OVERVIEW ─── */}
-        {activeTab === 'overview' && (
+        {/* Sections */}
+        {activeSection === 'dashboard' && renderDashboard()}
+        {activeSection === 'programme' && <PortalProgramme participant={participant} seminar={seminar} openModule={openModule} setOpenModule={setOpenModule} />}
+        {activeSection === 'coaching' && <PortalCoaching participant={participant} seminar={seminar} coachingForm={coachingForm} setCoachingForm={setCoachingForm} coachingResult={coachingResult} setCoachingResult={setCoachingResult} coachingLoading={coachingLoading} setCoachingLoading={setCoachingLoading} coachingSubmitted={coachingSubmitted} setCoachingSubmitted={setCoachingSubmitted} />}
+        {activeSection === 'community' && <PortalCommunity participant={participant} communityPosts={communityPosts} setCommunityPosts={setCommunityPosts} newPostText={newPostText} setNewPostText={setNewPostText} communityFilter={communityFilter} setCommunityFilter={setCommunityFilter} seminars={seminars} />}
+        {activeSection === 'discovery' && (
           <div>
-            <div style={{ marginBottom: 40 }}>
-              <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8, color: '#1B2A4A' }}>
-                Heureux de vous revoir, <span style={{ color: '#C9A84C' }}>{participant.prenom}</span>
-              </h1>
-              <p style={{ color: 'rgba(27,42,74,0.6)', fontSize: 16 }}>Accédez à votre espace de formation RMK Conseils.</p>
-            </div>
-
-            {/* Status Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24, marginBottom: 40 }}>
-              <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, padding: '32px 24px' }}>
-                <div style={{ fontSize: 12, color: '#C9A84C', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, marginBottom: 12 }}>Votre Session</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: '#1B2A4A', lineHeight: 1.3 }}>{seminar?.icon} {seminar?.title}</div>
-                <div style={{ fontSize: 14, color: 'rgba(27,42,74,0.5)', marginTop: 8 }}>📅 {seminar?.week}</div>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, padding: '32px 24px' }}>
-                <div style={{ fontSize: 12, color: '#C9A84C', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, marginBottom: 12 }}>État de l'inscription</div>
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 12, fontSize: 14, fontWeight: 700,
-                  background: participant.status === 'confirmed' ? 'rgba(39,174,96,0.1)' : 'rgba(243,156,18,0.1)',
-                  color: participant.status === 'confirmed' ? '#27AE60' : '#F39C12',
-                  border: `1px solid ${participant.status === 'confirmed' ? 'rgba(39,174,96,0.2)' : 'rgba(243,156,18,0.2)'}`
-                }}>
-                  {participant.status === 'confirmed' ? '✅ INSCRIPTION VALIDÉE' : '⏳ ATTENTE PAIEMENT'}
-                </div>
-                <div style={{ fontSize: 13, color: 'rgba(27,42,74,0.5)', marginTop: 12 }}>
-                  {participant.status === 'confirmed' ? 'Tout est prêt pour votre accueil.' : 'Place réservée (temporaire).'}
-                </div>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, padding: '32px 24px' }}>
-                <div style={{ fontSize: 12, color: '#C9A84C', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, marginBottom: 12 }}>Investissement</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#1B2A4A' }}>{Number(participant.amount || 540000).toLocaleString('fr-FR')} <span style={{ fontSize: 16, color: 'rgba(27,42,74,0.4)' }}>FCFA</span></div>
-                <div style={{ fontSize: 13, color: 'rgba(27,42,74,0.5)', marginTop: 10 }}>Paiement via Wave/Orange/Virement</div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
-              <button onClick={() => setActiveTab('syllabus')} style={{
-                padding: '24px', borderRadius: 20, border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(0,0,0,0.04)',
-                color: '#1B2A4A', fontSize: 15, fontWeight: 700, cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s',
-              }} onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.06)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}>
-                <div style={{ fontSize: 32, marginBottom: 16 }}>🗓️</div>
-                Consulter le Programme
-                <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.5)', marginTop: 8, fontWeight: 400 }}>Détail des 5 jours de formation</div>
-              </button>
-              <button onClick={() => setActiveTab('payment')} style={{
-                padding: '24px', borderRadius: 20, border: '1px solid rgba(201,168,76,0.3)', background: 'rgba(201,168,76,0.1)',
-                color: '#A88A3D', fontSize: 15, fontWeight: 700, cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s',
-              }}>
-                <div style={{ fontSize: 32, marginBottom: 16 }}>💳</div>
-                Finaliser mon Paiement
-                <div style={{ fontSize: 12, color: 'rgba(201,168,76,0.6)', marginTop: 8, fontWeight: 400 }}>Wave, Orange Money, Virement</div>
-              </button>
-              <button onClick={() => participant.status === 'confirmed' ? setActiveTab('community') : setActiveTab('payment')} style={{
-                padding: '24px', borderRadius: 20, border: '1px solid rgba(37,99,235,0.2)', background: 'rgba(37,99,235,0.05)',
-                color: '#2563EB', fontSize: 15, fontWeight: 700, cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s',
-                opacity: participant.status === 'confirmed' ? 1 : 0.6
-              }}>
-                <div style={{ fontSize: 32, marginBottom: 16 }}>🤝</div>
-                Espace Communauté
-                <div style={{ fontSize: 12, color: 'rgba(37,99,235,0.5)', marginTop: 8, fontWeight: 400 }}>Networking & Entraide</div>
-              </button>
-              <button onClick={() => setActiveTab('documents')} style={{
-                padding: '24px', borderRadius: 20, border: '1px solid rgba(39,174,96,0.2)', background: 'rgba(39,174,96,0.05)',
-                color: '#27AE60', fontSize: 15, fontWeight: 700, cursor: 'pointer', textAlign: 'left', transition: 'all 0.3s',
-              }}>
-                <div style={{ fontSize: 32, marginBottom: 16 }}>📄</div>
-                Mes Documents
-                <div style={{ fontSize: 12, color: 'rgba(39,174,96,0.5)', marginTop: 8, fontWeight: 400 }}>Attestation & Invitations</div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ─── TAB: SYLLABUS ─── */}
-        {activeTab === 'syllabus' && (
-          <div>
-            <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: '#1B2A4A' }}>📅 Programme du Séminaire</h1>
-            <p style={{ color: '#C9A84C', fontSize: 16, marginBottom: 40, fontWeight: 600 }}>
-              {seminar?.icon} {seminar?.title} — {seminar?.week}
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: NAVY, marginBottom: 8 }}>Decouverte IA</h1>
+            <p style={{ color: 'rgba(27,42,74,0.55)', fontSize: 15, marginBottom: 32 }}>
+              Identifiez la formation ideale pour vos besoins.
             </p>
-
-            <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 24, padding: 32, marginBottom: 32 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: '#A88A3D', marginTop: 0, marginBottom: 16 }}>🎯 Objectifs du programme</h3>
-              <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(27,42,74,0.7)', fontSize: 15, lineHeight: 2 }}>
-                <li>Comprendre les transformations économiques provoquées par l'IA</li>
-                <li>Développer la capacité à utiliser l'IA comme outil d'aide à la décision</li>
-                <li>Maîtriser les techniques de prompting pour des résultats fiables</li>
-                <li>Identifier les opportunités d'intégration de l'IA</li>
-                <li>Renforcer la capacité stratégique face aux technologies</li>
-              </ul>
-            </div>
-
-            {/* Axes content ... keeping original logic but updating styles */}
-            {(() => {
-              const isUnlocked = participant.status === 'confirmed';
-              const axes = [
-                { title: "IA et transformation du leadership", icon: "🏛️", color: "#C9A84C", points: ["Comprendre les transformations économiques liées à l'IA", "Le rôle du dirigeant dans l'économie algorithmique", "Les opportunités et limites de l'IA générative", "L'IA comme levier de transformation"] },
-                { title: "Prompt engineering stratégique", icon: "⚡", color: "#C9A84C", points: ["Structure d'un prompt professionnel efficace", "Techniques avancées pour dialoguer avec l'IA", "Construction de prompts pour l'analyse stratégique"] },
-                { title: "IA et décision augmentée", icon: "📊", color: "#2563EB", points: ["Analyse stratégique assistée par l'IA", "Simulation de scénarios de décision", "Analyse de données et synthèses exécutives"] },
-                { title: "Gouvernance et responsabilité", icon: "🛡️", color: "#27AE60", points: ["Confidentialité et protection des données", "Risques liés aux biais algorithmiques", "Responsabilité managériale"] },
-              ];
-
-              return (
-                <div style={{ display: 'grid', gap: 20, marginBottom: 40 }}>
-                  {axes.map((axe, i) => (
-                    <div key={i} style={{
-                      background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)',
-                      borderRadius: 18, padding: 24, borderLeft: `4px solid ${axe.color}`,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: isUnlocked ? 16 : 0 }}>
-                        <span style={{ fontSize: 24 }}>{axe.icon}</span>
-                        <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1B2A4A', margin: 0 }}>Axe {i + 1} — {axe.title}</h3>
-                      </div>
-                      {isUnlocked ? (
-                        <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(27,42,74,0.6)', fontSize: 14, lineHeight: 1.8 }}>
-                          {axe.points.map((p, j) => <li key={j}>{p}</li>)}
-                        </ul>
-                      ) : (
-                        <div style={{ marginTop: 8, color: 'rgba(27,42,74,0.3)', fontSize: 13, fontStyle: 'italic' }}>
-                          Contenu détaillé réservé aux participants confirmés 🔒
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* ─── TAB: PAYMENT ─── */}
-        {activeTab === 'payment' && (
-          <div>
-            <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: '#1B2A4A' }}>💳 Règlement</h1>
-            <p style={{ color: 'rgba(27,42,74,0.6)', fontSize: 16, marginBottom: 40 }}>Finalisez votre inscription sécurisée.</p>
-
-            <div style={{ background: 'linear-gradient(135deg, rgba(201,168,76,0.1), rgba(201,168,76,0.05))', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 24, padding: 40, textAlign: 'center', marginBottom: 32 }}>
-              <div style={{ fontSize: 13, color: '#A88A3D', textTransform: 'uppercase', letterSpacing: 3, fontWeight: 700, marginBottom: 12 }}>Montant Net à Régler</div>
-              <div style={{ fontSize: 48, fontWeight: 800, color: '#1B2A4A' }}>{Number(participant.amount || 540000).toLocaleString('fr-FR')} <span style={{ fontSize: 20, color: 'rgba(27,42,74,0.3)' }}>FCFA</span></div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-              <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, padding: 28 }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#C9A84C', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>📱 Mobile Money</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ padding: '16px', background: 'rgba(0,0,0,0.03)', borderRadius: 12, border: '1px solid rgba(0,0,0,0.06)' }}>
-                    <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.4)', marginBottom: 4 }}>WAVE / ORANGE</div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: '#1B2A4A' }}>+225 07 02 61 15 82</div>
-                  </div>
-                  <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.5)', lineHeight: 1.5 }}>Envoyez votre reçu via WhatsApp au même numéro (+225 07 02 61 15 82) pour une validation rapide.</p>
-                </div>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, padding: 28 }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#C9A84C', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>🏦 Virement Bancaire</div>
-                <p style={{ fontSize: 14, color: 'rgba(27,42,74,0.7)', lineHeight: 1.6 }}>Contactez-nous pour recevoir le RIB de **RMK Conseils** et une facture proforma définitive.</p>
-                <button style={{ marginTop: 12, padding: '12px 20px', borderRadius: 10, background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', color: '#1B2A4A', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Demander un RIB</button>
-              </div>
+            <div style={cardBase}>
+              <PortalSurvey surveyStarted={surveyStarted} setSurveyStarted={setSurveyStarted} surveyComplete={surveyComplete} setSurveyComplete={setSurveyComplete} surveyStep={surveyStep} setSurveyStep={setSurveyStep} surveyAnswers={surveyAnswers} setSurveyAnswers={setSurveyAnswers} showEncouragement={showEncouragement} setShowEncouragement={setShowEncouragement} setActiveSection={setActiveSection} />
             </div>
           </div>
         )}
-
-        {/* ─── TAB: COMMUNITY ─── */}
-        {activeTab === 'community' && (
-          <div>
-            <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: '#1B2A4A' }}>🤝 Communauté RMK</h1>
-            <p style={{ color: '#C9A84C', fontSize: 16, marginBottom: 40, fontWeight: 600 }}>Espace exclusif de networking pour la cohorte Mai 2026.</p>
-
-            <div style={{ background: '#1B2A4A', border: '1px solid #C9A84C', borderRadius: 24, padding: 48, textAlign: 'center', marginBottom: 40, boxShadow: '0 20px 40px rgba(27,42,74,0.15)' }}>
-              <div style={{ fontSize: 56, marginBottom: 24 }}>🚀</div>
-              <h2 style={{ fontSize: 28, fontWeight: 700, color: '#FAF9F6', marginBottom: 16 }}>Bienvenue dans l'Élite de l'IA</h2>
-              <p style={{ fontSize: 17, color: 'rgba(250,249,246,0.7)', maxWidth: 650, margin: '0 auto 36px', lineHeight: 1.8 }}>
-                Félicitations, <strong style={{ color: '#C9A84C' }}>{participant.prenom}</strong> ! Vous faites maintenant partie d'un réseau exclusif de dirigeants ivoiriens tournés vers l'avenir. 
-                Échangez, partagez vos défis et collaborez avant même la session présentielle.
-              </p>
-              <button onClick={() => window.open('https://chat.whatsapp.com/ExempleLink', '_blank')} 
-                style={{ padding: '20px 40px', borderRadius: 14, background: '#25D366', color: '#FFFFFF', border: 'none', fontSize: 17, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 12, boxShadow: '0 10px 30px rgba(37,211,102,0.3)', transition: 'all 0.3s' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                Rejoindre le groupe WhatsApp RMK
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-              <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, padding: 28 }}>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1B2A4A', marginBottom: 16 }}>👥 Vos Pairs (Cohorte)</h3>
-                <div style={{ display: 'grid', gap: 12 }}>
-                  {[
-                    { name: "Jean-Baptiste K.", role: "DG, Banque d'Affaires", avatar: "👤" },
-                    { name: "Mariam T.", role: "Dir. Marketing, Telecom", avatar: "👩‍💼" },
-                    { name: "Assane O.", role: "Fondateur, Tech Start-up", avatar: "👨‍💻" }
-                  ].map((pair, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'rgba(0,0,0,0.03)', borderRadius: 10 }}>
-                      <span style={{ fontSize: 20 }}>{pair.avatar}</span>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#1B2A4A' }}>{pair.name}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(27,42,74,0.5)' }}>{pair.role}</div>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{ color: 'rgba(27,42,74,0.3)', fontSize: 12, fontStyle: 'italic', marginTop: 8 }}>
-                    + 12 autres dirigeants inscrits...
-                  </div>
-                </div>
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 20, padding: 28 }}>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1B2A4A', marginBottom: 16 }}>📖 Ressources Partagées</h3>
-                <div style={{ display: 'grid', gap: 16 }}>
-                  {[
-                    { title: "Étude : L'impact de l'IA sur le CAC 40", type: "PDF", color: "#E74C3C" },
-                    { title: "Dashboard Stratégique (Template)", type: "XLSX", color: "#27AE60" }
-                  ].map((res, idx) => (
-                    <div key={idx} style={{ padding: '12px 16px', border: '1px solid rgba(0,0,0,0.05)', borderRadius: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: 14, color: 'rgba(27,42,74,0.8)' }}>{res.title}</div>
-                      <span style={{ fontSize: 10, background: res.color, color: "#FFF", padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>{res.type}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ─── TAB: DOCUMENTS ─── */}
-        {activeTab === 'documents' && (
-          <div>
-            <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 12, color: '#1B2A4A' }}>📄 Centre de Documents</h1>
-            <p style={{ color: 'rgba(27,42,74,0.6)', fontSize: 16, marginBottom: 40 }}>Téléchargez vos pièces justificatives et attestations.</p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-              <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 24, padding: 32 }}>
-                <div style={{ fontSize: 40, marginBottom: 20 }}>🎓</div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1B2A4A', marginBottom: 12 }}>Attestation Officielle</h3>
-                <p style={{ fontSize: 14, color: 'rgba(27,42,74,0.6)', lineHeight: 1.6, marginBottom: 24 }}>Document certifiant votre réussite au programme IA Stratégique.</p>
-                {participant.status === 'confirmed' ? (
-                  <button onClick={exportAttestation} style={{ width: '100%', padding: '14px', borderRadius: 12, background: '#27AE60', color: '#FFF', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Télécharger PDF</button>
-                ) : (
-                  <div style={{ padding: '14px', borderRadius: 12, background: 'rgba(0,0,0,0.05)', color: 'rgba(27,42,74,0.4)', textAlign: 'center', fontSize: 13 }}>🔒 Après validation du paiement</div>
-                )}
-              </div>
-              <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 24, padding: 32 }}>
-                <div style={{ fontSize: 40, marginBottom: 20 }}>🧾</div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1B2A4A', marginBottom: 12 }}>Facture / Quittance</h3>
-                <p style={{ fontSize: 14, color: 'rgba(27,42,74,0.6)', lineHeight: 1.6, marginBottom: 24 }}>Justificatif de paiement pour votre comptabilité entreprise.</p>
-                <div style={{ padding: '14px', borderRadius: 12, background: 'rgba(0,0,0,0.05)', color: 'rgba(27,42,74,0.4)', textAlign: 'center', fontSize: 13 }}>Généré automatiquement sous 48h</div>
-              </div>
-            </div>
-          </div>
-        )}
+        {activeSection === 'profile' && renderProfile()}
       </main>
 
       {/* ─── RESPONSIVE CSS ─── */}
@@ -652,7 +1133,11 @@ export default function ClientPortal() {
           .portal-mobile-dropdown { display: block !important; }
           .portal-main { margin-left: 0 !important; padding: 72px 16px 24px !important; }
         }
+        .portal-card-3d { transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.16,1,0.3,1), box-shadow 0.5s cubic-bezier(0.16,1,0.3,1); }
+        .portal-card-3d:hover { transform: perspective(500px) rotateY(4deg) rotateX(-3deg) translateZ(14px) scale(1.03); box-shadow: 0 28px 56px rgba(27,42,74,0.15), 0 12px 24px rgba(0,0,0,0.1), 0 0 0 1px rgba(201,168,76,0.2); }
+        @media (prefers-reduced-motion: reduce) { .portal-card-3d:hover { transform: none; } }
       `}</style>
+      <ChatWidget mode="client" />
     </div>
   );
 }
