@@ -14,7 +14,7 @@
 import { SEMINARS } from "../src/data/seminars.js";
 import { COMMERCIAL_STRATEGY } from "../src/lib/strategy.js";
 
-export type TemplateId = "seo" | "commercial" | "research";
+export type TemplateId = "seo" | "commercial" | "research" | "chat" | "prospection";
 
 // Escape XML metacharacters to prevent tag-closing prompt-injection inside templated values.
 function esc(str: string): string {
@@ -22,6 +22,21 @@ function esc(str: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+// Strip all control characters including newlines. This blocks multi-line
+// system-prompt injection via user-supplied fields (e.g. userName =
+// "Eric\n\nIGNORE ALL PREVIOUS INSTRUCTIONS"). Combine with esc() when
+// interpolating into a template body.
+//
+// Also strips Unicode line/paragraph separators (U+2028, U+2029) that some
+// LLMs treat as newlines — caught by a second Gemini security scan.
+function stripCtrl(str: string): string {
+  return String(str).replace(/[\x00-\x1F\x7F\u2028\u2029]/g, " ");
+}
+
+function safe(str: string): string {
+  return esc(stripCtrl(str));
 }
 
 export interface CommercialVars {
@@ -33,7 +48,29 @@ export interface CommercialVars {
   stats?: { total: number; confirmed: number };
 }
 
-export type RenderVars = CommercialVars | Record<string, never> | undefined;
+export interface ChatVars {
+  // The public /api/ai/chat endpoint (the only caller today) locks mode to
+  // "client". If we ever add an authed admin chat, it should get its own
+  // templateId/route rather than unlocking this literal.
+  mode: "client";
+  seminars: Array<{
+    id: string;
+    code: string;
+    title: string;
+    week: string;
+  }>;
+  /** Ignored in client mode; reserved for a future authed admin chat. */
+  userName?: string;
+}
+
+export interface ProspectionVars {
+  sector: string;
+  zone: string;
+  need: string;
+  seminarsContext?: Array<{ code: string; title: string; week: string }>;
+}
+
+export type RenderVars = CommercialVars | ChatVars | ProspectionVars | Record<string, never> | undefined;
 
 /**
  * Render a system prompt from a template id + vars. Throws if the id is
@@ -59,6 +96,28 @@ Pour chaque recherche, fournis:
 6. Conditions et inclusions typiques
 
 Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les prix réels du marché local. Monnaie: FCFA (XOF).`;
+
+    case "chat": {
+      const cv = vars as ChatVars | undefined;
+      if (cv?.mode !== "client") {
+        throw new Error("chat template requires vars.mode === 'client'");
+      }
+      // Server-side prompt rendering — mirrors upstream's buildSystemPrompt
+      // (previously client-side in ChatWidget.tsx) but keeps the system prompt
+      // fully server-controlled. Client never supplies raw prompt text.
+      //
+      // SECURITY: all interpolated values go through safe() which first strips
+      // control characters (including newlines) and then XML-escapes. Without
+      // stripCtrl, a client could inject `userName: "X\n\nSYSTEM: ignore all
+      // previous instructions"` and hijack the prompt. Flagged by Gemini
+      // security scan during Phase 1 review.
+      const seminarList = (cv.seminars || [])
+        .slice(0, 10) // defense-in-depth cap (Zod schema also caps this)
+        .map((s) => `- ${safe(s.code)} "${safe(s.title)}" (${safe(s.week)})`)
+        .join("\n");
+      return `Tu es l'assistant virtuel de RMK Conseils. Tu aides les prospects et clients à comprendre nos formations IA (séminaires S1-S4), les tarifs, les dates, et le processus d'inscription. Réponds en français, de façon professionnelle et chaleureuse. Voici les séminaires disponibles:
+${seminarList}`;
+    }
 
     case "commercial": {
       const cv = vars as CommercialVars | undefined;
@@ -102,6 +161,70 @@ Réponds en français. Fournis un plan de prospection journalier avec:
 7. Canaux de contact recommandés par cible`;
     }
 
+    case "prospection": {
+      const pv = vars as ProspectionVars | undefined;
+      // SECURITY: safe() strips control characters (including newlines that could
+      // break prompt structure) and XML-escapes quotes/brackets — same hardening
+      // as the chat template. .slice() alone only bounds length, not injection.
+      const sector = typeof pv?.sector === "string" ? safe(pv.sector.slice(0, 200)) : "";
+      const zone = typeof pv?.zone === "string" ? safe(pv.zone.slice(0, 200)) : "";
+      const need = typeof pv?.need === "string" ? safe(pv.need.slice(0, 500)) : "";
+      if (!sector || !zone || !need) {
+        throw new Error(
+          "prospection template requires vars.sector, vars.zone, vars.need"
+        );
+      }
+
+      // Optional seminars catalog projection — grounds the LLM in what RMK
+      // actually sells. Accepts { code, title, week }[]; silently drops
+      // anything that doesn't match the shape. Cap at 20 entries so the
+      // prompt stays tight even if a caller forgets to slice.
+      type SeminarCtx = { code: string; title: string; week: string };
+      const rawCtx = Array.isArray(pv?.seminarsContext) ? pv.seminarsContext : [];
+      const seminarsCtx: SeminarCtx[] = rawCtx
+        .filter(
+          (s: unknown): s is SeminarCtx =>
+            !!s &&
+            typeof (s as SeminarCtx).code === "string" &&
+            typeof (s as SeminarCtx).title === "string" &&
+            typeof (s as SeminarCtx).week === "string"
+        )
+        .slice(0, 20);
+
+      // SECURITY: every field goes through safe() (stripCtrl + XML escape),
+      // matching the discipline applied to sector/zone/need above. Without
+      // this, a caller with control of seminarsContext could inject newlines
+      // or XML metachars via title/week and break out of the template body.
+      // Admin-only surface (requireAdmin gates /api/ai/generate), low blast
+      // radius, but the consistency avoids a future mistake.
+      const catalogBlock =
+        seminarsCtx.length > 0
+          ? `\n\nCatalogue RMK (ce que tu dois vendre — utilise ces titres mot-pour-mot dans tes messages d'approche) :\n${seminarsCtx
+              .map((s) => `- [${safe(s.code)}] ${safe(s.title)} (${safe(s.week)})`)
+              .join("\n")}`
+          : "";
+
+      return `Tu es un analyste commercial B2B pour RMK Conseils (Abidjan). Ta mission : identifier des prospects ENTREPRISES réels pour nos séminaires de formation IA.
+
+Contexte : sector="${sector}" | zone="${zone}" | besoin="${need}"${catalogBlock}
+
+Retourne UNIQUEMENT un tableau JSON (rien d'autre — pas de markdown, pas de commentaire), format strict :
+
+[
+  {
+    "nom": "Nom réel de l'entreprise",
+    "secteur": "Sous-secteur précis",
+    "taille": "TPE / PME / Grande",
+    "besoin": "Besoin identifié en IA (1-2 phrases)",
+    "decideur": "Titre du profil décideur à contacter",
+    "score": "Elevee / Moyenne / Faible",
+    "message": "Message d'approche personnalisé (2-3 phrases, cite le séminaire RMK le plus pertinent si catalogue fourni)"
+  }
+]
+
+Fournis entre 8 et 12 prospects. Utilise des entreprises RÉELLES du contexte. Réponds en français.`;
+    }
+
     default: {
       // Exhaustiveness check
       const _never: never = templateId;
@@ -114,4 +237,6 @@ export const PROMPT_TEMPLATES: readonly TemplateId[] = [
   "seo",
   "commercial",
   "research",
+  "chat",
+  "prospection",
 ] as const;

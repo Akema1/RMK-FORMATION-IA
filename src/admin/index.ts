@@ -8,10 +8,15 @@ export { InscriptionsPage } from './InscriptionsPage';
 export { FinancePage } from './FinancePage';
 export { LeadsPage } from './LeadsPage';
 export { TasksPage } from './TasksPage';
-export { PricesPage } from './PricesPage';
 export { AgentPage } from './AgentPage';
 export { ResearchPage } from './ResearchPage';
 export { FormationTrackingPage } from './FormationTrackingPage';
+export { AgentHub } from './AgentHub';
+export { BrochurePage } from './BrochurePage';
+export { CertificatePage } from './CertificatePage';
+export { ContentStudio } from './ContentStudio';
+export { InvitationPage } from './InvitationPage';
+export { WebProspectionPage } from './WebProspectionPage';
 export { callAI } from './callAI';
 export type { TemplateId, CallAIOptions, CallAIResult } from './callAI';
 

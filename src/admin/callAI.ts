@@ -14,7 +14,7 @@
  */
 import { supabase } from '../lib/supabaseClient';
 
-export type TemplateId = 'seo' | 'commercial' | 'research';
+export type TemplateId = 'seo' | 'commercial' | 'research' | 'prospection';
 
 export interface CallAIOptions {
   /** Free-form user prompt (max 5000 chars server-side). */

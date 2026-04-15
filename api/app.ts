@@ -93,6 +93,65 @@ const aiGenerateSchema = z.object({
     text: z.string().max(5000).optional(),
     parts: z.array(z.any()).optional(),
   })).max(20).optional(),
+})
+.refine(
+  (v) => {
+    if (v.templateId !== "prospection") return true;
+    const vars = v.vars ?? {};
+    return (
+      typeof vars.sector === "string" &&
+      typeof vars.zone === "string" &&
+      typeof vars.need === "string" &&
+      (vars.sector as string).length > 0 &&
+      (vars.zone as string).length > 0 &&
+      (vars.need as string).length > 0
+    );
+  },
+  { message: "prospection template requires vars.sector, vars.zone, vars.need", path: ["vars"] }
+)
+.refine(
+  (v) => {
+    if (v.templateId !== "prospection") return true;
+    const ctx = v.vars?.seminarsContext;
+    if (ctx === undefined) return true;
+    if (!Array.isArray(ctx)) return false;
+    return ctx.every(
+      (s) =>
+        s &&
+        typeof s === "object" &&
+        typeof (s as Record<string, unknown>).code === "string" &&
+        typeof (s as Record<string, unknown>).title === "string" &&
+        typeof (s as Record<string, unknown>).week === "string"
+    );
+  },
+  { message: "prospection seminarsContext must be Array<{code,title,week}>", path: ["vars", "seminarsContext"] }
+);
+
+// Public chat endpoint — stricter schema than aiGenerateSchema:
+// - templateId locked to "chat" (can't jailbreak into commercial/seo/research)
+// - mode locked to "client" (unauthenticated callers cannot request the admin
+//   persona — see Gemini security scan finding #2 during Phase 1 review)
+// - messages: role is a strict enum, 20 entry cap, 5000 chars each
+// - parts: strict object shape with bounded text (prevents DoS via z.any())
+const aiChatSchema = z.object({
+  templateId: z.literal("chat"),
+  vars: z.object({
+    mode: z.literal("client"),
+    seminars: z.array(z.object({
+      id: z.string().max(100),
+      code: z.string().max(20),
+      title: z.string().max(200),
+      week: z.string().max(100),
+    })).max(10),
+    userName: z.string().max(100).optional(),
+  }),
+  messages: z.array(z.object({
+    role: z.enum(["user", "assistant", "model"]),
+    text: z.string().max(5000).optional(),
+    parts: z.array(z.object({
+      text: z.string().max(5000),
+    })).max(10).optional(),
+  })).min(1).max(20),
 });
 
 const leadCaptureSchema = z.object({
@@ -101,6 +160,14 @@ const leadCaptureSchema = z.object({
   source: z.string().min(1).max(100),
   entreprise: z.string().max(200).optional(),
   notes: z.string().max(500).optional(),
+});
+
+// Community post body schema. ONLY text comes from the client. The endpoint
+// derives author, initials, participant_id, AND seminar_tag server-side from
+// the authenticated caller's participants row — never trust the client for
+// identity fields OR for which feed the post belongs to.
+const communityPostSchema = z.object({
+  text: z.string().min(1).max(2000),
 });
 
 const webhookProspectSchema = z.object({
@@ -199,6 +266,22 @@ export function createApp(opts: CreateAppOptions): express.Express {
     windowMs: 60 * 1000,
     max: 5,
     message: { error: "Too many lead submissions. Try again in a minute." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Community posts: strict rate limit. Phase 3 anti-spam.
+  // Lower than leadLimiter (5/min) because a single confirmed participant
+  // should never need to post more than ~2 messages per minute.
+  //
+  // NOTE: express-rate-limit uses an in-memory store by default. On Vercel
+  // Fluid Compute this is per-instance, not shared across concurrent instances.
+  // A Redis-backed store is a cross-cutting follow-up (also affects leadLimiter,
+  // notifyLimiter, etc). Tracked as a separate commit.
+  const communityLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 3,
+    message: { error: "Too many community posts. Try again in a minute." },
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -490,6 +573,131 @@ export function createApp(opts: CreateAppOptions): express.Express {
     }
   });
 
+  // ── Community post (Phase 3: client portal feed) ─────────────────────────
+  // Authenticated participant submits a post to the community feed. The
+  // endpoint verifies the caller's session, looks up their participants row,
+  // derives author/initials/participant_id/seminar_tag server-side from THAT
+  // row (never from the client body), and inserts via the service role.
+  //
+  // Security invariants enforced here:
+  // 1. requireAuth upstream ensures a valid Supabase session
+  // 2. maybeSingle() lookup prevents PGRST116 from masking a 403 as a 500
+  // 3. Only confirmed participants can post (mirrors the UI tab lock)
+  // 4. ALL identity fields (author, initials, participant_id) come from the
+  //    DB row, not the request body
+  // 5. The seminar_tag is derived from SEMINARS.find(s => s.id === p.seminar)
+  //    so a participant cannot cross-post into another seminar's feed
+  // 6. sanitizeText strips control characters before storage
+  app.post(
+    "/api/community/post",
+    communityLimiter,
+    requireAuth,
+    async (req, res) => {
+      if (!supabaseAdmin) {
+        return res.status(503).json({ error: "Database not configured" });
+      }
+
+      const parsed = communityPostSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid input",
+          details: parsed.error.issues.map((i) => i.message),
+        });
+      }
+      const { text } = parsed.data;
+
+      // requireAuth has already verified the session and set userEmail.
+      const email = (req as any).userEmail as string | null;
+      if (!email) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Look up the participant row by email. Multi-seminar registration is
+      // supported (one email can register for S1, S2, etc.), so participants
+      // has no unique constraint on email. Query for all confirmed rows and
+      // pick the most recent one — the user posts into whichever seminar
+      // they most recently registered for. A dedicated "post into which
+      // seminar" selector is tracked as a follow-up (see TODOS.md).
+      //
+      // Using .limit(1) + array index instead of .maybeSingle() is what
+      // prevents PGRST116 when the same email has multiple confirmed rows.
+      const { data: participants, error: lookupErr } = await supabaseAdmin
+        .from("participants")
+        .select("id, nom, prenom, email, seminar, status")
+        .eq("email", email.toLowerCase().trim())
+        .eq("status", "confirmed")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (lookupErr) {
+        console.error("Participant lookup failed:", lookupErr);
+        return res.status(500).json({ error: "Participant lookup failed" });
+      }
+      const participant = participants?.[0] ?? null;
+      if (!participant) {
+        // Unified 403 for both "no registration" and "not confirmed" — the
+        // previous split leaked information about whether an email was
+        // registered. Both are access denials from the caller's perspective.
+        return res.status(403).json({
+          error: "Community access requires a confirmed registration",
+        });
+      }
+
+      // Derive every identity + scope field from the DB row.
+      const safeText = sanitizeText(text, 2000);
+      // Zod's .min(1) runs on the raw text, but sanitizeText strips control
+      // characters — a payload of 2000 control chars would pass validation
+      // and then collapse to an empty string. Re-check after sanitizing.
+      if (!safeText) {
+        return res.status(400).json({
+          error: "Text cannot be empty after sanitization",
+        });
+      }
+      const author = `${participant.prenom} ${participant.nom}`.trim();
+      const initials = `${(participant.prenom || "?")[0] ?? "?"}${
+        (participant.nom || "?")[0] ?? "?"
+      }`.toUpperCase();
+
+      // Server-side seminar_tag derivation: the participant can only post in
+      // their own seminar's feed. Fall back to "Tous" if the participant row
+      // references a seminar id that no longer exists in the SEMINARS list.
+      const participantSeminar = SEMINARS.find(
+        (s) => s.id === participant.seminar
+      );
+      const seminar_tag = participantSeminar?.code ?? "Tous";
+
+      // crypto.randomUUID() is collision-resistant and matches the id pattern
+      // already used by SeminarsManagement.tsx:180. Avoid Math.random() here:
+      // non-cryptographic, theoretically collision-prone, contradicts the
+      // otherwise tight security posture of this endpoint.
+      const id = `post-${crypto.randomUUID()}`;
+      const date = new Date().toISOString().split("T")[0];
+
+      const row = {
+        id,
+        author,
+        initials,
+        date,
+        text: safeText,
+        seminar_tag,
+        participant_id: participant.id,
+      };
+
+      try {
+        const { error: insertErr } = await supabaseAdmin
+          .from("community_posts")
+          .insert([row]);
+        if (insertErr) throw insertErr;
+        // Return only public-facing fields — never expose participant_id (internal FK)
+        const { participant_id: _omit, ...publicRow } = row;
+        return res.status(201).json({ post: publicRow });
+      } catch (err) {
+        console.error("Community post insert failed:", err);
+        return res.status(500).json({ error: "Failed to save post" });
+      }
+    }
+  );
+
   // ── AI generation (admin only) ────────────────────────────────────────────
   app.post("/api/ai/generate", aiLimiter, requireAuth, requireAdmin, async (req, res) => {
     try {
@@ -548,6 +756,61 @@ export function createApp(opts: CreateAppOptions): express.Express {
     } catch (err) {
       console.error("AI generation error:", err);
       res.status(500).json({ error: "AI generation failed" });
+    }
+  });
+
+  // ── Public AI chat (ChatWidget) ───────────────────────────────────────────
+  // Public, rate-limited. Accepts ONLY templateId='chat' — any other templateId
+  // is rejected by the Zod schema, so there's no way to jailbreak this endpoint
+  // into the admin-only commercial/seo/research templates. The system prompt is
+  // rendered server-side from the registry (api/prompts.ts), so the client never
+  // supplies raw prompt text. This is stricter than both the upstream Sprint 7
+  // design and our prior /api/chat checkpoint proposal.
+  app.post("/api/ai/chat", aiLimiter, async (req, res) => {
+    try {
+      const parsed = aiChatSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid input",
+          details: parsed.error.issues.map((i) => i.message),
+        });
+      }
+      const { templateId, vars, messages } = parsed.data;
+
+      let systemPrompt: string;
+      try {
+        systemPrompt = renderSystemPrompt(templateId, vars as any);
+      } catch (e: any) {
+        return res.status(400).json({ error: e?.message || "Invalid template" });
+      }
+
+      // Zod has already validated role ∈ {user,assistant,model}. Map "model"
+      // → "assistant" (Gemini legacy alias) and reject any message whose
+      // rendered content is empty, to avoid a downstream 400 from the AI SDK.
+      const aiMessages = messages
+        .map((m) => ({
+          role: (m.role === "model" ? "assistant" : m.role) as
+            | "user"
+            | "assistant",
+          content:
+            m.parts?.map((p: any) => p.text).join("") ||
+            String(m.text || ""),
+        }))
+        .filter((m) => m.content.trim().length > 0);
+
+      if (aiMessages.length === 0) {
+        return res.status(400).json({ error: "messages array must contain at least one non-empty message" });
+      }
+
+      const response = await generateText({
+        model: AI_MODEL,
+        system: systemPrompt,
+        messages: aiMessages,
+      });
+      res.json({ text: response.text });
+    } catch (err) {
+      console.error("AI chat error:", err);
+      res.status(500).json({ error: "AI chat failed" });
     }
   });
 
