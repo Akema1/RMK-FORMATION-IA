@@ -84,6 +84,16 @@ const portalLookupSchema = z.object({
   nom: z.string().min(1).max(100),
 });
 
+// Sprint 7 Phase 4 — pre-insert idempotency check. The LandingPage calls this
+// before its anon insert into `participants` so a retry (network timeout,
+// browser back-button, double-click edge case) doesn't create a second row
+// for the same (email, seminar) tuple. The participants RLS lets anon INSERT
+// but not SELECT, so the dupe check MUST go through the service role here.
+const registrationCheckSchema = z.object({
+  email: z.string().email().max(254),
+  seminar: z.string().min(1).max(50),
+});
+
 const aiGenerateSchema = z.object({
   templateId: z.enum(PROMPT_TEMPLATES as readonly [TemplateId, ...TemplateId[]]),
   vars: z.record(z.string(), z.any()).optional(),
@@ -270,6 +280,21 @@ export function createApp(opts: CreateAppOptions): express.Express {
     legacyHeaders: false,
   });
 
+  // Sprint 7 Phase 4 — registration duplicate check. Called from LandingPage
+  // BEFORE the anon insert into participants. This endpoint reveals whether
+  // a given (email, seminar) tuple has an existing row, which is an email-
+  // enumeration primitive by design — the real user needs the answer. A
+  // strict cap keeps the bulk-scraping surface small: 10/min/IP is ~4x the
+  // happy-path need (4 seminars to check + typo retries) while blocking
+  // automated sweeps. Review-fix: tightened from 30 on Gemini's flag.
+  const registrationCheckLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    message: { error: "Too many registration checks. Try again in a minute." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // Community posts: strict rate limit. Phase 3 anti-spam.
   // Lower than leadLimiter (5/min) because a single confirmed participant
   // should never need to post more than ~2 messages per minute.
@@ -391,6 +416,50 @@ export function createApp(opts: CreateAppOptions): express.Express {
   });
 
   // ── Registration notification (email + WhatsApp) ──────────────────────────
+  // ── Registration duplicate check (Sprint 7 Phase 4) ──────────────────────
+  // Idempotency guard for the public LandingPage registration form. Anon
+  // SELECT is blocked by participants RLS, so the client can't do this
+  // query itself. Same email CAN register for different seminars (confirmed
+  // business rule, not a bug), but the same (email, seminar) tuple is a
+  // duplicate regardless of row status.
+  app.post(
+    "/api/registration/check-duplicate",
+    registrationCheckLimiter,
+    async (req, res) => {
+      if (!supabaseAdmin) {
+        return res.status(503).json({ error: "Database not configured" });
+      }
+      const parsed = registrationCheckSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid input",
+          details: parsed.error.issues.map((i) => i.message),
+        });
+      }
+      const email = parsed.data.email.toLowerCase().trim();
+      const seminar = parsed.data.seminar;
+
+      const { data, error } = await supabaseAdmin
+        .from("participants")
+        .select("status")
+        .eq("email", email)
+        .eq("seminar", seminar)
+        .limit(1);
+
+      if (error) {
+        console.error("Registration check error:", error);
+        // Fail-closed: the client must not silently proceed on DB failure.
+        return res.status(500).json({ error: "Lookup failed" });
+      }
+
+      const row = data && data.length > 0 ? data[0] : null;
+      if (row) {
+        return res.json({ exists: true, status: row.status });
+      }
+      return res.json({ exists: false });
+    }
+  );
+
   app.post("/api/notify-registration", notifyLimiter, async (req, res) => {
     try {
       const parsed = registrationSchema.safeParse(req.body);

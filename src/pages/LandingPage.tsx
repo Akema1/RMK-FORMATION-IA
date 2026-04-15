@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
 import { LogoRMK } from "../components/LogoRMK";
+import { ChatWidget } from "../components/ChatWidget";
 import { SEMINARS, PRICE, PRICE_DIRIGEANTS, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, COACHING_PRICE, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
 import { Settings, X, Menu, Building2, Monitor, Check, CheckCircle, type LucideIcon } from "lucide-react";
 
@@ -151,8 +152,8 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
       background: "#F5F0E8",
       position: "relative", overflow: "hidden", padding: "120px 24px 60px",
     }}>
-      <div style={{ position: "absolute", top: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.15) 0%, transparent 70%)" }} />
-      <div style={{ position: "absolute", bottom: "15%", left: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(27,42,74,0.1) 0%, transparent 70%)" }} />
+      <div className="hero-float-slow hero-glow" style={{ position: "absolute", top: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.15) 0%, transparent 70%)" }} />
+      <div className="hero-float-fast hero-glow" style={{ position: "absolute", bottom: "15%", left: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(27,42,74,0.1) 0%, transparent 70%)" }} />
       
       <div style={{ maxWidth: 800, textAlign: "center", position: "relative", zIndex: 1 }}>
         <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}><LogoRMK scale={1.8} variant="light" /></div>
@@ -246,7 +247,7 @@ function FormatSection() {
             { n: "80%", l: "Pratique" },
           ].map((k) => (
             <div key={k.l} style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 36, fontWeight: 800, color: "#C9A84C" }}>{k.n}</div>
+              <div className="stat-3d" style={{ fontSize: 36, fontWeight: 800 }}>{k.n}</div>
               <div style={{ fontSize: 12, color: "#64748B", letterSpacing: 1, textTransform: "uppercase" }}>{k.l}</div>
             </div>
           ))}
@@ -266,10 +267,15 @@ function SeminarCard({ sem, onSelect, delay = 0 }: SeminarCardProps) {
   const [ref, vis] = useInView();
   const [expanded, setExpanded] = useState(false);
   return (
-    <div ref={ref} style={{
+    <div ref={ref} className="card-3d" style={{
       background: "rgba(0,0,0,0.03)", borderRadius: 20, overflow: "hidden",
-      border: "1px solid rgba(0,0,0,0.08)", opacity: vis ? 1 : 0, transform: vis ? "none" : "translateY(40px)",
-      transition: `all 0.7s ease ${delay}ms`,
+      border: "1px solid rgba(0,0,0,0.08)",
+      opacity: vis ? 1 : 0,
+      // Only set transform while the card is off-screen. Once visible, leave
+      // it unset so the `.card-3d:hover` CSS transform can apply (inline
+      // `transform: none` would out-specificity the hover rule otherwise).
+      ...(vis ? {} : { transform: "translateY(40px)" }),
+      transition: `opacity 0.7s ease ${delay}ms, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)`,
     }}>
       <div style={{ background: sem.gradient, padding: "28px 28px 20px", color: "#1B2A4A" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -429,11 +435,11 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
 
   const handleSubmit = async () => {
     if (!validate()) return;
-    
+
     setIsSubmitting(true);
     const isEarlyBird = new Date() <= EARLY_BIRD_DEADLINE;
     const amount = isEarlyBird ? prices.earlyBird : prices.standard;
-    
+
     const newParticipant = {
       nom: form.nom.trim(),
       prenom: form.prenom.trim(),
@@ -451,8 +457,50 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
       payment: null,
       notes: form.message.trim()
     };
-    
+
     try {
+      // Sprint 7 Phase 4 — idempotency guard. Ask the server if this
+      // (email, seminar) tuple already has a row before we insert, so a
+      // client retry (network timeout, back-button, double-click edge case)
+      // doesn't create a duplicate. Participants RLS blocks anon SELECT, so
+      // this MUST go through the rate-limited server endpoint — a client-
+      // side query would silently return [] and block nothing. Fail-closed:
+      // if the check returns non-OK, surface the error and abort the insert.
+      //
+      // NOTE: this is a check-then-insert, NOT an atomic upsert. Two
+      // concurrent submissions from different tabs/devices can still both
+      // pass the check and both insert, producing duplicate rows. The
+      // authoritative fix is a UNIQUE (email, seminar) constraint on
+      // participants — tracked in TODOS.md as P1 "email uniqueness business
+      // rule". This client-side guard covers the 99% case (one user
+      // double-clicking or hitting back-submit after a network hiccup).
+      // 5s timeout — if the check endpoint hangs (DNS failure, upstream
+      // outage) we must abort so the button doesn't stay disabled forever.
+      // Fail-closed on timeout: the catch block surfaces the error banner
+      // rather than proceeding to an unchecked insert.
+      const checkRes = await fetch('/api/registration/check-duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newParticipant.email, seminar: newParticipant.seminar }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!checkRes.ok) {
+        throw new Error(`Duplicate check failed: ${checkRes.status}`);
+      }
+      const checkData = await checkRes.json() as { exists: boolean; status?: string };
+      if (checkData.exists) {
+        // Functional updater — the input fields are still editable while
+        // handleSubmit is in flight, so another field handler might have
+        // mutated `errors` in state since this closure captured it. A plain
+        // `{...errors}` spread would blow away those concurrent updates.
+        setErrors(prev => ({
+          ...prev,
+          _global: "Vous êtes déjà inscrit(e) à ce séminaire. Consultez le Portail Client pour suivre votre inscription.",
+        }));
+        setIsSubmitting(false);
+        return;
+      }
+
       const { error: dbError } = await supabase.from('participants').insert([newParticipant]);
       if (dbError) throw dbError;
 
@@ -473,7 +521,9 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
       setSubmitted(true);
     } catch (error) {
       console.error("Error saving participant:", error);
-      setErrors({ ...errors, _global: "Une erreur est survenue lors de l'inscription. Veuillez réessayer." });
+      // Functional updater — same stale-closure concern as the dupe-check
+      // branch above, applies across the whole async submit lifetime.
+      setErrors(prev => ({ ...prev, _global: "Une erreur est survenue lors de l'inscription. Veuillez réessayer." }));
     } finally {
       setIsSubmitting(false);
     }
@@ -712,6 +762,10 @@ export default function LandingPage() {
       {page === "inscription" && <InscriptionPage selectedSem={selectedSem} seminars={seminars} />}
       {page === "home" && <ContactLead />}
       <Footer setPage={setPage} />
+      {/* Sprint 7 Phase 4 — public chat widget, server-rendered client-mode
+          prompts via /api/ai/chat. Mode is locked client-side to 'client'
+          and enforced server-side by z.literal("client"). */}
+      <ChatWidget seminars={seminars} />
     </div>
   );
 }
