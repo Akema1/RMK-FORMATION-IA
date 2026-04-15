@@ -57,34 +57,41 @@ describe("POST /api/registration/check-duplicate", () => {
     expect(res.body).toEqual({ exists: false });
   });
 
-  it("returns { exists: true, status } when a row matches (email, seminar)", async () => {
+  it("returns { exists: true } when a row matches (email, seminar) — status NOT leaked", async () => {
     mockLimit.mockResolvedValueOnce({
-      data: [{ status: "pending" }],
+      data: [{ id: "participant-1" }],
       error: null,
     });
     const res = await request(app)
       .post("/api/registration/check-duplicate")
       .send(validBody);
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ exists: true, status: "pending" });
+    // Response shape is strictly { exists }. The endpoint must NOT leak
+    // status, id, or any other row fields to anonymous callers — it's an
+    // existence primitive only. Flagged by Qwen pre-push review.
+    expect(res.body).toEqual({ exists: true });
+    expect(res.body).not.toHaveProperty("status");
+    expect(res.body).not.toHaveProperty("id");
   });
 
-  it("returns { exists: true, status } for a confirmed row too (blocks resubmit regardless of status)", async () => {
+  it("returns { exists: true } regardless of stored status (any row blocks resubmit)", async () => {
+    // Confirmed / pending / cancelled all map to the same { exists: true }
+    // response. The client shows one message: "already registered, check
+    // portal". There is no flow where the status matters to anon callers.
     mockLimit.mockResolvedValueOnce({
-      data: [{ status: "confirmed" }],
+      data: [{ id: "participant-2" }],
       error: null,
     });
     const res = await request(app)
       .post("/api/registration/check-duplicate")
       .send(validBody);
     expect(res.status).toBe(200);
-    expect(res.body.exists).toBe(true);
-    expect(res.body.status).toBe("confirmed");
+    expect(res.body).toEqual({ exists: true });
   });
 
   it("normalizes email to lowercase before querying (mixed-case must match lowercase-stored rows)", async () => {
     mockLimit.mockResolvedValueOnce({
-      data: [{ status: "pending" }],
+      data: [{ id: "participant-3" }],
       error: null,
     });
     const res = await request(app)

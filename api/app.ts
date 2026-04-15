@@ -439,9 +439,15 @@ export function createApp(opts: CreateAppOptions): express.Express {
       const email = parsed.data.email.toLowerCase().trim();
       const seminar = parsed.data.seminar;
 
+      // Select only `id` — we only need the existence bit. Returning the
+      // row's `status` (pending/confirmed/cancelled/etc) to an anonymous
+      // caller leaks private state and turns the endpoint into a status-
+      // enumeration primitive. The client just shows "already registered,
+      // check portal" regardless of status, so there's no reason to share it.
+      // Flagged by Qwen pre-push review.
       const { data, error } = await supabaseAdmin
         .from("participants")
-        .select("status")
+        .select("id")
         .eq("email", email)
         .eq("seminar", seminar)
         .limit(1);
@@ -452,11 +458,8 @@ export function createApp(opts: CreateAppOptions): express.Express {
         return res.status(500).json({ error: "Lookup failed" });
       }
 
-      const row = data && data.length > 0 ? data[0] : null;
-      if (row) {
-        return res.json({ exists: true, status: row.status });
-      }
-      return res.json({ exists: false });
+      const exists = !!(data && data.length > 0);
+      return res.json({ exists });
     }
   );
 

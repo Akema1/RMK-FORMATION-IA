@@ -152,8 +152,8 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
       background: "#F5F0E8",
       position: "relative", overflow: "hidden", padding: "120px 24px 60px",
     }}>
-      <div className="hero-float-slow hero-glow" style={{ position: "absolute", top: "10%", right: "5%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.15) 0%, transparent 70%)" }} />
-      <div className="hero-float-fast hero-glow" style={{ position: "absolute", bottom: "15%", left: "10%", width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(27,42,74,0.1) 0%, transparent 70%)" }} />
+      <div className="hero-float-slow" style={{ position: "absolute", top: "10%", right: "5%", width: 420, height: 420, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.38) 0%, rgba(201,168,76,0.12) 50%, transparent 75%)" }} />
+      <div className="hero-float-fast" style={{ position: "absolute", bottom: "15%", left: "10%", width: 340, height: 340, borderRadius: "50%", background: "radial-gradient(circle, rgba(27,42,74,0.28) 0%, rgba(27,42,74,0.10) 50%, transparent 75%)" }} />
       
       <div style={{ maxWidth: 800, textAlign: "center", position: "relative", zIndex: 1 }}>
         <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}><LogoRMK scale={1.8} variant="light" /></div>
@@ -487,7 +487,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
       if (!checkRes.ok) {
         throw new Error(`Duplicate check failed: ${checkRes.status}`);
       }
-      const checkData = await checkRes.json() as { exists: boolean; status?: string };
+      const checkData = await checkRes.json() as { exists: boolean };
       if (checkData.exists) {
         // Functional updater — the input fields are still editable while
         // handleSubmit is in flight, so another field handler might have
