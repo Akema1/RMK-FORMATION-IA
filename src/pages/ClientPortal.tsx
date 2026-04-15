@@ -1110,7 +1110,7 @@ export default function ClientPortal() {
         {activeSection === 'dashboard' && renderDashboard()}
         {activeSection === 'programme' && <PortalProgramme participant={participant} seminar={seminar} openModule={openModule} setOpenModule={setOpenModule} />}
         {activeSection === 'coaching' && <PortalCoaching participant={participant} seminar={seminar} coachingForm={coachingForm} setCoachingForm={setCoachingForm} coachingResult={coachingResult} setCoachingResult={setCoachingResult} coachingLoading={coachingLoading} setCoachingLoading={setCoachingLoading} coachingSubmitted={coachingSubmitted} setCoachingSubmitted={setCoachingSubmitted} />}
-        {activeSection === 'community' && <PortalCommunity participant={participant} communityPosts={communityPosts} setCommunityPosts={setCommunityPosts} newPostText={newPostText} setNewPostText={setNewPostText} communityFilter={communityFilter} setCommunityFilter={setCommunityFilter} seminars={seminars} />}
+        {activeSection === 'community' && <PortalCommunity participant={participant} communityPosts={communityPosts} setCommunityPosts={setCommunityPosts} newPostText={newPostText} setNewPostText={setNewPostText} communityFilter={communityFilter} setCommunityFilter={setCommunityFilter} />}
         {activeSection === 'discovery' && (
           <div>
             <h1 style={{ fontSize: 28, fontWeight: 800, color: NAVY, marginBottom: 8 }}>Decouverte IA</h1>
@@ -1137,7 +1137,7 @@ export default function ClientPortal() {
         .portal-card-3d:hover { transform: perspective(500px) rotateY(4deg) rotateX(-3deg) translateZ(14px) scale(1.03); box-shadow: 0 28px 56px rgba(27,42,74,0.15), 0 12px 24px rgba(0,0,0,0.1), 0 0 0 1px rgba(201,168,76,0.2); }
         @media (prefers-reduced-motion: reduce) { .portal-card-3d:hover { transform: none; } }
       `}</style>
-      <ChatWidget mode="client" />
+      <ChatWidget seminars={seminars} userName={participant?.prenom} />
     </div>
   );
 }
