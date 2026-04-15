@@ -21,27 +21,16 @@
 
 begin;
 
--- ── Step 1: email normalization (conditional) ────────────────────────────
+-- ── Step 1: email normalization (idempotent) ─────────────────────────────
 -- The /api/community/post endpoint normalizes incoming emails to lowercase
--- before looking up the participant (src/api/community/post.ts calls
--- email.trim().toLowerCase()). Any mixed-case row in participants.email
--- would silently 403 every post attempt from that participant even though
--- the registration is valid.
---
--- Per Task 9 Step 1 of the plan, audit mixed-case emails BEFORE landing
--- this migration:
---
---   curl -s "${VITE_SUPABASE_URL}/rest/v1/participants?select=id,email" \
---     -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
---     -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
---     | jq -r '.[] | select(.email != (.email | ascii_downcase)) | [.id, .email] | @tsv'
---
--- If the audit returns any rows, uncomment the line below before running
--- `supabase db push`. If empty, leave it commented — the line is a no-op
--- in the empty case but an unnecessary UPDATE on an audited-clean table
--- is preferable to skip entirely.
---
--- update public.participants set email = lower(email) where email <> lower(email);
+-- before looking up the participant. Any mixed-case row in
+-- participants.email would silently 403 every post attempt from that
+-- participant even though the registration is valid. Run the fix
+-- unconditionally — the WHERE clause makes it a no-op when every row is
+-- already lowercase, so this is safe to apply to a clean DB and also
+-- catches any historical mixed-case rows without requiring an out-of-band
+-- audit step.
+update public.participants set email = lower(email) where email <> lower(email);
 
 -- ── Step 2: swap the Phase 1 authenticated-write policy for a deny ───────
 drop policy if exists "community_posts_auth_write" on public.community_posts;
