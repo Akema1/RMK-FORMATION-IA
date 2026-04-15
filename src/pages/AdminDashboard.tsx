@@ -81,10 +81,14 @@ export default function AdminDashboard() {
           fetchExpenses().catch(() => { /* expenses fetch failed silently */ }),
           fetchTasks().catch(() => { /* tasks fetch failed silently */ }),
           fetchLeads().catch(() => { /* leads fetch failed silently */ }),
-          Promise.resolve(supabase.from('settings').select('*').eq('id', 'seminar_budgets').single()).then(({ data }) => {
+          // Use maybeSingle(): settings rows are optional — .single() returns 406
+          // when the row doesn't exist (empty table on a fresh branch DB), which
+          // spams the browser console even though .catch() swallows it. maybeSingle
+          // returns { data: null } for zero rows without raising.
+          Promise.resolve(supabase.from('settings').select('*').eq('id', 'seminar_budgets').maybeSingle()).then(({ data }) => {
             if (data && data.value) setSeminarBudgets(data.value as SeminarBudgetConfigs);
           }).catch(() => { /* seminar budgets fetch failed silently */ }),
-          Promise.resolve(supabase.from('settings').select('*').eq('id', 'seminar_pricing').single()).then(({ data }) => {
+          Promise.resolve(supabase.from('settings').select('*').eq('id', 'seminar_pricing').maybeSingle()).then(({ data }) => {
             if (data && data.value) setSeminarPricing(data.value as SeminarPricingConfigs);
           }).catch(() => { /* seminar pricing fetch failed silently */ })
         ]);

@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabaseClient';
 import { fmt } from '../data/seminars';
 import { DEFAULT_BUDGET_CONFIG, card, inputS, selectS, btnPrimary, btnSecondary, label, ORANGE, EXPENSE_CATEGORIES } from './config';
 import type { Seminar, Participant, Expense, BudgetConfig, Prices, Charges, FinancialResult, SeminarBudgetConfigs } from './types';
+import { aggregatePlanGlobally } from './finance/aggregatePlanGlobally';
 
 // ─── Constants ───
 const NAVY = '#1B2A4A';
@@ -437,35 +438,12 @@ export function FinancePage({ participants, seminars, prices, expenses, refreshE
   let actual = calculateFinancials(view, false);
 
   if (view === "global") {
-    const semPlans = seminars.map(s => calculateFinancials(s.id, true));
-    plan = {
-      qtyStandard: semPlans.reduce((s, p) => s + p.qtyStandard, 0),
-      qtyEarlyBird: semPlans.reduce((s, p) => s + p.qtyEarlyBird, 0),
-      totalPax: semPlans.reduce((s, p) => s + p.totalPax, 0),
-      revStandard: semPlans.reduce((s, p) => s + p.revStandard, 0),
-      revEarlyBird: semPlans.reduce((s, p) => s + p.revEarlyBird, 0),
-      totalRevenus: semPlans.reduce((s, p) => s + p.totalRevenus, 0),
-      charges: {
-        consultance_pres: semPlans.reduce((s, p) => s + p.charges.consultance_pres, 0),
-        consultance_ligne: semPlans.reduce((s, p) => s + p.charges.consultance_ligne, 0),
-        billet_avion: semPlans[0]?.charges.billet_avion || 0,
-        sejour: semPlans.reduce((s, p) => s + p.charges.sejour, 0),
-        salle: semPlans.reduce((s, p) => s + p.charges.salle, 0),
-        pauses_cafe: semPlans.reduce((s, p) => s + p.charges.pauses_cafe, 0),
-        dejeuner: semPlans.reduce((s, p) => s + p.charges.dejeuner, 0),
-        supports: semPlans.reduce((s, p) => s + p.charges.supports, 0),
-        equipements: semPlans.reduce((s, p) => s + p.charges.equipements, 0),
-        divers: semPlans.reduce((s, p) => s + p.charges.divers, 0),
-        transport: semPlans[0]?.charges.transport || 0,
-        commercialisation: semPlans.reduce((s, p) => s + p.charges.commercialisation, 0),
-      },
-      totalCharges: semPlans.reduce((s, p) => s + p.totalCharges, 0),
-      revenuProv: semPlans.reduce((s, p) => s + p.revenuProv, 0),
-      imprevu: semPlans.reduce((s, p) => s + p.imprevu, 0),
-      sousTotalBrut: semPlans.reduce((s, p) => s + p.sousTotalBrut, 0),
-      tva: semPlans.reduce((s, p) => s + p.tva, 0),
-      net: semPlans.reduce((s, p) => s + p.net, 0),
-    };
+    // Sum every field symmetrically across seminars. Upstream had billet_avion
+    // and transport special-cased to semPlans[0]?.charges.X, which broke the
+    // breakdown-sum-equals-totalCharges invariant when per-seminar budgets
+    // diverge. Centralized in aggregatePlanGlobally() + covered by
+    // api/finance-aggregate.test.ts so re-ports cannot silently regress.
+    plan = aggregatePlanGlobally(seminars.map(s => calculateFinancials(s.id, true)));
   }
 
   // ─── Derived data for charts ───
