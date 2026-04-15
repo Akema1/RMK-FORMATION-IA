@@ -1,7 +1,7 @@
 import React from 'react';
 import { fmt } from '../data/seminars';
-import { card, badge, ORANGE, ICON_EMOJI } from './config';
-import type { Seminar, Participant, Task, Lead, Prices } from './types';
+import { card, badge, ORANGE, ICON_EMOJI, DEFAULT_BUDGET_CONFIG } from './config';
+import type { Seminar, Participant, Task, Lead, Prices, SeminarBudgetConfigs, BudgetConfig } from './types';
 
 interface DashboardPageProps {
   participants: Participant[];
@@ -9,9 +9,10 @@ interface DashboardPageProps {
   tasks: Task[];
   leads: Lead[];
   seminars: Seminar[];
+  seminarBudgets: SeminarBudgetConfigs;
 }
 
-export function DashboardPage({ participants, prices, tasks, leads, seminars }: DashboardPageProps) {
+export function DashboardPage({ participants, prices, tasks, leads, seminars, seminarBudgets }: DashboardPageProps) {
   const confirmed = participants.filter(p => p.status === "confirmed");
   const totalRev = confirmed.reduce((s, p) => s + (p.amount || 0), 0);
   const totalSeats = seminars.reduce((s, x) => s + x.seats, 0);
@@ -19,6 +20,14 @@ export function DashboardPage({ participants, prices, tasks, leads, seminars }: 
 
   const pendingTasks = tasks?.filter(t => t.status !== "done") || [];
   const hotLeads = leads?.filter(l => l.status === "chaud") || [];
+
+  // Budget: sum planned charges across all seminars
+  const totalBudgetCharges = seminars.reduce((sum, s) => {
+    const bc: BudgetConfig = seminarBudgets[s.id] || DEFAULT_BUDGET_CONFIG;
+    return sum + bc.consultance_pres + bc.consultance_ligne + bc.billet_avion + bc.sejour +
+      bc.salle + bc.pauses_cafe + bc.dejeuner + bc.supports + bc.equipements + bc.divers + bc.transport;
+  }, 0);
+  const margePrevisionnelle = totalRev - totalBudgetCharges;
 
   return (
     <div>
@@ -30,6 +39,8 @@ export function DashboardPage({ participants, prices, tasks, leads, seminars }: 
           { label: "Revenus encaissés", val: `${(totalRev / 1e6).toFixed(1)}M`, sub: `obj. ${(target / 1e6).toFixed(0)}M FCFA`, color: "#2980B9", pct: totalRev / target * 100 },
           { label: "Taux remplissage", val: `${Math.round(participants.length / totalSeats * 100)}%`, sub: "objectif 85%", color: "#F39C12", pct: participants.length / totalSeats * 100 },
           { label: "Leads Chauds", val: hotLeads.length, sub: `/ ${leads?.length || 0} prospects`, color: "#E74C3C", pct: leads?.length ? hotLeads.length / leads.length * 100 : 0 },
+          { label: "Budget Charges", val: `${(totalBudgetCharges / 1e6).toFixed(1)}M`, sub: "previsionnel FCFA", color: "#E67E22", pct: totalRev > 0 ? (totalBudgetCharges / totalRev) * 100 : 0 },
+          { label: "Marge Prev.", val: `${(margePrevisionnelle / 1e6).toFixed(1)}M`, sub: "revenus - charges", color: margePrevisionnelle >= 0 ? "#27AE60" : "#E74C3C", pct: totalRev > 0 ? Math.max(0, (margePrevisionnelle / totalRev) * 100) : 0 },
           { label: "Tâches en cours", val: pendingTasks.length, sub: `/ ${tasks?.length || 0} total`, color: "#8E44AD", pct: tasks?.length ? (tasks.length - pendingTasks.length) / tasks.length * 100 : 0 },
         ].map(k => (
           <div key={k.label} style={card}>
