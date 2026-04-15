@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
 import request from "supertest";
 import type { Express } from "express";
 
@@ -150,7 +150,7 @@ describe("POST /api/ai/chat", () => {
 describe("POST /api/ai/chat rate limit", () => {
   // Rebuild a fresh app instance so the aiLimiter counter starts at zero.
   let freshApp: Express;
-  beforeAll(() => {
+  beforeEach(() => {
     freshApp = createApp({ gracefulDegradation: true });
   });
 
@@ -180,5 +180,13 @@ describe("POST /api/ai/chat rate limit", () => {
       .send(payload);
     expect(blocked.status).toBe(429);
     expect(blocked.body.error).toMatch(/too many/i);
+  });
+
+  it("starts fresh per test — first request returns 200, not 429", async () => {
+    const res = await request(freshApp)
+      .post("/api/ai/chat")
+      .set("X-Forwarded-For", "203.0.113.42")
+      .send(payload);
+    expect(res.status).toBe(200);
   });
 });
