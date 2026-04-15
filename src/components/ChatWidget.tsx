@@ -3,9 +3,15 @@ import { MessageCircle, X, Send } from 'lucide-react';
 import type { Seminar } from '../data/seminars';
 
 // ─── Types ───
+//
+// SECURITY: this widget is public-client-only. The `mode` prop that existed
+// upstream was removed because the network layer hardcodes mode='client'
+// against /api/ai/chat (which Zod-locks to z.literal('client')). Accepting a
+// mode prop and rendering an "Assistant Admin" header while silently downgrading
+// to the client endpoint would mislead users. If an authed admin chat is ever
+// needed, it gets its own component + /api/ai/admin-chat route, not a prop flag.
 
 interface ChatWidgetProps {
-  mode: 'client' | 'admin';
   seminars?: Seminar[];
   userName?: string;
 }
@@ -77,7 +83,7 @@ const SURFACE = '#FAF9F6';
 
 // ─── Component ───
 
-export function ChatWidget({ mode, seminars, userName }: ChatWidgetProps) {
+export function ChatWidget({ seminars, userName }: ChatWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -143,11 +149,8 @@ export function ChatWidget({ mode, seminars, userName }: ChatWidgetProps) {
     }
   };
 
-  const headerTitle = mode === 'client' ? 'Assistant RMK' : 'Assistant Admin';
-  const greeting =
-    mode === 'client'
-      ? 'Bonjour ! Je suis votre assistant RMK Conseils. Comment puis-je vous aider ?'
-      : `Bonjour${userName ? ` ${userName}` : ''} ! Je suis votre assistant admin. Comment puis-je vous aider ?`;
+  const headerTitle = 'Assistant RMK';
+  const greeting = `Bonjour${userName ? ` ${userName}` : ''} ! Je suis votre assistant RMK Conseils. Comment puis-je vous aider ?`;
 
   return (
     <>
