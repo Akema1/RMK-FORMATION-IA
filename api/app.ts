@@ -162,6 +162,14 @@ const leadCaptureSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+// Community post body schema. ONLY text comes from the client. The endpoint
+// derives author, initials, participant_id, AND seminar_tag server-side from
+// the authenticated caller's participants row — never trust the client for
+// identity fields OR for which feed the post belongs to.
+const communityPostSchema = z.object({
+  text: z.string().min(1).max(2000),
+});
+
 const webhookProspectSchema = z.object({
   nom: z.string().min(1).max(100),
   entreprise: z.string().min(1).max(200),
@@ -258,6 +266,22 @@ export function createApp(opts: CreateAppOptions): express.Express {
     windowMs: 60 * 1000,
     max: 5,
     message: { error: "Too many lead submissions. Try again in a minute." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Community posts: strict rate limit. Phase 3 anti-spam.
+  // Lower than leadLimiter (5/min) because a single confirmed participant
+  // should never need to post more than ~2 messages per minute.
+  //
+  // NOTE: express-rate-limit uses an in-memory store by default. On Vercel
+  // Fluid Compute this is per-instance, not shared across concurrent instances.
+  // A Redis-backed store is a cross-cutting follow-up (also affects leadLimiter,
+  // notifyLimiter, etc). Tracked as a separate commit.
+  const communityLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 3,
+    message: { error: "Too many community posts. Try again in a minute." },
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -548,6 +572,112 @@ export function createApp(opts: CreateAppOptions): express.Express {
       res.status(500).json({ error: "Lead capture failed" });
     }
   });
+
+  // ── Community post (Phase 3: client portal feed) ─────────────────────────
+  // Authenticated participant submits a post to the community feed. The
+  // endpoint verifies the caller's session, looks up their participants row,
+  // derives author/initials/participant_id/seminar_tag server-side from THAT
+  // row (never from the client body), and inserts via the service role.
+  //
+  // Security invariants enforced here:
+  // 1. requireAuth upstream ensures a valid Supabase session
+  // 2. maybeSingle() lookup prevents PGRST116 from masking a 403 as a 500
+  // 3. Only confirmed participants can post (mirrors the UI tab lock)
+  // 4. ALL identity fields (author, initials, participant_id) come from the
+  //    DB row, not the request body
+  // 5. The seminar_tag is derived from SEMINARS.find(s => s.id === p.seminar)
+  //    so a participant cannot cross-post into another seminar's feed
+  // 6. sanitizeText strips control characters before storage
+  app.post(
+    "/api/community/post",
+    communityLimiter,
+    requireAuth,
+    async (req, res) => {
+      if (!supabaseAdmin) {
+        return res.status(503).json({ error: "Database not configured" });
+      }
+
+      const parsed = communityPostSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid input",
+          details: parsed.error.issues.map((i) => i.message),
+        });
+      }
+      const { text } = parsed.data;
+
+      // requireAuth has already verified the session and set userEmail.
+      const email = (req as any).userEmail as string | null;
+      if (!email) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Look up the participant row by email. maybeSingle() so a 0-row result
+      // returns null instead of throwing PGRST116 (which would bubble as a 500
+      // and mask the denial).
+      const { data: participant, error: lookupErr } = await supabaseAdmin
+        .from("participants")
+        .select("id, nom, prenom, email, seminar, status")
+        .eq("email", email.toLowerCase().trim())
+        .maybeSingle();
+
+      if (lookupErr) {
+        console.error("Participant lookup failed:", lookupErr);
+        return res.status(500).json({ error: "Participant lookup failed" });
+      }
+      if (!participant) {
+        return res.status(403).json({ error: "Not a registered participant" });
+      }
+      if (participant.status !== "confirmed") {
+        return res.status(403).json({
+          error: "Community access requires a confirmed registration",
+        });
+      }
+
+      // Derive every identity + scope field from the DB row.
+      const safeText = sanitizeText(text, 2000);
+      const author = `${participant.prenom} ${participant.nom}`.trim();
+      const initials = `${(participant.prenom || "?")[0] ?? "?"}${
+        (participant.nom || "?")[0] ?? "?"
+      }`.toUpperCase();
+
+      // Server-side seminar_tag derivation: the participant can only post in
+      // their own seminar's feed. Fall back to "Tous" if the participant row
+      // references a seminar id that no longer exists in the SEMINARS list.
+      const participantSeminar = SEMINARS.find(
+        (s) => s.id === participant.seminar
+      );
+      const seminar_tag = participantSeminar?.code ?? "Tous";
+
+      // crypto.randomUUID() is collision-resistant and matches the id pattern
+      // already used by SeminarsManagement.tsx:180. Avoid Math.random() here:
+      // non-cryptographic, theoretically collision-prone, contradicts the
+      // otherwise tight security posture of this endpoint.
+      const id = `post-${crypto.randomUUID()}`;
+      const date = new Date().toISOString().split("T")[0];
+
+      const row = {
+        id,
+        author,
+        initials,
+        date,
+        text: safeText,
+        seminar_tag,
+        participant_id: participant.id,
+      };
+
+      try {
+        const { error: insertErr } = await supabaseAdmin
+          .from("community_posts")
+          .insert([row]);
+        if (insertErr) throw insertErr;
+        return res.status(201).json({ post: row });
+      } catch (err) {
+        console.error("Community post insert failed:", err);
+        return res.status(500).json({ error: "Failed to save post" });
+      }
+    }
+  );
 
   // ── AI generation (admin only) ────────────────────────────────────────────
   app.post("/api/ai/generate", aiLimiter, requireAuth, requireAdmin, async (req, res) => {
