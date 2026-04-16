@@ -23,11 +23,17 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
 
   const addParticipant = async () => {
     if (!form.nom || !form.seminar) return;
+    // Sprint 7 Phase 4 — normalize email before write so the server-side
+    // /api/registration/check-duplicate (LandingPage idempotency guard)
+    // can actually find admin-entered rows. Postgres `=` is case-sensitive,
+    // so a "John@Example.com" row here would miss a "john@example.com"
+    // dupe check and let a public registrant create a second row.
+    const normalized = { ...form, email: form.email.trim().toLowerCase(), amount: Number(form.amount) };
     if (editingId) {
-      await supabase.from('participants').update({ ...form, amount: Number(form.amount) }).eq('id', editingId);
+      await supabase.from('participants').update(normalized).eq('id', editingId);
       setEditingId(null);
     } else {
-      await supabase.from('participants').insert([{ ...form, amount: Number(form.amount) }]);
+      await supabase.from('participants').insert([normalized]);
     }
     refreshParticipants();
     setForm({ nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminar: "", amount: 0, status: "pending", payment: "", notes: "" });
