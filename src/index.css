@@ -166,23 +166,25 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
    Amplitudes are deliberately obvious — too-subtle motion just reads as a
    rendering glitch. */
 
-/* Hero background orbs — large translucent circles that drift and pulse
-   behind the hero text. Deliberately prominent: the opacity range is wide
-   (0.35 ↔ 1.0) so the breathing is unmistakable, and the translate is
-   40px + scale 1.1 so the motion reads as intentional, not jitter. */
+/* Hero background circles — combined float + glow in a single keyframe.
+   Splitting transform and opacity across two classes would need comma-joined
+   `animation:` shorthands (tricky to compose across classes), so we merge
+   both axes into one keyframe applied via one class per circle. */
 @keyframes heroFloat {
   0%, 100% {
     transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.35;
+    opacity: 0.7;
+    filter: blur(1px);
   }
   50% {
-    transform: translate3d(0, -40px, 0) scale(1.1);
+    transform: translate3d(0, -32px, 0) scale(1.06);
     opacity: 1;
+    filter: blur(0px);
   }
 }
 
-.hero-float-slow { animation: heroFloat 6s ease-in-out infinite; will-change: transform, opacity; }
-.hero-float-fast { animation: heroFloat 4.5s ease-in-out infinite; animation-delay: -2s; will-change: transform, opacity; }
+.hero-float-slow { animation: heroFloat 7s ease-in-out infinite; will-change: transform, opacity; }
+.hero-float-fast { animation: heroFloat 5.5s ease-in-out infinite; animation-delay: -2.5s; will-change: transform, opacity; }
 
 /* Card 3D — always-on drift so users notice it passively, plus a strong
    perspective lift on hover for the interactive reward. */

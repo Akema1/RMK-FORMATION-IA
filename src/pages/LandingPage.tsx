@@ -152,8 +152,8 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
       background: "#F5F0E8",
       position: "relative", overflow: "hidden", padding: "120px 24px 60px",
     }}>
-      <div className="hero-float-slow" style={{ position: "absolute", top: "5%", right: "2%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.55) 0%, rgba(201,168,76,0.25) 40%, transparent 70%)" }} />
-      <div className="hero-float-fast" style={{ position: "absolute", bottom: "10%", left: "5%", width: 440, height: 440, borderRadius: "50%", background: "radial-gradient(circle, rgba(27,42,74,0.45) 0%, rgba(27,42,74,0.18) 40%, transparent 70%)" }} />
+      <div className="hero-float-slow" style={{ position: "absolute", top: "10%", right: "5%", width: 420, height: 420, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.38) 0%, rgba(201,168,76,0.12) 50%, transparent 75%)" }} />
+      <div className="hero-float-fast" style={{ position: "absolute", bottom: "15%", left: "10%", width: 340, height: 340, borderRadius: "50%", background: "radial-gradient(circle, rgba(27,42,74,0.28) 0%, rgba(27,42,74,0.10) 50%, transparent 75%)" }} />
       
       <div style={{ maxWidth: 800, textAlign: "center", position: "relative", zIndex: 1 }}>
         <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}><LogoRMK scale={1.8} variant="light" /></div>
