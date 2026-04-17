@@ -182,17 +182,22 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
     };
     try {
       let result = await attemptSave(payload);
-      // Retry stripping problematic columns if schema mismatch
-      if (result.error?.message.includes('Could not find') || result.error?.message.includes('dates')) {
-        const colMatch = result.error.message.match(/the '(\w+)' column/);
-        const badCol = colMatch ? colMatch[1] : 'dates';
-        delete payload[badCol];
-        result = await attemptSave(payload);
-      }
-      // Second retry if another column is also missing
-      if (result.error?.message.includes('Could not find')) {
-        const colMatch = result.error.message.match(/the '(\w+)' column/);
-        if (colMatch) { delete payload[colMatch[1]]; result = await attemptSave(payload); }
+      if (result.error) {
+        // Schema drift: the seminars table may not have all columns we're trying
+        // to write (e.g., dates, flyer_image were added in later migrations).
+        // Instead of parsing error strings, strip optional fields and retry.
+        const OPTIONAL_FIELDS = ['dates', 'flyer_image', 'flyer_highlight'];
+        const retryPayload = { ...payload };
+        let stripped = false;
+        for (const field of OPTIONAL_FIELDS) {
+          if (field in retryPayload) {
+            delete retryPayload[field];
+            stripped = true;
+          }
+        }
+        if (stripped) {
+          result = await attemptSave(retryPayload);
+        }
       }
       if (result.error) throw new Error(result.error.message);
       setSaveStatus('success'); setTimeout(() => setSaveStatus('idle'), 2000);
@@ -216,13 +221,21 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
     };
     try {
       let result = await supabase.from('seminars').insert([payload]);
-      // Retry stripping problematic columns if schema mismatch
-      if (result.error?.message.includes('Could not find')) {
-        const colMatch = result.error.message.match(/the '(\w+)' column/);
-        if (colMatch) {
-          const badCol = colMatch[1];
-          delete payload[badCol];
-          result = await supabase.from('seminars').insert([payload]);
+      if (result.error) {
+        // Schema drift: the seminars table may not have all columns we're trying
+        // to write (e.g., dates, flyer_image were added in later migrations).
+        // Instead of parsing error strings, strip optional fields and retry.
+        const OPTIONAL_FIELDS = ['dates', 'flyer_image', 'flyer_highlight'];
+        const retryPayload = { ...payload };
+        let stripped = false;
+        for (const field of OPTIONAL_FIELDS) {
+          if (field in retryPayload) {
+            delete retryPayload[field];
+            stripped = true;
+          }
+        }
+        if (stripped) {
+          result = await supabase.from('seminars').insert([retryPayload]);
         }
       }
       if (result.error) throw new Error(result.error.message);

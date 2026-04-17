@@ -221,12 +221,22 @@ function ExpenseManager({ expenses, seminars, refreshExpenses, currentSeminarId,
         updated[s.id] = { ...tempConfig };
       }
       setSeminarBudgets(updated);
-      const { error } = await supabase.from('settings').upsert({ id: 'seminar_budgets', value: updated });
+      // Fetch fresh before write to reduce race window (two admins editing simultaneously).
+      const { data: fresh } = await supabase.from('settings').select('value').eq('id', 'seminar_budgets').maybeSingle();
+      const freshBudgets = (fresh?.value ?? {}) as SeminarBudgetConfigs;
+      // Merge our changes onto the fresh data instead of blindly overwriting.
+      const merged = { ...freshBudgets, ...updated };
+      const { error } = await supabase.from('settings').upsert({ id: 'seminar_budgets', value: merged });
       if (error) { console.error('Budget save failed:', error.message); alert('Erreur: budget non enregistre. ' + error.message); }
     } else {
       const updated: SeminarBudgetConfigs = { ...seminarBudgets, [currentSeminarId]: tempConfig };
       setSeminarBudgets(updated);
-      const { error } = await supabase.from('settings').upsert({ id: 'seminar_budgets', value: updated });
+      // Fetch fresh before write to reduce race window (two admins editing simultaneously).
+      const { data: fresh } = await supabase.from('settings').select('value').eq('id', 'seminar_budgets').maybeSingle();
+      const freshBudgets = (fresh?.value ?? {}) as SeminarBudgetConfigs;
+      // Merge our changes onto the fresh data instead of blindly overwriting.
+      const merged = { ...freshBudgets, ...updated };
+      const { error } = await supabase.from('settings').upsert({ id: 'seminar_budgets', value: merged });
       if (error) { console.error('Budget save failed:', error.message); alert('Erreur: budget non enregistre. ' + error.message); }
     }
     setShowBudgetConfig(false);
@@ -869,11 +879,16 @@ export function FinancePage({ participants, seminars, prices, expenses, refreshE
                 const updatedBudgets: SeminarBudgetConfigs = { ...seminarBudgets, [view]: updatedBudget };
                 setSeminarBudgets(updatedBudgets);
                 setSaveStatus('saving');
-                supabase.from('settings').upsert({ id: 'seminar_budgets', value: updatedBudgets })
-                  .then(({ error }) => {
-                    if (error) { setSaveStatus('error'); console.error('Budget save failed:', error.message); }
-                    else { setSaveStatus('saved'); setTimeout(() => setSaveStatus('idle'), 2000); }
-                  });
+                // Fetch fresh before write to reduce race window.
+                supabase.from('settings').select('value').eq('id', 'seminar_budgets').maybeSingle().then(({ data: fresh }) => {
+                  const freshBudgets = (fresh?.value ?? {}) as SeminarBudgetConfigs;
+                  const merged = { ...freshBudgets, [view]: updatedBudget };
+                  supabase.from('settings').upsert({ id: 'seminar_budgets', value: merged })
+                    .then(({ error }) => {
+                      if (error) { setSaveStatus('error'); console.error('Budget save failed:', error.message); }
+                      else { setSaveStatus('saved'); setTimeout(() => setSaveStatus('idle'), 2000); }
+                    });
+                });
               };
 
               return (
