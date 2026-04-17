@@ -362,7 +362,7 @@ function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: strin
   const [ref, vis] = useInView();
   const offers = [
     { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne", `Atelier Dirigeants (S1) : ${fmt(PRICE_DIRIGEANTS)} FCFA`], cta: "S'inscrire", primary: false },
-    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "Réduction de 60 000 FCFA", "Inscription 15 jours avant le début (avant le 11 mai 2026)", "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
+    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "Réduction de 60 000 FCFA", `Inscription au moins ${EARLY_BIRD_DAYS_BEFORE} jours avant le début de l'atelier choisi`, "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
     { name: "Pack Entreprise", price: "Sur devis", unit: "dès 3 inscrits", features: ["-15% dès 3 inscrits même entreprise", "Pack 2 ateliers : -10%", "Pack 4 ateliers : -20%", "Facturation entreprise", `Coaching personnalisé : ${fmt(COACHING_PRICE)} FCFA / 2h`], cta: "Nous contacter", primary: false },
   ];
   return (
@@ -439,7 +439,15 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
     if (!validate()) return;
 
     setIsSubmitting(true);
-    const isEarlyBird = new Date() <= EARLY_BIRD_DEADLINE;
+    // Early bird applies when the purchase is made ≥ EARLY_BIRD_DAYS_BEFORE days
+    // before the selected atelier's start. Packs (pack2/pack4) have no single
+    // start date, so they fall back to S1's deadline — the earliest, and therefore
+    // the most conservative cutoff.
+    const selectedSeminar = seminars.find(s => s.id === form.seminaire);
+    const earlyBirdCutoff = selectedSeminar
+      ? new Date(new Date(selectedSeminar.dates.start + "T00:00:00").getTime() - EARLY_BIRD_DAYS_BEFORE * 86400000)
+      : EARLY_BIRD_DEADLINE;
+    const isEarlyBird = new Date() <= earlyBirdCutoff;
     const amount = isEarlyBird ? prices.earlyBird : prices.standard;
 
     const newParticipant = {
