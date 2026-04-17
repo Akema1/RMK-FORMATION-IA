@@ -551,7 +551,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
       if (process.env.RESEND_API_KEY) {
         const resend = new Resend(process.env.RESEND_API_KEY);
         await resend.emails.send({
-          from: "RMK Conseils <onboarding@resend.dev>",
+          from: "RMK Conseils <noreply@rmk-conseils.com>",
           to: [participant.email],
           subject:
             "Confirmation de votre demande d'inscription - RMK Conseils",
