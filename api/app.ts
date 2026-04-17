@@ -508,22 +508,37 @@ export function createApp(opts: CreateAppOptions): express.Express {
         // back the registration, which is already committed.
         try {
           const fullName = `${participant.prenom} ${participant.nom}`;
-          await supabaseAdmin.from("tasks").insert([
-            {
-              task: `[Onboarding] Vérifier dossier & appeler ${fullName}`,
-              owner: "alexis",
-              priority: "high",
-              seminar: participant.seminar,
-              status: "todo",
-            },
-            {
-              task: `[Finance] Confirmer paiement de ${fullName}`,
-              owner: "alexis",
-              priority: "medium",
-              seminar: participant.seminar,
-              status: "todo",
-            },
-          ]);
+          const onboardingTask = `[Onboarding] Vérifier dossier & appeler ${fullName}`;
+          const financeTask = `[Finance] Confirmer paiement de ${fullName}`;
+
+          // Idempotency guard: skip if onboarding tasks already exist for this
+          // participant+seminar. Prevents duplicate tasks on client retry
+          // (network timeout, back-button, double-click).
+          const { data: existingTasks } = await supabaseAdmin
+            .from("tasks")
+            .select("id")
+            .eq("seminar", participant.seminar)
+            .in("task", [onboardingTask, financeTask])
+            .limit(1);
+
+          if (!existingTasks || existingTasks.length === 0) {
+            await supabaseAdmin.from("tasks").insert([
+              {
+                task: onboardingTask,
+                owner: "alexis",
+                priority: "high",
+                seminar: participant.seminar,
+                status: "todo",
+              },
+              {
+                task: financeTask,
+                owner: "alexis",
+                priority: "medium",
+                seminar: participant.seminar,
+                status: "todo",
+              },
+            ]);
+          }
         } catch (taskErr) {
           console.error("Auto-task insert failed (non-fatal):", taskErr);
         }
@@ -625,6 +640,18 @@ export function createApp(opts: CreateAppOptions): express.Express {
     const safeSource = sanitizeText(source, 100);
     const safeEntreprise = entreprise ? sanitizeText(entreprise, 200) : null;
     const safeNotes = notes ? sanitizeText(notes, 500) : null;
+
+    // Idempotency guard: skip if a lead with the same contact info already
+    // exists. Prevents duplicate leads on client retry or form re-submission.
+    const { data: existingLead } = await supabaseAdmin
+      .from("leads")
+      .select("id")
+      .eq("contact", safeContact)
+      .limit(1);
+
+    if (existingLead && existingLead.length > 0) {
+      return res.json({ success: true });
+    }
 
     try {
       const { error: leadErr } = await supabaseAdmin.from("leads").insert([
