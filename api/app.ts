@@ -785,7 +785,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
       // already used by SeminarsManagement.tsx:180. Avoid Math.random() here:
       // non-cryptographic, theoretically collision-prone, contradicts the
       // otherwise tight security posture of this endpoint.
-      const id = `post-${crypto.randomUUID()}`;
+      const id = crypto.randomUUID();
       const date = new Date().toISOString().split("T")[0];
 
       const row = {
