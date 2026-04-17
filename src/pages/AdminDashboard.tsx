@@ -101,6 +101,35 @@ export default function AdminDashboard() {
     loadAll();
   }, []);
 
+  // ─── Realtime subscriptions ───
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => {
+        fetchTasks();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+        fetchLeads();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, () => {
+        fetchParticipants();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
+        fetchExpenses();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, () => {
+        supabase.from('settings').select('*').eq('id', 'seminar_budgets').maybeSingle().then(({ data }) => {
+          if (data && data.value) setSeminarBudgets(data.value as SeminarBudgetConfigs);
+        });
+        supabase.from('settings').select('*').eq('id', 'seminar_pricing').maybeSingle().then(({ data }) => {
+          if (data && data.value) setSeminarPricing(data.value as SeminarPricingConfigs);
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   // ─── Auth ───
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
