@@ -23,13 +23,8 @@ import PortalProgramme from './portal/PortalProgramme';
 // ─────────────────────────────────────────────
 // FEATURE FLAGS
 // ─────────────────────────────────────────────
-// COACHING_ENABLED=false for PR #3: PortalCoaching.tsx calls /api/ai/generate
-// with the wrong shape (no templateId, no admin auth) so the AI call ALWAYS
-// fails and a hardcoded mock string is shown, misleading paying participants
-// into believing they got live AI analysis. The proper fix is a new authed
-// /api/ai/coaching endpoint (follow-up PR). Until that ships, hide the tab.
-// Also hides the dashboard quick-action and the section render.
-const COACHING_ENABLED = false;
+// Feature flag: coaching is now served by the authed /api/ai/coaching endpoint.
+const COACHING_ENABLED = true;
 
 // ─────────────────────────────────────────────
 // MAIN COMPONENT

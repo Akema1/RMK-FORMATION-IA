@@ -18,6 +18,13 @@ CREATE TABLE IF NOT EXISTS public.participants (
 CREATE INDEX IF NOT EXISTS participants_email_idx ON public.participants (email);
 CREATE INDEX IF NOT EXISTS participants_seminar_idx ON public.participants (seminar);
 
+-- Partial unique index: prevents duplicate active registrations for the same
+-- (email, seminar) pair. Cancelled rows are excluded so cancel+re-register works.
+-- Added in Sprint 8. Applied via Supabase Management API.
+CREATE UNIQUE INDEX IF NOT EXISTS participants_email_seminar_active_udx
+  ON public.participants (lower(email), seminar)
+  WHERE status NOT IN ('cancelled');
+
 -- Table: leads (Prospects CRM)
 -- Status enum aligned with upstream ui-ux-audit merge: froid|tiede|chaud|signé.
 CREATE TABLE IF NOT EXISTS public.leads (

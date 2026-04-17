@@ -6,6 +6,7 @@ import { NAVY, GOLD, GOLD_DARK, WHITE, GREEN, cardBase } from './tokens';
 import { fmt, COACHING_PRICE } from '../../data/seminars';
 import type { Seminar } from '../../data/seminars';
 import type { Participant } from '../../admin/types';
+import { requestCoaching } from '../../lib/coachingApi';
 
 interface CoachingForm {
   entreprise: string;
@@ -69,10 +70,6 @@ export default function PortalCoaching({
     setCoachingLoading(true);
     setCoachingResult('');
     try {
-      const systemPrompt = `Tu es Djimtahadoum Memtingar, expert en Intelligence Artificielle Generative et fondateur de CABEXIA. Tu accompagnes des professionnels africains dans l'integration concrete de l'IA dans leur activite.
-
-Ta mission : analyser le cas professionnel soumis et produire un plan d'action IA personnalise, concret et immediatement applicable. Reponds en francais, de facon directe, structuree et actionnable. Sois specifique au contexte de l'Afrique francophone.`;
-
       const userPrompt = `Contexte professionnel :
 - Entreprise / Organisation : ${coachingForm.entreprise || 'Non precise'}
 - Secteur d'activite : ${coachingForm.secteur || 'Non precise'}
@@ -89,33 +86,20 @@ Fournis un plan d'action IA personnalise structure ainsi :
 4. **Cas d'usage concret** : un exemple detaille d'application IA sur ce defi
 5. **Indicateurs de succes** : comment mesurer l'impact a 30 jours`;
 
-      const response = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ systemPrompt, messages: [{ role: 'user', parts: [{ text: userPrompt }] }] }),
+      const seminarId = seminar?.id || participant.seminar;
+      const result = await requestCoaching({
+        seminar: seminarId,
+        userPrompt,
       });
-      if (response.ok) {
-        const data = await response.json();
-        setCoachingResult(data.text || 'Analyse generee avec succes.');
+
+      if (result.error) {
+        setCoachingResult(`Erreur : ${result.error}`);
       } else {
-        setCoachingResult(`**Plan d'action IA — ${coachingForm.objectif}**
-
-Sur la base de votre contexte (${coachingForm.secteur || 'votre secteur'}), voici les 3 actions prioritaires :
-
-**1. Audit rapide de vos taches repetitives**
-Listez les 5 taches que vous faites le plus souvent. L'IA peut automatiser ou accelerer la plupart d'entre elles (redaction, analyse, recherche, synthese).
-
-**2. Demarrez avec un assistant IA**
-Claude (Anthropic) ou ChatGPT pour commencer. Utilisez-le pendant 30 minutes par jour sur votre defi specifique : "${coachingForm.defi.slice(0, 80)}..."
-
-**3. Prototypez un workflow IA en 1 semaine**
-Choisissez une tache precise, construisez un prompt optimise, mesurez le gain de temps. Partagez le resultat lors de notre session.
-
-Votre session de coaching individuel avec notre expert vous permettra d'approfondir ce plan.`);
+        setCoachingResult(result.text || 'Analyse generee avec succes.');
       }
       setCoachingSubmitted(true);
     } catch {
-      setCoachingResult('Une analyse preliminaire a ete generee. Notre expert reviendra vers vous avec une session personnalisee.');
+      setCoachingResult('Une erreur est survenue. Veuillez reessayer.');
       setCoachingSubmitted(true);
     }
     setCoachingLoading(false);
