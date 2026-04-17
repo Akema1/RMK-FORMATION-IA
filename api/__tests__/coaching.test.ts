@@ -10,8 +10,8 @@ vi.mock("@ai-sdk/gateway", () => ({
   gateway: () => "mock-model",
 }));
 
-// Supabase mock — coaching endpoint uses .eq().eq().eq().order().limit()
-// (3 eq calls: email, seminar, status)
+// Supabase mock — coaching endpoint uses .ilike().eq().eq().order().limit()
+// (ilike for case-insensitive email, then eq for seminar + status)
 const mockAuthGetUser = vi.fn();
 const mockFromSelectList = vi.fn();
 vi.mock("@supabase/supabase-js", () => ({
@@ -19,12 +19,19 @@ vi.mock("@supabase/supabase-js", () => ({
     auth: { getUser: mockAuthGetUser },
     from: (_table: string) => ({
       select: () => ({
-        eq: () => ({
+        ilike: () => ({
           eq: () => ({
             eq: () => ({
               order: () => ({
                 limit: mockFromSelectList,
               }),
+            }),
+          }),
+        }),
+        eq: () => ({
+          eq: () => ({
+            order: () => ({
+              limit: mockFromSelectList,
             }),
           }),
         }),

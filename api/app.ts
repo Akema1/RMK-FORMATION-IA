@@ -817,10 +817,15 @@ export function createApp(opts: CreateAppOptions): express.Express {
       }
 
       // Participant lookup: same pattern as /api/community/post.
+      // Case-insensitive email match via .ilike() for defense-in-depth:
+      // all emails are lowercase in the DB (Phase 3 migration normalized
+      // them), but .ilike() guards against any future path that might
+      // insert a mixed-case email before it hits the lower() index.
+      const normalizedEmail = email.toLowerCase().trim();
       const { data: participants, error: lookupErr } = await supabaseAdmin
         .from("participants")
         .select("id, nom, prenom, email, seminar, status")
-        .eq("email", email.toLowerCase().trim())
+        .ilike("email", escapeLike(normalizedEmail))
         .eq("seminar", seminar)
         .eq("status", "confirmed")
         .order("created_at", { ascending: false })
