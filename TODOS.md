@@ -61,6 +61,18 @@ Error recovery relies on `error.message.includes('Could not find')` to detect mi
 
 Gemini flagged (unverified in this session): `isValidUUID` check in `attemptSave` may cause an insert-instead-of-update when the seminar id is a legacy human-readable string like "s1" instead of a UUID. Needs verification — if confirmed, fix the upsert logic to match on whatever id format actually exists.
 
+### 12. Twilio WhatsApp channel — documented but unconfigured
+
+**Why:** `api/app.ts:571-586` sends a WhatsApp confirmation via Twilio when a participant registers with a phone number. Verified 2026-04-17: zero `TWILIO_*` env vars are set in any Vercel environment (production, preview, development). The guard short-circuits cleanly, so registrations email-only today. `.env.example` still lists all three vars as if configured. Email from Resend covers the confirmation channel, so nothing is broken for users — but the WhatsApp path is dead code in prod.
+
+**Decision:** deferred past May 2026 launch. WhatsApp Business API provisioning requires Meta Business Manager approval (1-5 business days) plus message-template pre-approval — too much lead time for the current cycle. Email is sufficient for a capped paid seminar with manual follow-up.
+
+**Work when un-deferred:**
+- Apply for WhatsApp Business via Meta Business Manager and get a dedicated number.
+- Pre-approve the registration confirmation as a message template (outbound to cold users needs templated sends).
+- Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` to Vercel (all three environments).
+- Smoke test via a real registration with a reachable phone number; confirm the template renders correctly.
+
 ## P3 — nice-to-haves
 
 ### 10. Community post date from `created_at`
@@ -73,4 +85,4 @@ Cosmetic. The prefix costs the ability to index `community_posts.id` as native U
 
 ---
 
-_Last updated: 2026-04-15 — Sprint 7 Phase 3 review follow-ups from PR #3._
+_Last updated: 2026-04-17 — Added P2 #12 (Twilio WhatsApp deferral)._
