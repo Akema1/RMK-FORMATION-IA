@@ -180,6 +180,11 @@ const communityPostSchema = z.object({
   text: z.string().min(1).max(2000),
 });
 
+const coachingRequestSchema = z.object({
+  seminar: z.string().min(1).max(100),
+  userPrompt: z.string().min(1).max(1000),
+});
+
 const webhookProspectSchema = z.object({
   nom: z.string().min(1).max(100),
   entreprise: z.string().min(1).max(200),
@@ -307,6 +312,17 @@ export function createApp(opts: CreateAppOptions): express.Express {
     windowMs: 60 * 1000,
     max: 3,
     message: { error: "Too many community posts. Try again in a minute." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Coaching AI: 5/min — higher than community (3/min) because AI responses
+  // take longer and participants may retry on timeout. Lower than admin AI
+  // (20/min) because the participant surface is public-facing.
+  const coachingLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    message: { error: "Too many coaching requests. Try again in a minute." },
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -766,6 +782,91 @@ export function createApp(opts: CreateAppOptions): express.Express {
       } catch (err) {
         console.error("Community post insert failed:", err);
         return res.status(500).json({ error: "Failed to save post" });
+      }
+    }
+  );
+
+  // ── AI coaching (confirmed participants only) ─────────────────────────
+  app.post(
+    "/api/ai/coaching",
+    coachingLimiter,
+    requireAuth,
+    async (req, res) => {
+      if (!supabaseAdmin) {
+        return res.status(503).json({ error: "Database not configured" });
+      }
+
+      const parsed = coachingRequestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid input",
+          details: parsed.error.issues.map((i) => i.message),
+        });
+      }
+      const { seminar, userPrompt } = parsed.data;
+
+      const email = (req as any).userEmail as string | null;
+      if (!email) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Verify the seminar exists in our catalog before querying the DB.
+      const seminarData = SEMINARS.find((s) => s.id === seminar);
+      if (!seminarData) {
+        return res.status(400).json({ error: "Unknown seminar" });
+      }
+
+      // Participant lookup: same pattern as /api/community/post.
+      // Case-insensitive email match via .ilike() for defense-in-depth:
+      // all emails are lowercase in the DB (Phase 3 migration normalized
+      // them), but .ilike() guards against any future path that might
+      // insert a mixed-case email before it hits the lower() index.
+      const normalizedEmail = email.toLowerCase().trim();
+      const { data: participants, error: lookupErr } = await supabaseAdmin
+        .from("participants")
+        .select("id, nom, prenom, email, seminar, status")
+        .ilike("email", escapeLike(normalizedEmail))
+        .eq("seminar", seminar)
+        .eq("status", "confirmed")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (lookupErr) {
+        console.error("Coaching participant lookup failed:", lookupErr);
+        return res.status(500).json({ error: "Participant lookup failed" });
+      }
+      const participant = participants?.[0] ?? null;
+      if (!participant) {
+        return res.status(403).json({
+          error: "Coaching access requires a confirmed registration for this seminar",
+        });
+      }
+
+      const safePrompt = sanitizeText(userPrompt, 1000);
+      if (!safePrompt) {
+        return res.status(400).json({
+          error: "Prompt cannot be empty after sanitization",
+        });
+      }
+
+      try {
+        const systemPrompt = renderSystemPrompt("coaching", {
+          prenom: participant.prenom,
+          nom: participant.nom,
+          seminarId: participant.seminar,
+          userPrompt: safePrompt,
+        });
+
+        const response = await generateText({
+          model: AI_MODEL,
+          system: systemPrompt,
+          prompt: safePrompt,
+        });
+
+        return res.json({ text: response.text });
+      } catch (err) {
+        console.error("Coaching AI generation error:", err);
+        return res.status(502).json({ error: "AI service temporarily unavailable" });
       }
     }
   );

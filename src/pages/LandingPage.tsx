@@ -502,7 +502,21 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
       }
 
       const { error: dbError } = await supabase.from('participants').insert([newParticipant]);
-      if (dbError) throw dbError;
+      if (dbError) {
+        // Postgres 23505 = unique_violation from the partial unique index
+        // participants_email_seminar_active_udx. This is the authoritative
+        // backstop for the race condition — the check-duplicate endpoint
+        // is the optimistic pre-check, but concurrent submissions can bypass it.
+        if (dbError.code === '23505') {
+          setErrors(prev => ({
+            ...prev,
+            _global: "Vous êtes déjà inscrit(e) à ce séminaire. Consultez le Portail Client pour suivre votre inscription.",
+          }));
+          setIsSubmitting(false);
+          return;
+        }
+        throw dbError;
+      }
 
       // Send notifications + auto-task creation (onboarding + finance) —
       // both handled server-side by /api/notify-registration since RLS now

@@ -14,7 +14,7 @@
 import { SEMINARS } from "../src/data/seminars.js";
 import { COMMERCIAL_STRATEGY } from "../src/lib/strategy.js";
 
-export type TemplateId = "seo" | "commercial" | "research" | "chat" | "prospection";
+export type TemplateId = "seo" | "commercial" | "research" | "chat" | "prospection" | "coaching";
 
 // Escape XML metacharacters to prevent tag-closing prompt-injection inside templated values.
 function esc(str: string): string {
@@ -70,7 +70,14 @@ export interface ProspectionVars {
   seminarsContext?: Array<{ code: string; title: string; week: string }>;
 }
 
-export type RenderVars = CommercialVars | ChatVars | ProspectionVars | Record<string, never> | undefined;
+export interface CoachingVars {
+  prenom: string;
+  nom: string;
+  seminarId: string;
+  userPrompt: string;
+}
+
+export type RenderVars = CommercialVars | ChatVars | ProspectionVars | CoachingVars | Record<string, never> | undefined;
 
 /**
  * Render a system prompt from a template id + vars. Throws if the id is
@@ -225,6 +232,45 @@ Retourne UNIQUEMENT un tableau JSON (rien d'autre — pas de markdown, pas de co
 Fournis entre 8 et 12 prospects. Utilise des entreprises RÉELLES du contexte. Réponds en français.`;
     }
 
+    case "coaching": {
+      const cv = vars as CoachingVars | undefined;
+      if (!cv?.prenom || !cv?.nom || !cv?.seminarId || !cv?.userPrompt) {
+        throw new Error("coaching template requires vars.prenom, vars.nom, vars.seminarId, vars.userPrompt");
+      }
+      const seminar = SEMINARS.find((s) => s.id === cv.seminarId);
+      if (!seminar) {
+        throw new Error("Unknown seminarId");
+      }
+      const objectives = seminar.highlights
+        .map((h) => `- ${safe(h)}`)
+        .join("\n");
+      const modules = seminar.modules
+        .map((m) => `- ${safe(m)}`)
+        .join("\n");
+      return `Tu es un coach expert en Intelligence Artificielle pour des professionnels africains. Tu accompagnes ${safe(cv.prenom)} ${safe(cv.nom)} dans l'integration concrete de l'IA dans son activite professionnelle.
+
+Tu es specialise dans le contenu du seminaire "${safe(seminar.title)}" (${safe(seminar.code)}, ${safe(seminar.week)}).
+
+Description du seminaire : ${safe(seminar.subtitle)}
+Public cible : ${safe(seminar.target)}
+
+Objectifs pedagogiques :
+${objectives}
+
+Modules du programme :
+${modules}
+
+Instructions :
+- Reponds en francais, de facon directe, structuree et actionnable.
+- Base tes recommandations sur le contenu specifique de ce seminaire.
+- Sois concret et adapte au contexte professionnel africain / ouest-africain.
+- Ne fabrique pas d'informations au-dela du contexte fourni.
+- Structure ta reponse avec des titres, des listes et des etapes claires.
+
+Question du participant :
+${safe(cv.userPrompt)}`;
+    }
+
     default: {
       // Exhaustiveness check
       const _never: never = templateId;
@@ -239,4 +285,5 @@ export const PROMPT_TEMPLATES: readonly TemplateId[] = [
   "research",
   "chat",
   "prospection",
+  "coaching",
 ] as const;
