@@ -59,7 +59,7 @@ export const TEAM: TeamMember[] = [
     name: "Alexis Dogbo",
     role: "Coaching IA & Transformation Digitale",
     avatar: "AD",
-    bio: "Spécialiste en transformation digitale et Intelligence Artificielle. Responsable du coaching à Abidjan et du développement de solutions IA sur-mesure pour les entreprises. Assistant formateur pendant les séminaires RMK × CABEXIA.",
+    bio: "Spécialiste en transformation digitale et Intelligence Artificielle. Responsable du coaching à Abidjan et du développement de solutions IA sur-mesure pour les entreprises. Assistant formateur pendant les ateliers RMK × CABEXIA.",
     expertise: ["Transformation digitale", "IA appliquée", "Coaching entreprise", "Solutions sur-mesure"],
   },
   {
@@ -218,7 +218,7 @@ export const DEFAULT_VENUES: Venue[] = [
     tarif_demi_journee: 200000, tarif_journee: 380000, tarif_semaine: 1550000,
     contact_name: "Bamba Mariam", contact_phone: "+225 27 22 21 78 00", contact_email: "commercial@tiama-hotel.ci",
     services: ["wifi", "projecteur", "catering"],
-    notes: "Hôtel boutique, ambiance feutrée pour séminaires exclusifs"
+    notes: "Hôtel boutique, ambiance feutrée pour ateliers exclusifs"
   },
   {
     id: "v7", name: "Hôtel Président", address: "Boulevard de la République, Plateau", zone: "Plateau",

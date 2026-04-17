@@ -56,7 +56,7 @@ export function TasksPage({ tasks, seminars, refreshTasks }: TasksPageProps) {
               <option value="low">Basse</option>
             </select>
           </div>
-          <div><label style={label}>Séminaire</label>
+          <div><label style={label}>Atelier</label>
             <select style={selectS} value={newTask.seminar} onChange={e => setNewTask({ ...newTask, seminar: e.target.value })}>
               <option value="all">Général</option>
               {seminars.map(s => <option key={s.id} value={s.id}>{s.code}</option>)}

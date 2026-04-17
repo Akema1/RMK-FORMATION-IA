@@ -282,12 +282,12 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
     refreshSeminars();
   };
 
-  // ─── Tab: Mes Séminaires ───
+  // ─── Tab: Mes Ateliers ───
   const renderSeminairesTab = () => (
     <div>
       {showForm && (
         <div style={{ ...card, marginBottom: 24, borderLeft: `3px solid ${ORANGE}` }}>
-          <h3 style={{ color: '#1B2A4A', fontSize: 16, fontWeight: 700, marginBottom: 16 }}>{editingId ? 'Modifier le séminaire' : 'Ajouter un séminaire'}</h3>
+          <h3 style={{ color: '#1B2A4A', fontSize: 16, fontWeight: 700, marginBottom: 16 }}>{editingId ? "Modifier l'atelier" : "Ajouter un atelier"}</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
             <div><label style={label}>Code</label><input style={inputS} value={form.code} onChange={upd('code')} /></div>
             <div><label style={label}>Titre</label><input style={inputS} value={form.title} onChange={upd('title')} /></div>
@@ -320,7 +320,7 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
           </div>
           <PricingSuggestionPanel seats={Number(form.seats) || 20} seminarCode={form.code || ''} />
           {saveError && <div style={{ marginTop: 12, padding: "10px 16px", background: "rgba(231,76,60,0.1)", border: "1px solid rgba(231,76,60,0.3)", borderRadius: 8, color: "#E74C3C", fontSize: 13 }}>⚠️ {saveError}</div>}
-          {saveStatus === 'success' && <div style={{ marginTop: 12, padding: "10px 16px", background: "rgba(39,174,96,0.1)", border: "1px solid rgba(39,174,96,0.3)", borderRadius: 8, color: "#27AE60", fontSize: 13 }}>✅ Séminaire enregistré</div>}
+          {saveStatus === 'success' && <div style={{ marginTop: 12, padding: "10px 16px", background: "rgba(39,174,96,0.1)", border: "1px solid rgba(39,174,96,0.3)", borderRadius: 8, color: "#27AE60", fontSize: 13 }}>✅ Atelier enregistré</div>}
           <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
             <button onClick={saveSeminar} disabled={saveStatus === 'saving'} style={{ ...btnPrimary, opacity: saveStatus === 'saving' ? 0.6 : 1 }}>{saveStatus === 'saving' ? '⏳ Enregistrement...' : 'Enregistrer'}</button>
             <button onClick={() => { setShowForm(false); setEditingId(null); }} style={btnSecondary}>Annuler</button>
@@ -333,7 +333,7 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
         </div>
         {seminars.length === 0 && (
           <div style={{ padding: 40, textAlign: 'center', color: '#94A3B8', fontSize: 14 }}>
-            Aucun séminaire créé. Utilisez le bouton <strong style={{ color: ORANGE }}>"+ Nouveau Séminaire"</strong> ou le <strong style={{ color: ORANGE }}>Catalogue de Formations</strong>.
+            Aucun atelier créé. Utilisez le bouton <strong style={{ color: ORANGE }}>"+ Nouvel Atelier"</strong> ou le <strong style={{ color: ORANGE }}>Catalogue de Formations</strong>.
           </div>
         )}
         {seminars.map((s: Seminar) => {
@@ -411,7 +411,7 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
       </div>
       <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.6fr 0.8fr 1.2fr 1.5fr", padding: "12px 16px", background: "#1B2A4A", color: "#fff", fontSize: 10, fontWeight: 700, textTransform: "uppercase" as const }}>
-          <div>Hôtel / Lieu</div><div>Zone</div><div>★</div><div>Cap. séminaire</div><div>Tarif / jour</div><div>Contact</div>
+          <div>Hôtel / Lieu</div><div>Zone</div><div>★</div><div>Cap. atelier</div><div>Tarif / jour</div><div>Contact</div>
         </div>
         {filteredVenues.map(v => (
           <details key={v.id}>
@@ -505,7 +505,7 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
           {/* Header */}
           <div style={{ padding: "24px 28px 0", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1B2A4A', margin: 0 }}>🎓 Créer un Séminaire</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1B2A4A', margin: 0 }}>🎓 Créer un Atelier</h2>
               <button onClick={() => { setWizardOpen(false); resetWizard(); }} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 20, color: '#94A3B8' }}>✕</button>
             </div>
             {/* Step indicator */}
@@ -550,12 +550,12 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
             {/* Step 2: Configuration */}
             {wizardStep === 2 && (
               <div>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1B2A4A', marginBottom: 4 }}>Configuration du séminaire</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1B2A4A', marginBottom: 4 }}>Configuration de l'atelier</h3>
                 {w.template && <div style={{ fontSize: 12, color: ORANGE, marginBottom: 16, fontWeight: 600 }}>📋 Basé sur : {w.template.title}</div>}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                   <div><label style={label}>Titre de la formation</label><input style={inputS} value={w.form.title || ''} onChange={e => setWizard(prev => ({ ...prev, form: { ...prev.form, title: e.target.value } }))} /></div>
                   <div><label style={label}>Code interne (ex: S5)</label><input style={inputS} value={w.form.code || ''} onChange={e => setWizard(prev => ({ ...prev, form: { ...prev.form, code: e.target.value } }))} /></div>
-                  <div><label style={label}>Libellé dates (ex: 19 – 23 Mai 2026)</label><input style={inputS} value={w.form.week || ''} onChange={e => setWizard(prev => ({ ...prev, form: { ...prev.form, week: e.target.value } }))} /></div>
+                  <div><label style={label}>Libellé dates (ex: 26 – 30 Mai 2026)</label><input style={inputS} value={w.form.week || ''} onChange={e => setWizard(prev => ({ ...prev, form: { ...prev.form, week: e.target.value } }))} /></div>
                   <div><label style={label}>Participants max</label><input type="number" style={inputS} value={w.form.seats || 15} onChange={e => setWizard(prev => ({ ...prev, form: { ...prev.form, seats: Number(e.target.value) } }))} /></div>
                   <div>
                     <label style={label}>Statut</label>
@@ -706,7 +706,7 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
                 </div>
 
                 {wizardSaveError && <div style={{ marginBottom: 12, padding: "10px 16px", background: "rgba(231,76,60,0.1)", border: "1px solid rgba(231,76,60,0.3)", borderRadius: 8, color: "#E74C3C", fontSize: 13 }}>⚠️ {wizardSaveError}</div>}
-                {wizardSaveStatus === 'success' && <div style={{ marginBottom: 12, padding: "10px 16px", background: "rgba(39,174,96,0.1)", border: "1px solid rgba(39,174,96,0.3)", borderRadius: 8, color: "#27AE60", fontSize: 13 }}>✅ Séminaire créé avec succès !</div>}
+                {wizardSaveStatus === 'success' && <div style={{ marginBottom: 12, padding: "10px 16px", background: "rgba(39,174,96,0.1)", border: "1px solid rgba(39,174,96,0.3)", borderRadius: 8, color: "#27AE60", fontSize: 13 }}>✅ Atelier créé avec succès !</div>}
               </div>
             )}
           </div>
@@ -717,7 +717,7 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
             <div style={{ fontSize: 12, color: '#94A3B8' }}>Étape {wizardStep} / 5</div>
             {wizardStep < 5
               ? <button onClick={() => setWizardStep(s => (s + 1) as 1 | 2 | 3 | 4 | 5)} style={btnPrimary}>Suivant →</button>
-              : <button onClick={saveWizardSeminar} disabled={wizardSaveStatus === 'saving'} style={{ ...btnPrimary, opacity: wizardSaveStatus === 'saving' ? 0.6 : 1 }}>{wizardSaveStatus === 'saving' ? '⏳ Création…' : '🎓 Créer le séminaire'}</button>
+              : <button onClick={saveWizardSeminar} disabled={wizardSaveStatus === 'saving'} style={{ ...btnPrimary, opacity: wizardSaveStatus === 'saving' ? 0.6 : 1 }}>{wizardSaveStatus === 'saving' ? '⏳ Création…' : "🎓 Créer l'atelier"}</button>
             }
           </div>
         </div>
@@ -852,7 +852,7 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
   );
 
   const STUDIO_TABS = [
-    { key: 'seminaires', label: '📅 Mes Séminaires', count: seminars.length },
+    { key: 'seminaires', label: '📅 Mes Ateliers', count: seminars.length },
     { key: 'catalogue', label: '📚 Catalogue', count: DEFAULT_FORMATION_TEMPLATES.length },
     { key: 'venues', label: '🏨 Hôtels & Salles', count: localVenues.length },
     { key: 'speakers', label: '🎤 Intervenants', count: localSpeakers.length },
@@ -956,14 +956,14 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
-          <h2 style={{ color: '#1B2A4A', fontSize: 24, fontWeight: 800, margin: 0 }}>Studio de Création de Séminaires</h2>
-          <p style={{ color: '#64748B', fontSize: 13, margin: "4px 0 0" }}>Gérez vos formations, hôtels et intervenants. Utilisez le wizard pour créer un nouveau séminaire.</p>
+          <h2 style={{ color: '#1B2A4A', fontSize: 24, fontWeight: 800, margin: 0 }}>Studio de Création d'Ateliers</h2>
+          <p style={{ color: '#64748B', fontSize: 13, margin: "4px 0 0" }}>Gérez vos formations, hôtels et intervenants. Utilisez le wizard pour créer un nouvel atelier.</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           {studioTab === 'seminaires' && !showForm && (
             <button onClick={() => setShowForm(true)} style={{ ...btnSecondary, fontSize: 13 }}>✏️ Modifier existant</button>
           )}
-          <button onClick={() => openWizard()} style={btnPrimary}>+ Nouveau Séminaire</button>
+          <button onClick={() => openWizard()} style={btnPrimary}>+ Nouvel Atelier</button>
         </div>
       </div>
 

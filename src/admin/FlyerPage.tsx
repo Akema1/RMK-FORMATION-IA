@@ -15,7 +15,7 @@ export function FlyerPage({ seminars }: FlyerPageProps) {
   const flyerRef = useRef<HTMLDivElement>(null);
   const s = seminars.find(x => x.id === flyerId) || seminars[0];
 
-  if (!s) return <div style={{ padding: 24, color: '#1B2A4A' }}>Aucun séminaire disponible pour le flyer.</div>;
+  if (!s) return <div style={{ padding: 24, color: '#1B2A4A' }}>Aucun atelier disponible pour le flyer.</div>;
 
   const finalImage = customImage || s.flyer_image;
 

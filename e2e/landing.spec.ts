@@ -17,7 +17,7 @@ test.describe('Landing page', () => {
 
   test('displays at least one seminar card', async ({ page }) => {
     // Seminars section should be rendered
-    await page.getByText('Séminaires', { exact: false }).first().waitFor({ state: 'visible', timeout: 10000 });
+    await page.getByText('Ateliers', { exact: false }).first().waitFor({ state: 'visible', timeout: 10000 });
     // Each seminar card has a title — expect at least 1
     const seminarTitles = page.locator('h3');
     await expect(seminarTitles.first()).toBeVisible();

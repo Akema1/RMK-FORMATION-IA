@@ -4,8 +4,8 @@ import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
 import { LogoRMK } from "../components/LogoRMK";
 import { ChatWidget } from "../components/ChatWidget";
-import { SEMINARS, PRICE, PRICE_DIRIGEANTS, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, COACHING_PRICE, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
-import { Settings, X, Menu, Building2, Monitor, Check, CheckCircle, type LucideIcon } from "lucide-react";
+import { SEMINARS, PRICE, PRICE_DIRIGEANTS, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, EARLY_BIRD_DAYS_BEFORE, COACHING_PRICE, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
+import { Settings, X, Menu, Building2, Monitor, Check, CheckCircle, Zap, type LucideIcon } from "lucide-react";
 
 const ICON_MAP: Record<string, LucideIcon> = { Briefcase, BarChart3, Scale, Users };
 
@@ -53,7 +53,7 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
   }, []);
   const links = [
     { key: "home", label: "Accueil" },
-    { key: "seminaires", label: "Séminaires" },
+    { key: "seminaires", label: "Ateliers" },
     { key: "tarifs", label: "Tarifs" },
     { key: "inscription", label: "Inscription" },
   ];
@@ -126,7 +126,7 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
 }
 
 function CountdownBlock() {
-  const cd = useCountdown(new Date("2026-05-05T08:30:00").getTime());
+  const cd = useCountdown(new Date("2026-05-26T08:30:00").getTime());
   const units = [
     { val: cd.days, label: "Jours" },
     { val: cd.hours, label: "Heures" },
@@ -159,7 +159,7 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
         <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}><LogoRMK scale={1.8} variant="light" /></div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 100, padding: "6px 20px", marginBottom: 32 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#27AE60", animation: "pulse 2s infinite" }} />
-          <span style={{ color: "#C9A84C", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>MAI 2026 · ABIDJAN · 4 SÉMINAIRES</span>
+          <span style={{ color: "#C9A84C", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>MAI 2026 · ABIDJAN · 4 ATELIERS</span>
         </div>
         
         <h1 style={{ fontSize: "clamp(36px, 6vw, 64px)", fontWeight: 800, color: "#1B2A4A", lineHeight: 1.08, margin: "0 0 16px", letterSpacing: -1 }}>
@@ -170,7 +170,7 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
         </h1>
         
         <p style={{ fontSize: 18, color: '#1B2A4A', lineHeight: 1.7, margin: "0 0 12px", maxWidth: 700, marginLeft: "auto", marginRight: "auto" }}>
-          Formations exécutives en IA générative pour Managers, Dirigeants, Administrateurs, Consultants, Entrepreneurs, Cadres Supérieurs et Professionnels souhaitant accélérer leur transformation digitale et renforcer leurs décisions stratégiques.
+          Nous aidons les dirigeants, PME et organisations africaines à accélérer leur transformation grâce à l'intelligence artificielle, à optimiser leurs coûts et leurs opérations, et à améliorer durablement la performance de leurs équipes.
         </p>
         <p style={{ fontSize: 14, color: '#1B2A4A', margin: "0 0 40px" }}>
           Organisé par <strong style={{ color: '#1B2A4A' }}>RMK Conseils</strong> · Formation délivrée par <strong style={{ color: "#C9A84C" }}>CABEXIA</strong>
@@ -189,7 +189,7 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
         </div>
         
         <CountdownBlock />
-        <p style={{ color: '#1B2A4A', fontSize: 12, marginTop: 12, letterSpacing: 1 }}>AVANT LE PREMIER SÉMINAIRE</p>
+        <p style={{ color: '#1B2A4A', fontSize: 12, marginTop: 12, letterSpacing: 1 }}>AVANT LE PREMIER ATELIER</p>
       </div>
 
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 48, position: "relative", zIndex: 1 }}>
@@ -214,7 +214,7 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
 function FormatSection() {
   const [ref, vis] = useInView();
   const steps = [
-    { day: "Jour 1–3", mode: "Présentiel", Icon: Building2, desc: "Matinée Jour 1 : module commun d'introduction à l'IA (identique pour les 4 séminaires). Puis immersion complète en salle à Abidjan. Ateliers pratiques, démonstrations live et études de cas." },
+    { day: "Jour 1–3", mode: "Présentiel", Icon: Building2, desc: "Matinée Jour 1 : module commun d'introduction à l'IA (identique pour les 4 ateliers). Puis immersion complète en salle à Abidjan. Ateliers pratiques, démonstrations live et études de cas." },
     { day: "Jour 4–5", mode: "En ligne", Icon: Monitor, desc: "Sessions Zoom de 4h (9h–13h). Approfondissement, retour d'expérience, feuille de route personnelle." },
   ];
   return (
@@ -239,6 +239,7 @@ function FormatSection() {
             </div>
           ))}
         </div>
+        {/* Stats row (VIP / 100% / 4 / 80%) — hidden for now, restore by removing the wrapping comment.
         <div style={{ display: "flex", justifyContent: "center", gap: 40, marginTop: 40, flexWrap: "wrap" }}>
           {[
             { n: "VIP", l: "Comité restreint" },
@@ -252,6 +253,7 @@ function FormatSection() {
             </div>
           ))}
         </div>
+        */}
       </div>
     </section>
   );
@@ -343,8 +345,8 @@ function SeminarsPage({ setPage, seminars, setSelectedSem }: { setPage: (p: stri
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 48 }}>
           <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Programme Complet</div>
-          <h2 style={{ fontSize: 40, fontWeight: 800, color: "#1B2A4A", margin: "0 0 12px" }}>4 Séminaires, 4 Expertises</h2>
-          <p style={{ color: '#1B2A4A', fontSize: 16 }}>Chaque séminaire : 3 jours présentiel à Abidjan + 2 sessions en ligne de 4h · Formation délivrée par CABEXIA</p>
+          <h2 style={{ fontSize: 40, fontWeight: 800, color: "#1B2A4A", margin: "0 0 12px" }}>4 Ateliers, 4 Expertises</h2>
+          <p style={{ color: '#1B2A4A', fontSize: 16 }}>Chaque atelier : 3 jours présentiel à Abidjan + 2 sessions en ligne de 4h · Formation délivrée par CABEXIA</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(480px, 100%), 1fr))", gap: 24 }}>
           {seminars.map((s: Seminar, i: number) => (
@@ -359,9 +361,9 @@ function SeminarsPage({ setPage, seminars, setSelectedSem }: { setPage: (p: stri
 function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: string) => void; seminars: Seminar[]; setSelectedSem: (id: string) => void }) {
   const [ref, vis] = useInView();
   const offers = [
-    { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne", `Séminaire Dirigeants (S1) : ${fmt(PRICE_DIRIGEANTS)} FCFA`], cta: "S'inscrire", primary: false },
-    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "Réduction de 60 000 FCFA", "Inscription avant le 10 mai 2026", "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
-    { name: "Pack Entreprise", price: "Sur devis", unit: "dès 3 inscrits", features: ["-15% dès 3 inscrits même entreprise", "Pack 2 séminaires : -10%", "Pack 4 séminaires : -20%", "Facturation entreprise", `Coaching personnalisé : ${fmt(COACHING_PRICE)} FCFA / 2h`], cta: "Nous contacter", primary: false },
+    { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne", `Atelier Dirigeants (S1) : ${fmt(PRICE_DIRIGEANTS)} FCFA`], cta: "S'inscrire", primary: false },
+    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "Réduction de 60 000 FCFA", "Inscription 15 jours avant le début (avant le 11 mai 2026)", "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
+    { name: "Pack Entreprise", price: "Sur devis", unit: "dès 3 inscrits", features: ["-15% dès 3 inscrits même entreprise", "Pack 2 ateliers : -10%", "Pack 4 ateliers : -20%", "Facturation entreprise", `Coaching personnalisé : ${fmt(COACHING_PRICE)} FCFA / 2h`], cta: "Nous contacter", primary: false },
   ];
   return (
     <section style={{ background: "linear-gradient(170deg, #F5F0E8, #E0DCCD)", minHeight: "100vh", paddingTop: 100, paddingBottom: 80 }}>
@@ -428,7 +430,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
     }
     if (!form.societe.trim()) errs.societe = "La société est obligatoire";
     if (!form.fonction.trim()) errs.fonction = "La fonction est obligatoire";
-    if (!form.seminaire) errs.seminaire = "Veuillez choisir un séminaire";
+    if (!form.seminaire) errs.seminaire = "Veuillez choisir un atelier";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -495,7 +497,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
         // `{...errors}` spread would blow away those concurrent updates.
         setErrors(prev => ({
           ...prev,
-          _global: "Vous êtes déjà inscrit(e) à ce séminaire. Consultez le Portail Client pour suivre votre inscription.",
+          _global: "Vous êtes déjà inscrit(e) à cet atelier. Consultez le Portail Client pour suivre votre inscription.",
         }));
         setIsSubmitting(false);
         return;
@@ -510,7 +512,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
         if (dbError.code === '23505') {
           setErrors(prev => ({
             ...prev,
-            _global: "Vous êtes déjà inscrit(e) à ce séminaire. Consultez le Portail Client pour suivre votre inscription.",
+            _global: "Vous êtes déjà inscrit(e) à cet atelier. Consultez le Portail Client pour suivre votre inscription.",
           }));
           setIsSubmitting(false);
           return;
@@ -560,7 +562,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Inscription</div>
           <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1B2A4A", margin: "0 0 8px" }}>Réservez votre place</h2>
-          <p style={{ color: '#1B2A4A', fontSize: 15 }}>Sélection exclusive par séminaire · Inscription confirmée après validation du paiement</p>
+          <p style={{ color: '#1B2A4A', fontSize: 15 }}>Sélection exclusive par atelier · Inscription confirmée après validation du paiement</p>
         </div>
         <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 20, padding: 36, border: "1px solid rgba(0,0,0,0.08)" }}>
           {errors._global && <div style={{ ...errorStyle, padding: "12px 16px", background: "rgba(231,76,60,0.08)", borderRadius: 10, marginBottom: 16, textAlign: "center" }}>{errors._global}</div>}
@@ -575,12 +577,12 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
             <div><label htmlFor="field-fonction" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Fonction *</label><input id="field-fonction" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.fonction ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." />{errors.fonction && <div style={errorStyle}>{errors.fonction}</div>}</div>
           </div>
           <div style={{ marginTop: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Séminaire souhaité *</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Atelier souhaité *</label>
             <select id="field-seminaire" style={{ ...inputStyle, cursor: "pointer", background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.seminaire ? "#E74C3C" : "rgba(0,0,0,0.1)" }} value={form.seminaire} onChange={upd("seminaire")}>
-              <option value="" style={{ color: "#000" }}>-- Choisir un séminaire --</option>
+              <option value="" style={{ color: "#000" }}>-- Choisir un atelier --</option>
               {seminars.map((s: any) => <option key={s.id} value={s.id} style={{ color: "#000" }}>{s.code} – {s.title} ({s.week})</option>)}
-              <option value="pack2" style={{ color: "#000" }}>📦 Pack 2 séminaires (au choix)</option>
-              <option value="pack4" style={{ color: "#000" }}>📦 Pack 4 séminaires (-20%)</option>
+              <option value="pack2" style={{ color: "#000" }}>📦 Pack 2 ateliers (au choix)</option>
+              <option value="pack4" style={{ color: "#000" }}>📦 Pack 4 ateliers (-20%)</option>
             </select>
             {errors.seminaire && <div style={errorStyle}>{errors.seminaire}</div>}
           </div>
@@ -706,6 +708,78 @@ function ContactLead() {
   );
 }
 
+// Format a seminar start date ("2026-05-26") as "jj MMMM" in French, minus N days.
+function formatDeadline(startIso: string, daysBefore: number): string {
+  const d = new Date(startIso + "T00:00:00");
+  d.setDate(d.getDate() - daysBefore);
+  const day = d.getDate();
+  const months = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+  const dayLabel = day === 1 ? "1ᵉʳ" : String(day);
+  return `${dayLabel} ${months[d.getMonth()]}`;
+}
+
+function EarlyBirdBanner({ seminars }: { seminars: Seminar[] }) {
+  const savings = PRICE - EARLY_BIRD_PRICE;
+  return (
+    <div
+      role="region"
+      aria-label="Offre Early Bird"
+      style={{
+        position: "relative",
+        maxWidth: 960,
+        margin: "0 auto 40px",
+        background: "linear-gradient(135deg, #C9A84C 0%, #A88A3D 100%)",
+        borderRadius: 18,
+        padding: "22px 28px",
+        color: "#1B2A4A",
+        boxShadow: "0 10px 32px rgba(27,42,74,0.18)",
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 24,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        aria-hidden
+        style={{
+          position: "absolute", top: -40, right: -40, width: 180, height: 180,
+          borderRadius: "50%", background: "rgba(255,255,255,0.15)",
+        }}
+      />
+      <div
+        style={{
+          flexShrink: 0, width: 84, height: 84, borderRadius: "50%",
+          background: "#1B2A4A", color: "#C9A84C",
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.2)", zIndex: 1,
+        }}
+      >
+        <Zap size={18} />
+        <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1 }}>-10%</div>
+      </div>
+      <div style={{ flex: "1 1 320px", zIndex: 1, textAlign: "left" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", opacity: 0.85 }}>
+          Offre Early Bird
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 800, margin: "4px 0 6px", lineHeight: 1.25 }}>
+          Économisez {fmt(savings)} FCFA sur chaque atelier
+        </div>
+        <div style={{ fontSize: 14, lineHeight: 1.5 }}>
+          10 % de remise pour toute inscription réalisée au moins <strong>{EARLY_BIRD_DAYS_BEFORE} jours</strong> avant le début de l'atelier choisi.
+        </div>
+        <div style={{ fontSize: 12, marginTop: 10, opacity: 0.9, display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
+          {seminars.map((s) => (
+            <span key={s.id}>
+              <strong>{s.code}</strong> · avant le {formatDeadline(s.dates.start, EARLY_BIRD_DAYS_BEFORE)}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ───
 
 export default function LandingPage() {
@@ -749,10 +823,11 @@ export default function LandingPage() {
           <FormatSection />
           <section style={{ background: "#F5F0E8", padding: "80px 24px", borderTop: "1px solid rgba(0,0,0,0.05)" }}>
             <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-              <div style={{ textAlign: "center", marginBottom: 48 }}>
-                <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Séminaires</div>
-                <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1B2A4A", margin: 0 }}>Choisissez votre séminaire</h2>
+              <div style={{ textAlign: "center", marginBottom: 32 }}>
+                <div style={{ color: "#C9A84C", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Ateliers</div>
+                <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1B2A4A", margin: 0 }}>Choisissez votre atelier</h2>
               </div>
+              <EarlyBirdBanner seminars={seminars} />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(480px, 100%), 1fr))", gap: 24 }}>
                 {seminars.map((s: Seminar, i: number) => (
                   <SeminarCard key={s.id} sem={s} delay={i * 100} onSelect={(id: string) => { setSelectedSem(id); setPage("inscription"); window.scrollTo(0, 0); }} />

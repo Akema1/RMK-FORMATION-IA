@@ -52,7 +52,7 @@ export function DashboardPage({ participants, prices, tasks, leads, seminars, se
           </div>
         ))}
       </div>
-      <h3 style={{ color: "#1B2A4A", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Par séminaire</h3>
+      <h3 style={{ color: "#1B2A4A", fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Par atelier</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 16 }}>
         {seminars.map(s => {
           const sp = participants.filter(p => p.seminar === s.id);

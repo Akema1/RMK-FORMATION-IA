@@ -98,7 +98,7 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
     doc.setFontSize(14);
     doc.setTextColor(80, 80, 80);
     doc.setFont('helvetica', 'normal');
-    doc.text("a suivi avec succès le séminaire de formation :", 148.5, 118, { align: "center" });
+    doc.text("a suivi avec succès l'atelier de formation :", 148.5, 118, { align: "center" });
 
     doc.setFontSize(20);
     doc.setTextColor(...gold);
@@ -175,7 +175,7 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
             <div><label style={label}>Téléphone</label><input style={inputS} value={form.tel} onChange={upd("tel")} placeholder="+225 07..." /></div>
             <div><label style={label}>Société</label><input style={inputS} value={form.societe} onChange={upd("societe")} placeholder="Nom entreprise" /></div>
             <div><label style={label}>Fonction</label><input style={inputS} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur, DAF..." /></div>
-            <div><label style={label}>Séminaire *</label>
+            <div><label style={label}>Atelier *</label>
               <select style={selectS} value={form.seminar} onChange={upd("seminar")}>
                 <option value="">-- Choisir --</option>
                 {seminars.map(s => <option key={s.id} value={s.id}>{s.code} – {s.title}</option>)}
@@ -215,7 +215,7 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
 
       <div style={{ ...card, padding: 0, overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding: "12px 16px", borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
-          {["Participant", "Société / Fonction", "Séminaire", "Paiement", "Montant", "Statut", ""].map(h => (
+          {["Participant", "Société / Fonction", "Atelier", "Paiement", "Montant", "Statut", ""].map(h => (
             <div key={h} style={{ fontSize: 10, color: '#1B2A4A', textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>{h}</div>
           ))}
         </div>

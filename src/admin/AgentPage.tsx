@@ -24,7 +24,7 @@ export function AgentPage({ seminars }: AgentPageProps) {
       // Server-side "commercial" template (api/prompts.ts) renders the full
       // system prompt from a trusted whitelist + injects live seminar stats.
       // Client only supplies the seminarId and a free-form user request.
-      const userPrompt = `Génère le plan de prospection du jour pour le séminaire ${s.code} - ${s.title}. Concentre-toi sur les entreprises les plus susceptibles d'inscrire leurs cadres. Sois concret avec des noms d'entreprises réelles d'Abidjan et de Côte d'Ivoire.`;
+      const userPrompt = `Génère le plan de prospection du jour pour l'atelier ${s.code} - ${s.title}. Concentre-toi sur les entreprises les plus susceptibles d'inscrire leurs cadres. Sois concret avec des noms d'entreprises réelles d'Abidjan et de Côte d'Ivoire.`;
 
       const res = await callAI('commercial', {
         vars: { seminarId: s.id },
@@ -45,11 +45,11 @@ export function AgentPage({ seminars }: AgentPageProps) {
   return (
     <div>
       <h2 style={{ color: "#1B2A4A", fontSize: 24, fontWeight: 800, margin: "0 0 8px" }}>Agent Commercial IA</h2>
-      <p style={{ color: '#1B2A4A', fontSize: 14, margin: "0 0 24px" }}>Prospection automatisée : identification des meilleurs profils d'apprenants, scripts de vente et plans de contact personnalisés par séminaire.</p>
+      <p style={{ color: '#1B2A4A', fontSize: 14, margin: "0 0 24px" }}>Prospection automatisée : identification des meilleurs profils d'apprenants, scripts de vente et plans de contact personnalisés par atelier.</p>
 
       <div style={{ ...card, marginBottom: 24, display: "flex", gap: 12, alignItems: "end", flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <label style={label}>Séminaire cible</label>
+          <label style={label}>Atelier cible</label>
           <select style={selectS} value={seminar} onChange={e => setSeminar(e.target.value)}>
             {seminars.map(s => <option key={s.id} value={s.id}>{ICON_EMOJI[s.icon] || "📋"} {s.code} – {s.title}</option>)}
           </select>

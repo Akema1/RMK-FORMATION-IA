@@ -1,4 +1,4 @@
--- Table: participants (Inscriptions aux séminaires)
+-- Table: participants (Inscriptions aux ateliers)
 CREATE TABLE IF NOT EXISTS public.participants (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
   notes TEXT
 );
 
--- Table: seminars (Configuration des séminaires)
+-- Table: seminars (Configuration des ateliers)
 CREATE TABLE IF NOT EXISTS public.seminars (
   id TEXT PRIMARY KEY, -- Using custom string IDs like 's1', 's2' for compatibility
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
