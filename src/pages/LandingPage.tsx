@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
+import { registrationErrorToBanner } from "../lib/errors";
 import { LogoRMK } from "../components/LogoRMK";
 import { ChatWidget } from "../components/ChatWidget";
 import { SEMINARS, PRICE, PRICE_DIRIGEANTS, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, EARLY_BIRD_DAYS_BEFORE, COACHING_PRICE, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
@@ -126,7 +127,9 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
 }
 
 function CountdownBlock() {
-  const cd = useCountdown(new Date("2026-05-26T08:30:00").getTime());
+  // Anchored in UTC: the Atelier is in Abidjan (UTC+0) so 08:30Z is the true start.
+  // Without the Z suffix, diaspora visitors see the countdown drift by their offset.
+  const cd = useCountdown(new Date("2026-05-26T08:30:00Z").getTime());
   const units = [
     { val: cd.days, label: "Jours" },
     { val: cd.hours, label: "Heures" },
@@ -402,7 +405,7 @@ function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: strin
   );
 }
 
-function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; seminars: Seminar[] }) {
+function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange }: { selectedSem: string; seminars: Seminar[]; fullSeminars: Set<string>; onCapacityChange: () => void }) {
   const [form, setForm] = useState({ nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -445,7 +448,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
     // the most conservative cutoff.
     const selectedSeminar = seminars.find(s => s.id === form.seminaire);
     const earlyBirdCutoff = selectedSeminar
-      ? new Date(new Date(selectedSeminar.dates.start + "T00:00:00").getTime() - EARLY_BIRD_DAYS_BEFORE * 86400000)
+      ? new Date(new Date(selectedSeminar.dates.start + "T00:00:00Z").getTime() - EARLY_BIRD_DAYS_BEFORE * 86400000)
       : EARLY_BIRD_DEADLINE;
     const isEarlyBird = new Date() <= earlyBirdCutoff;
     const amount = isEarlyBird ? prices.earlyBird : prices.standard;
@@ -513,15 +516,18 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
 
       const { error: dbError } = await supabase.from('participants').insert([newParticipant]);
       if (dbError) {
-        // Postgres 23505 = unique_violation from the partial unique index
-        // participants_email_seminar_active_udx. This is the authoritative
-        // backstop for the race condition — the check-duplicate endpoint
-        // is the optimistic pre-check, but concurrent submissions can bypass it.
-        if (dbError.code === '23505') {
-          setErrors(prev => ({
-            ...prev,
-            _global: "Vous êtes déjà inscrit(e) à cet atelier. Consultez le Portail Client pour suivre votre inscription.",
-          }));
+        // 23505 = unique_violation from participants_email_seminar_active_udx
+        // (optimistic duplicate guard). P0013 = capacity exceeded, raised by
+        // the enforce_seminar_capacity trigger. Both map to a French banner
+        // via the shared utility so the Vitest suite can test the same code.
+        const banner = registrationErrorToBanner(dbError);
+        if (banner) {
+          setErrors(prev => ({ ...prev, _global: banner.message }));
+          if (banner.refetchCapacity) {
+            // The atelier filled between our capacity fetch and this submit.
+            // Ask the parent to re-fetch so the dropdown reflects reality.
+            onCapacityChange();
+          }
           setIsSubmitting(false);
           return;
         }
@@ -588,7 +594,19 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
             <label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Atelier souhaité *</label>
             <select id="field-seminaire" style={{ ...inputStyle, cursor: "pointer", background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.seminaire ? "#E74C3C" : "rgba(0,0,0,0.1)" }} value={form.seminaire} onChange={upd("seminaire")}>
               <option value="" style={{ color: "#000" }}>-- Choisir un atelier --</option>
-              {seminars.map((s: any) => <option key={s.id} value={s.id} style={{ color: "#000" }}>{s.code} – {s.title} ({s.week})</option>)}
+              {seminars.map((s: any) => {
+                const isFull = fullSeminars.has(s.id);
+                return (
+                  <option
+                    key={s.id}
+                    value={s.id}
+                    disabled={isFull}
+                    style={{ color: isFull ? "#999" : "#000" }}
+                  >
+                    {s.code} – {s.title} ({s.week}){isFull ? " — complet" : ""}
+                  </option>
+                );
+              })}
               <option value="pack2" style={{ color: "#000" }}>📦 Pack 2 ateliers (au choix)</option>
               <option value="pack4" style={{ color: "#000" }}>📦 Pack 4 ateliers (-20%)</option>
             </select>
@@ -717,13 +735,16 @@ function ContactLead() {
 }
 
 // Format a seminar start date ("2026-05-26") as "jj MMMM" in French, minus N days.
+// UTC throughout: Atelier timeline is anchored in Abidjan (UTC+0), and getDate /
+// getMonth would read the visitor's local calendar day — wrong for any non-UTC
+// browser near midnight.
 function formatDeadline(startIso: string, daysBefore: number): string {
-  const d = new Date(startIso + "T00:00:00");
-  d.setDate(d.getDate() - daysBefore);
-  const day = d.getDate();
+  const d = new Date(startIso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() - daysBefore);
+  const day = d.getUTCDate();
   const months = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
   const dayLabel = day === 1 ? "1ᵉʳ" : String(day);
-  return `${dayLabel} ${months[d.getMonth()]}`;
+  return `${dayLabel} ${months[d.getUTCMonth()]}`;
 }
 
 function EarlyBirdBanner({ seminars }: { seminars: Seminar[] }) {
@@ -794,6 +815,20 @@ export default function LandingPage() {
   const [page, setPage] = useState("home");
   const [selectedSem, setSelectedSem] = useState("");
   const [seminars, setSeminars] = useState<Seminar[]>(SEMINARS);
+  const [fullSeminars, setFullSeminars] = useState<Set<string>>(new Set());
+
+  const refreshCapacity = useCallback(async () => {
+    // Fail-open: if the RPC errors out, the dropdown stays fully enabled and
+    // the enforce_seminar_capacity trigger is the authoritative backstop.
+    const { data, error } = await supabase.rpc('get_seminar_capacity');
+    if (!error && Array.isArray(data)) {
+      setFullSeminars(new Set(
+        data
+          .filter((r: { is_full: boolean }) => r.is_full)
+          .map((r: { id: string }) => r.id),
+      ));
+    }
+  }, []);
 
   useEffect(() => {
     const fetchSeminars = async () => {
@@ -803,7 +838,8 @@ export default function LandingPage() {
       }
     };
     fetchSeminars();
-  }, []);
+    refreshCapacity();
+  }, [refreshCapacity]);
 
   return (
     <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", margin: 0, minHeight: "100vh", background: "#F5F0E8" }}>
@@ -856,7 +892,7 @@ export default function LandingPage() {
       
       {page === "seminaires" && <SeminarsPage setPage={setPage} seminars={seminars} setSelectedSem={setSelectedSem} />}
       {page === "tarifs" && <PricingPage setPage={setPage} seminars={seminars} setSelectedSem={setSelectedSem} />}
-      {page === "inscription" && <InscriptionPage selectedSem={selectedSem} seminars={seminars} />}
+      {page === "inscription" && <InscriptionPage selectedSem={selectedSem} seminars={seminars} fullSeminars={fullSeminars} onCapacityChange={refreshCapacity} />}
       {page === "home" && <ContactLead />}
       <Footer setPage={setPage} />
       {/* Sprint 7 Phase 4 — public chat widget, server-rendered client-mode
