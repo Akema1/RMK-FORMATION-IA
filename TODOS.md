@@ -2,25 +2,6 @@
 
 Living list of known work items, tracked outside of sprint plans. Items get promoted to PRs or issues as they're scheduled.
 
-## P0 — broken on main, fix ASAP
-
-### 0. Client portal E2E tests all failing
-
-**Why:** All 6 tests in `e2e/portal.spec.ts` timeout waiting for `input[type="email"]` to render. Verified pre-existing on `main` (not caused by the Improvements branch's landing-page work). The `ClientPortal` page is either failing to hydrate or the email input selector drifted. Real users may be hitting this too — the portal login flow is likely broken in production.
-
-**Reproduction:**
-```bash
-npx playwright test e2e/portal.spec.ts
-# 6 failed, 1 passed
-```
-
-**First checks:**
-1. Load `/portal` in a real browser and check the console. Hydration error? Missing env var? Supabase client throwing?
-2. Grep `ClientPortal.tsx` for the email input — has the selector changed to `type="text"` or been wrapped in a component that doesn't surface the input?
-3. Test isolation: run one failing test with `--headed --debug` to see what the DOM actually contains at the fail point.
-
-**Discovered:** 2026-04-18 during `/ship` of the Improvements branch. Noted here instead of blocking the landing-refresh PR since the failures are orthogonal.
-
 ## P1 — from /ship review on Improvements branch
 
 ### A. Early-bird deadline is client-side only (bypassable)
@@ -90,6 +71,8 @@ Public endpoint with 5/min per-IP rate limit, but each success creates a high-pr
 
 `express-rate-limit` uses an in-memory store. On Vercel Fluid Compute this is per-instance, not shared across concurrent instances, so the documented limits (20/min AI, 5/min lead, 3/min community) are really "up to N per instance". Affects all limiters: `aiLimiter`, `leadLimiter`, `notifyLimiter`, `communityLimiter`. Fix: `rate-limit-redis` adapter backed by Upstash (already in the Supabase marketplace stack) or Vercel KV.
 
+**Also surfaces as test flake (2026-04-18):** `e2e/security-hardening.spec.ts:117` intentionally exhausts the `/api/portal/lookup` limiter (`max=3/60s`), which poisons the in-memory store for ~60s. Three subsequent tests on the same endpoint (`86`, `93`, `100`) then see `429` instead of `400`/`200`. Even with `--workers=1` the tests still flake. Ordering the test file so the rate-limit exhaustion test runs *last* is a band-aid; the real fix is either (a) Redis-backed limiter with a per-test key prefix that tests can flush, or (b) a test-only bypass header on the limiter gated by `NODE_ENV=test`.
+
 ### 8. `SeminarsManagement.tsx` schema-drift string parsing
 
 Error recovery relies on `error.message.includes('Could not find')` to detect missing columns and retry the insert with a reduced payload. Fragile to Supabase error-format changes between CLI/SDK versions. Fix: prefer explicit `information_schema.columns` probing, or drop the fallback and rely on migrations being applied consistently.
@@ -135,4 +118,4 @@ Cosmetic. The prefix costs the ability to index `community_posts.id` as native U
 
 ---
 
-_Last updated: 2026-04-17 — Added P2 #12 (Twilio WhatsApp deferral), P2 #13 (capacity enforcement)._
+_Last updated: 2026-04-18 — Fixed P0 #0 (portal E2E tests rewritten to match 4-step onboarding UX; Playwright now auto-starts the dev server via `webServer` config). Surfaced rate-limit test flake into P2 #7._
