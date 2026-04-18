@@ -21,6 +21,24 @@ npx playwright test e2e/portal.spec.ts
 
 **Discovered:** 2026-04-18 during `/ship` of the Improvements branch. Noted here instead of blocking the landing-refresh PR since the failures are orthogonal.
 
+## P1 — from /ship review on Improvements branch
+
+### A. Early-bird deadline is client-side only (bypassable)
+
+**Why:** `LandingPage.tsx:446` computes `isEarlyBird` in the browser from `new Date()` and the selected atelier's `dates.start`. The computed `amount` is then inserted directly into `participants` via the anon Supabase client (`LandingPage.tsx:514`). A user with dev-tools can modify the payload and pay the early-bird price after the cutoff, or lower the amount entirely. Both Gemini and Qwen flagged this during the /ship review.
+
+**Work:** Compute authoritative pricing server-side when the CinetPay `/api/payments/init` endpoint is built (see `docs/superpowers/plans/2026-04-17-cinetpay-payments.md`). Server reads `SEMINARS` + current date, derives the price, ignores the client-sent amount. Until that endpoint exists, this gap is latent.
+
+**Impact:** Revenue leakage — small, since the discount is only 10% and our buyer pool is trust-verified via follow-up call. But still a real gap.
+
+### B. Timezone-unsafe date parsing in hero countdown and early-bird cutoff
+
+**Why:** `LandingPage.tsx:129` uses `new Date("2026-05-26T08:30:00")` (no `Z`) for the countdown. `LandingPage.tsx:441-442` uses `new Date(selectedSeminar.dates.start + "T00:00:00")` for the early-bird cutoff. Both parse in the client's local timezone. For Côte d'Ivoire users (UTC+0) this is fine, but users browsing from Paris (UTC+1/+2) will see the countdown and cutoff drift by 1–2 hours.
+
+**Fix:** Append `Z` to date strings, or use `Date.UTC()` to construct. Two lines. Wait until CinetPay integration lands to also normalize the server-side cutoff check.
+
+**Impact:** Low for the CI-native audience. Slightly visible to diaspora buyers.
+
 ## P1 — follow-up from PR #3 review
 
 ### 1. Authed `/api/ai/coaching` endpoint + re-enable Coaching tab
