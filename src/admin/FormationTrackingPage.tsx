@@ -88,7 +88,7 @@ export function FormationTrackingPage({ seminars, participants }: FormationTrack
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h2 style={{ color: "#1B2A4A", fontSize: 24, fontWeight: 800, margin: "0 0 4px" }}>Suivi de Formation</h2>
-          <p style={{ color: '#64748B', fontSize: 13, margin: 0 }}>Planifiez les sessions, suivez l'avancement et la présence par séminaire.</p>
+          <p style={{ color: '#64748B', fontSize: 13, margin: 0 }}>Planifiez les sessions, suivez l'avancement et la présence par atelier.</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <select style={{ ...selectS, width: 260 }} value={selectedSem} onChange={e => setSelectedSem(e.target.value)}>

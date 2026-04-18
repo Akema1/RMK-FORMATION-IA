@@ -11,7 +11,7 @@ interface NavProps {
 
 const tabs: { key: string; label: string; Icon: LucideIcon }[] = [
   { key: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { key: "seminaires", label: "Séminaires", Icon: GraduationCap },
+  { key: "seminaires", label: "Ateliers", Icon: GraduationCap },
   { key: "inscriptions", label: "Inscriptions", Icon: ClipboardList },
   { key: "finance", label: "Finance", Icon: Wallet },
   { key: "tasks", label: "Tâches", Icon: CheckSquare },

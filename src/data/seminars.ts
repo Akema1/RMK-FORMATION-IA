@@ -34,12 +34,12 @@ export const SEMINARS: Seminar[] = [
     code: "S1",
     title: "IA Stratégique pour Dirigeants",
     subtitle: "Leadership & Transformation Digitale",
-    week: "19 – 23 Mai 2026",
-    dates: { start: "2026-05-19", presentiel: "Lun 19 – Mer 21 Mai", online: "Jeu 22 – Ven 23 Mai" },
-    target: "DG, CEO, Cadres dirigeants, Directeurs de département",
+    week: "26 – 30 Mai 2026",
+    dates: { start: "2026-05-26", presentiel: "Mar 26 – Jeu 28 Mai", online: "Ven 29 – Sam 30 Mai" },
+    target: "Managers, Dirigeants, Administrateurs, Consultants, Entrepreneurs, Cadres Supérieurs et Professionnels",
     seats: 20,
-    color: "#E8651A",
-    gradient: "linear-gradient(135deg, #E8651A 0%, #F4A261 100%)",
+    color: "#2980B9",
+    gradient: "linear-gradient(135deg, #2980B9 0%, #74B9FF 100%)",
     icon: "Briefcase",
     highlights: [
       "Comprendre les transformations économiques liées à l'IA",
@@ -57,12 +57,12 @@ export const SEMINARS: Seminar[] = [
     code: "S2",
     title: "IA appliquée à la Finance",
     subtitle: "Analyse Financière & Gestion des Risques",
-    week: "26 – 30 Mai 2026",
-    dates: { start: "2026-05-26", presentiel: "Lun 26 – Mer 28 Mai", online: "Jeu 29 – Ven 30 Mai" },
+    week: "2 – 6 Juin 2026",
+    dates: { start: "2026-06-02", presentiel: "Mar 2 – Jeu 4 Juin", online: "Ven 5 – Sam 6 Juin" },
     target: "DAF, Analystes financiers, Banquiers, Risk Managers, Contrôleurs de gestion",
     seats: 20,
-    color: "#27AE60",
-    gradient: "linear-gradient(135deg, #27AE60 0%, #6FCF97 100%)",
+    color: "#2980B9",
+    gradient: "linear-gradient(135deg, #2980B9 0%, #74B9FF 100%)",
     icon: "BarChart3",
     highlights: [
       "Analyse automatisée des bilans et comptes de résultat",
@@ -80,8 +80,8 @@ export const SEMINARS: Seminar[] = [
     code: "S3",
     title: "IA pour les Notaires",
     subtitle: "Modernisation des Études Notariales",
-    week: "2 – 6 Juin 2026",
-    dates: { start: "2026-06-02", presentiel: "Lun 2 – Mer 4 Juin", online: "Jeu 5 – Ven 6 Juin" },
+    week: "9 – 13 Juin 2026",
+    dates: { start: "2026-06-09", presentiel: "Mar 9 – Jeu 11 Juin", online: "Ven 12 – Sam 13 Juin" },
     target: "Notaires, Clercs de notaires, Collaborateurs d'études, Juristes",
     seats: 15,
     color: "#2980B9",
@@ -103,12 +103,12 @@ export const SEMINARS: Seminar[] = [
     code: "S4",
     title: "IA pour les Ressources Humaines",
     subtitle: "Transformer la Fonction RH",
-    week: "9 – 13 Juin 2026",
-    dates: { start: "2026-06-09", presentiel: "Lun 9 – Mer 11 Juin", online: "Jeu 12 – Ven 13 Juin" },
+    week: "16 – 20 Juin 2026",
+    dates: { start: "2026-06-16", presentiel: "Mar 16 – Jeu 18 Juin", online: "Ven 19 – Sam 20 Juin" },
     target: "DRH, Responsables RH, Chargés de recrutement, Responsables formation",
     seats: 15,
-    color: "#F39C12",
-    gradient: "linear-gradient(135deg, #F39C12 0%, #F7DC6F 100%)",
+    color: "#2980B9",
+    gradient: "linear-gradient(135deg, #2980B9 0%, #74B9FF 100%)",
     icon: "Users",
     highlights: [
       "Rédaction d'offres d'emploi et analyse de CV avec l'IA",
@@ -136,7 +136,9 @@ export const SEMINAR_ICONS: Record<string, string> = {
 export const PRICE = 600000;
 export const PRICE_DIRIGEANTS = 680000;
 export const EARLY_BIRD_PRICE = 540000;
-export const EARLY_BIRD_DEADLINE = new Date("2026-05-10T23:59:59");
+// Early-bird: 10% off when purchased 15+ days before the first Atelier (S1 starts 2026-05-26).
+export const EARLY_BIRD_DEADLINE = new Date("2026-05-11T23:59:59");
+export const EARLY_BIRD_DAYS_BEFORE = 15;
 export const COACHING_PRICE = 100000; // par session de 2h (inclus pour dirigeants, optionnel pour les autres)
 
 // Formatting helper

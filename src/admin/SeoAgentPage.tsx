@@ -46,7 +46,7 @@ Génère une stratégie SEO complète :
     <div>
       <h2 style={{ color: "#1B2A4A", fontSize: 24, fontWeight: 800, margin: "0 0 24px" }}>Agent SEO & Contenu</h2>
       <div style={{ ...card, marginBottom: 24 }}>
-        <p style={{ color: '#1B2A4A', fontSize: 14, marginBottom: 16 }}>L'Agent SEO vous aide à générer des mots-clés, des idées d'articles et des structures de pages pour attirer plus de prospects organiques sur vos séminaires.</p>
+        <p style={{ color: '#1B2A4A', fontSize: 14, marginBottom: 16 }}>L'Agent SEO vous aide à générer des mots-clés, des idées d'articles et des structures de pages pour attirer plus de prospects organiques sur vos ateliers.</p>
         <div style={{ display: "flex", gap: 12 }}>
           <input style={{ ...inputS, flex: 1 }} value={topic} onChange={e => setTopic(e.target.value)} placeholder="Ex: Formation IA pour les Directeurs Financiers à Abidjan" />
           <button onClick={generateSEO} disabled={loading} style={{ ...btnPrimary, opacity: loading ? 0.7 : 1 }}>

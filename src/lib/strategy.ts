@@ -2,31 +2,31 @@ export const COMMERCIAL_STRATEGY = `CABEXIA
 Cabinet d'Expertise en Intelligence Artificielle & RMK Conseils
 
 STRATEGIE DE COMMERCIALISATION
-4 Séminaires Formation IA – Format Hybride
+4 Ateliers Formation IA – Format Hybride
 3 jours présentiel + 2 sessions en ligne (4h)
-Mai 2026 – Abidjan, Côte d'Ivoire
+Mai – Juin 2026 – Abidjan, Côte d'Ivoire
 
 Organisateurs : RMK Conseils (Hôte) & CABEXIA (Expertise)
 Document de travail – Mars 2026 – CONFIDENTIEL
  
 1. Synthèse Exécutive
-RMK Conseils organise 4 séminaires de formation en Intelligence Artificielle à Abidjan durant le mois de mai 2026, dispensés par CABEXIA. Chaque séminaire suit un format hybride de 5 jours : 3 journées complètes en présentiel (lundi à mercredi) suivies de 2 sessions en ligne de 4 heures chacune (jeudi et vendredi).
-Objectif total : 60 à 80 participants (15 à 20 par séminaire)
+RMK Conseils organise 4 ateliers de formation en Intelligence Artificielle à Abidjan entre le 26 mai et le 20 juin 2026, dispensés par CABEXIA. Chaque atelier suit un format hybride de 5 jours : 3 journées complètes en présentiel (lundi à mercredi) suivies de 2 sessions en ligne de 4 heures chacune (jeudi et vendredi).
+Objectif total : 60 à 80 participants (15 à 20 par atelier)
 CA prévisionnel : ~ 36 000 000 FCFA
 Invest. marketing : ~ 500 000 FCFA
 
 2. Analyse du Marché Abidjanais
 Abidjan se positionne comme le hub technologique et financier de l'Afrique de l'Ouest francophone.
-Cibles par séminaire :
-S1 Dirigeants (5-9 mai) : DG, CEO, DGA, Directeurs (Tous secteurs)
-S2 Finance (12-16 mai) : DAF, Analystes, Risk, Trésoriers (Banque, Assurance)
-S3 Notaires (19-23 mai) : Notaires, Clercs, Collaborateurs (Profession notariale)
-S4 RH (26-30 mai) : DRH, Resp. Recrutement, Formation (Tous secteurs)
+Cibles par atelier :
+S1 Dirigeants (26-30 mai) : Managers, Dirigeants, Administrateurs, Consultants, Entrepreneurs, Cadres Supérieurs et Professionnels
+S2 Finance (2-6 juin) : DAF, Analystes, Risk, Trésoriers (Banque, Assurance)
+S3 Notaires (9-13 juin) : Notaires, Clercs, Collaborateurs (Profession notariale)
+S4 RH (16-20 juin) : DRH, Resp. Recrutement, Formation (Tous secteurs)
 
 3. Stratégie Tarifaire
-Tarif unique de 600 000 FCFA par séminaire (5 jours hybrides).
+Tarif unique de 600 000 FCFA par atelier (5 jours hybrides).
 Offres promotionnelles :
-- Early bird (-10%) : 540 000 FCFA pour toute inscription avant le 30 avril 2026.
+- Early bird (-10%) : 540 000 FCFA pour toute inscription effectuée au moins 15 jours avant le début de l'atelier choisi (soit avant le 11 mai pour S1, le 18 mai pour S2, le 25 mai pour S3, le 1ᵉʳ juin pour S4).
 - Tarif groupe : remises applicables selon le nombre d'inscrits.
 
 4. Plan de Commercialisation – 5 Canaux

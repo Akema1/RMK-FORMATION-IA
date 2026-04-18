@@ -128,10 +128,10 @@ function buildCoverPage(doc: jsPDF): void {
 
   // 4 seminars in pill-style cards
   const seminars = [
-    { code: 'S1', title: 'IA Strategique Dirigeants', color: '#E8651A', week: '19 – 23 Mai 2026' },
-    { code: 'S2', title: 'IA appliquee a la Finance', color: '#27AE60', week: '26 – 30 Mai 2026' },
-    { code: 'S3', title: 'IA pour les RH', color: '#2980B9', week: '2 – 6 Juin 2026' },
-    { code: 'S4', title: 'IA pour Commercial & Marketing', color: '#8E44AD', week: '9 – 13 Juin 2026' },
+    { code: 'S1', title: 'IA Strategique Dirigeants', color: '#2980B9', week: '26 – 30 Mai 2026' },
+    { code: 'S2', title: 'IA appliquee a la Finance', color: '#2980B9', week: '2 – 6 Juin 2026' },
+    { code: 'S3', title: 'IA pour les Notaires', color: '#2980B9', week: '9 – 13 Juin 2026' },
+    { code: 'S4', title: 'IA pour les Ressources Humaines', color: '#2980B9', week: '16 – 20 Juin 2026' },
   ];
 
   let sy = 137;
@@ -167,7 +167,7 @@ function buildCoverPage(doc: jsPDF): void {
   doc.text('Format Hybride  ·  3 jours Presentiel  +  2 jours En Ligne', PW / 2, sy + 15.5, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.text('Abidjan, Cote d\'Ivoire  —  Mai / Juin 2026  —  20 participants max par seminaire', PW / 2, sy + 21.5, { align: 'center' });
+  doc.text('Abidjan, Cote d\'Ivoire  —  Mai / Juin 2026  —  20 participants max par atelier', PW / 2, sy + 21.5, { align: 'center' });
 
   sy += 36;
 
@@ -239,7 +239,7 @@ function buildPillarsPage(doc: jsPDF): void {
     {
       num: '01',
       icon: '◉',
-      title: 'Seminaires Academiques Intensifs',
+      title: 'Ateliers Academiques Intensifs',
       desc: '3 jours de sessions presentielles encadrees par des experts certifies CABEXIA avec pedagogie active et mises en situation reelles.',
     },
     {
@@ -323,17 +323,17 @@ function buildProgrammePage(doc: jsPDF): void {
   const days = [
     {
       day: 'JOUR 1',
-      label: 'Lundi',
+      label: 'Mardi',
       type: 'Presentiel',
       color: NAVY,
       sessions: [
-        { time: '09:00 – 12:00', label: 'MATIN', content: 'Module Commun — Introduction IA Generative (tous seminaires)', highlight: true },
+        { time: '09:00 – 12:00', label: 'MATIN', content: 'Module Commun — Introduction IA Generative (tous ateliers)', highlight: true },
         { time: '13:30 – 17:30', label: 'APRES-MIDI', content: 'Approfondissement par seminar : fondations metier + cadre theorique specifique', highlight: false },
       ],
     },
     {
       day: 'JOUR 2',
-      label: 'Mardi',
+      label: 'Mercredi',
       type: 'Presentiel',
       color: NAVY,
       sessions: [
@@ -343,7 +343,7 @@ function buildProgrammePage(doc: jsPDF): void {
     },
     {
       day: 'JOUR 3',
-      label: 'Mercredi',
+      label: 'Jeudi',
       type: 'Presentiel',
       color: NAVY,
       sessions: [
@@ -353,7 +353,7 @@ function buildProgrammePage(doc: jsPDF): void {
     },
     {
       day: 'JOUR 4',
-      label: 'Jeudi',
+      label: 'Vendredi',
       type: 'En Ligne',
       color: '#2980B9',
       sessions: [
@@ -363,7 +363,7 @@ function buildProgrammePage(doc: jsPDF): void {
     },
     {
       day: 'JOUR 5',
-      label: 'Vendredi',
+      label: 'Samedi',
       type: 'En Ligne',
       color: '#2980B9',
       sessions: [
@@ -639,9 +639,9 @@ function buildPricingPage(doc: jsPDF): void {
     margin: { left: MARGIN, right: MARGIN },
     head: [['Formule', 'Tarif', 'Details']],
     body: [
-      ['Early Bird', `${fmt(EARLY_BIRD_PRICE)} FCFA`, 'Inscription avant le 10 Mai 2026 — Offre limitee'],
-      ['Standard', `${fmt(PRICE)} FCFA`, 'Tarif de base par seminaire'],
-      ['Dirigeants (S1)', `${fmt(PRICE_DIRIGEANTS)} FCFA`, 'Seminaire S1 dedie aux decideurs'],
+      ['Early Bird', `${fmt(EARLY_BIRD_PRICE)} FCFA`, '-10% si inscription 15 jours avant le debut de l\'atelier'],
+      ['Standard', `${fmt(PRICE)} FCFA`, 'Tarif de base par atelier'],
+      ['Dirigeants (S1)', `${fmt(PRICE_DIRIGEANTS)} FCFA`, 'Atelier S1 dedie aux decideurs'],
       ['Coaching individuel', `${fmt(COACHING_PRICE)} FCFA`, 'Session individuelle de 2h (optionnel)'],
     ],
     headStyles: {
@@ -669,11 +669,11 @@ function buildPricingPage(doc: jsPDF): void {
   y = ((doc as unknown) as Record<string, Record<string, unknown>>).lastAutoTable?.finalY as number ?? y + 60;
   y += 12;
 
-  y = drawSectionTitle(doc, 'Remises Pack Multi-Seminaires', y);
+  y = drawSectionTitle(doc, 'Remises Pack Multi-Ateliers', y);
   const packs = [
-    ['2 seminaires', '-10% sur le total'],
-    ['3 seminaires', '-15% sur le total'],
-    ['4 seminaires (Pack Integral)', '-20% — Acces a tous les seminaires'],
+    ['2 ateliers', '-10% sur le total'],
+    ['3 ateliers', '-15% sur le total'],
+    ['4 ateliers (Pack Integral)', '-20% — Acces a tous les ateliers'],
   ];
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);

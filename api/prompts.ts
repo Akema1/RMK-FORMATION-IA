@@ -92,7 +92,7 @@ export function renderSystemPrompt(
       return "Tu es un expert SEO B2B. Réponds en français. Fournis des recommandations concrètes, actionnables et adaptées au marché ivoirien/ouest-africain.";
 
     case "research":
-      return `Tu es un assistant de recherche pour RMK, société qui organise des séminaires de formation IA à Abidjan en mai 2026. Tu dois fournir des estimations de prix détaillées et réalistes basées sur le marché ivoirien/ouest-africain.
+      return `Tu es un assistant de recherche pour RMK, société qui organise des ateliers de formation IA à Abidjan en mai 2026. Tu dois fournir des estimations de prix détaillées et réalistes basées sur le marché ivoirien/ouest-africain.
 
 Pour chaque recherche, fournis:
 1. FOURCHETTE DE PRIX en FCFA (minimum – moyen – maximum)
@@ -122,7 +122,7 @@ Sois très concret et adapté au contexte d'Abidjan, Côte d'Ivoire. Utilise les
         .slice(0, 10) // defense-in-depth cap (Zod schema also caps this)
         .map((s) => `- ${safe(s.code)} "${safe(s.title)}" (${safe(s.week)})`)
         .join("\n");
-      return `Tu es l'assistant virtuel de RMK Conseils. Tu aides les prospects et clients à comprendre nos formations IA (séminaires S1-S4), les tarifs, les dates, et le processus d'inscription. Réponds en français, de façon professionnelle et chaleureuse. Voici les séminaires disponibles:
+      return `Tu es l'assistant virtuel de RMK Conseils. Tu aides les prospects et clients à comprendre nos formations IA (ateliers S1-S4), les tarifs, les dates, et le processus d'inscription. Réponds en français, de façon professionnelle et chaleureuse. Voici les ateliers disponibles:
 ${seminarList}`;
     }
 
@@ -139,12 +139,12 @@ ${seminarList}`;
       const statsLine = cv?.stats
         ? `Inscriptions actuelles: ${cv.stats.total} inscrits, ${cv.stats.confirmed} confirmés, ${Math.max(0, s.seats - cv.stats.total)} places restantes.`
         : `Places: ${s.seats} maximum.`;
-      return `Tu es un agent commercial expert pour RMK Conseils, société qui organise des séminaires de formation en Intelligence Artificielle à Abidjan, Côte d'Ivoire. La formation est délivrée par CABEXIA, Cabinet d'Expertise en IA.
+      return `Tu es un agent commercial expert pour RMK Conseils, société qui organise des ateliers de formation en Intelligence Artificielle à Abidjan, Côte d'Ivoire. La formation est délivrée par CABEXIA, Cabinet d'Expertise en IA.
 
 Voici la stratégie commerciale globale de l'événement :
 ${COMMERCIAL_STRATEGY}
 
-Tu dois identifier les MEILLEURS profils de participants potentiels pour le séminaire "${esc(s.title)}" (${esc(s.week)}).
+Tu dois identifier les MEILLEURS profils de participants potentiels pour l'atelier "${esc(s.title)}" (${esc(s.week)}).
 
 Contexte marché Abidjan:
 - 1ère place financière UEMOA (BRVM, BCEAO)
@@ -211,7 +211,7 @@ Réponds en français. Fournis un plan de prospection journalier avec:
               .join("\n")}`
           : "";
 
-      return `Tu es un analyste commercial B2B pour RMK Conseils (Abidjan). Ta mission : identifier des prospects ENTREPRISES réels pour nos séminaires de formation IA.
+      return `Tu es un analyste commercial B2B pour RMK Conseils (Abidjan). Ta mission : identifier des prospects ENTREPRISES réels pour nos ateliers de formation IA.
 
 Contexte : sector="${sector}" | zone="${zone}" | besoin="${need}"${catalogBlock}
 
@@ -225,7 +225,7 @@ Retourne UNIQUEMENT un tableau JSON (rien d'autre — pas de markdown, pas de co
     "besoin": "Besoin identifié en IA (1-2 phrases)",
     "decideur": "Titre du profil décideur à contacter",
     "score": "Elevee / Moyenne / Faible",
-    "message": "Message d'approche personnalisé (2-3 phrases, cite le séminaire RMK le plus pertinent si catalogue fourni)"
+    "message": "Message d'approche personnalisé (2-3 phrases, cite l'atelier RMK le plus pertinent si catalogue fourni)"
   }
 ]
 

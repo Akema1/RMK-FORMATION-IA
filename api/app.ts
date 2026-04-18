@@ -557,7 +557,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
             "Confirmation de votre demande d'inscription - RMK Conseils",
           html: `
             <h2>Bonjour ${escapeHtml(participant.prenom)},</h2>
-            <p>Nous avons bien reçu votre demande d'inscription pour le séminaire <strong>${escapeHtml(seminarTitle)}</strong>.</p>
+            <p>Nous avons bien reçu votre demande d'inscription pour l'atelier <strong>${escapeHtml(seminarTitle)}</strong>.</p>
             <p>L'équipe RMK vous contactera sous 24h pour confirmer votre inscription et les modalités de paiement.</p>
             <br/>
             <p>Cordialement,</p>
@@ -579,7 +579,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
           process.env.TWILIO_AUTH_TOKEN
         );
         await client.messages.create({
-          body: `Bonjour ${sanitizeText(participant.prenom, 50)}, nous avons bien reçu votre demande d'inscription pour le séminaire ${sanitizeText(seminarTitle, 100)}. L'équipe RMK vous contactera sous 24h.`,
+          body: `Bonjour ${sanitizeText(participant.prenom, 50)}, nous avons bien reçu votre demande d'inscription pour l'atelier ${sanitizeText(seminarTitle, 100)}. L'équipe RMK vous contactera sous 24h.`,
           from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
           to: `whatsapp:${participant.tel}`,
         });
@@ -1036,7 +1036,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
   Nom: ${escapeXml(nom)}
   Poste: ${escapeXml(poste)}
   Entreprise: ${escapeXml(entreprise)}
-  Séminaire cible: ${escapeXml(seminar)}
+  Atelier cible: ${escapeXml(seminar)}
 </prospect>`,
       });
       res.json({ email: response.text });

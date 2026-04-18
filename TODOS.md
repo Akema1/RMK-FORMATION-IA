@@ -2,6 +2,43 @@
 
 Living list of known work items, tracked outside of sprint plans. Items get promoted to PRs or issues as they're scheduled.
 
+## P0 — broken on main, fix ASAP
+
+### 0. Client portal E2E tests all failing
+
+**Why:** All 6 tests in `e2e/portal.spec.ts` timeout waiting for `input[type="email"]` to render. Verified pre-existing on `main` (not caused by the Improvements branch's landing-page work). The `ClientPortal` page is either failing to hydrate or the email input selector drifted. Real users may be hitting this too — the portal login flow is likely broken in production.
+
+**Reproduction:**
+```bash
+npx playwright test e2e/portal.spec.ts
+# 6 failed, 1 passed
+```
+
+**First checks:**
+1. Load `/portal` in a real browser and check the console. Hydration error? Missing env var? Supabase client throwing?
+2. Grep `ClientPortal.tsx` for the email input — has the selector changed to `type="text"` or been wrapped in a component that doesn't surface the input?
+3. Test isolation: run one failing test with `--headed --debug` to see what the DOM actually contains at the fail point.
+
+**Discovered:** 2026-04-18 during `/ship` of the Improvements branch. Noted here instead of blocking the landing-refresh PR since the failures are orthogonal.
+
+## P1 — from /ship review on Improvements branch
+
+### A. Early-bird deadline is client-side only (bypassable)
+
+**Why:** `LandingPage.tsx:446` computes `isEarlyBird` in the browser from `new Date()` and the selected atelier's `dates.start`. The computed `amount` is then inserted directly into `participants` via the anon Supabase client (`LandingPage.tsx:514`). A user with dev-tools can modify the payload and pay the early-bird price after the cutoff, or lower the amount entirely. Both Gemini and Qwen flagged this during the /ship review.
+
+**Work:** Compute authoritative pricing server-side when the CinetPay `/api/payments/init` endpoint is built (see `docs/superpowers/plans/2026-04-17-cinetpay-payments.md`). Server reads `SEMINARS` + current date, derives the price, ignores the client-sent amount. Until that endpoint exists, this gap is latent.
+
+**Impact:** Revenue leakage — small, since the discount is only 10% and our buyer pool is trust-verified via follow-up call. But still a real gap.
+
+### B. Timezone-unsafe date parsing in hero countdown and early-bird cutoff
+
+**Why:** `LandingPage.tsx:129` uses `new Date("2026-05-26T08:30:00")` (no `Z`) for the countdown. `LandingPage.tsx:441-442` uses `new Date(selectedSeminar.dates.start + "T00:00:00")` for the early-bird cutoff. Both parse in the client's local timezone. For Côte d'Ivoire users (UTC+0) this is fine, but users browsing from Paris (UTC+1/+2) will see the countdown and cutoff drift by 1–2 hours.
+
+**Fix:** Append `Z` to date strings, or use `Date.UTC()` to construct. Two lines. Wait until CinetPay integration lands to also normalize the server-side cutoff check.
+
+**Impact:** Low for the CI-native audience. Slightly visible to diaspora buyers.
+
 ## P1 — follow-up from PR #3 review
 
 ### 1. Authed `/api/ai/coaching` endpoint + re-enable Coaching tab
@@ -61,6 +98,31 @@ Error recovery relies on `error.message.includes('Could not find')` to detect mi
 
 Gemini flagged (unverified in this session): `isValidUUID` check in `attemptSave` may cause an insert-instead-of-update when the seminar id is a legacy human-readable string like "s1" instead of a UUID. Needs verification — if confirmed, fix the upsert logic to match on whatever id format actually exists.
 
+### 12. Twilio WhatsApp channel — documented but unconfigured
+
+**Why:** `api/app.ts:571-586` sends a WhatsApp confirmation via Twilio when a participant registers with a phone number. Verified 2026-04-17: zero `TWILIO_*` env vars are set in any Vercel environment (production, preview, development). The guard short-circuits cleanly, so registrations email-only today. `.env.example` still lists all three vars as if configured. Email from Resend covers the confirmation channel, so nothing is broken for users — but the WhatsApp path is dead code in prod.
+
+**Decision:** deferred past May 2026 launch. WhatsApp Business API provisioning requires Meta Business Manager approval (1-5 business days) plus message-template pre-approval — too much lead time for the current cycle. Email is sufficient for a capped paid seminar with manual follow-up.
+
+**Work when un-deferred:**
+- Apply for WhatsApp Business via Meta Business Manager and get a dedicated number.
+- Pre-approve the registration confirmation as a message template (outbound to cold users needs templated sends).
+- Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` to Vercel (all three environments).
+- Smoke test via a real registration with a reachable phone number; confirm the template renders correctly.
+
+### 13. Seminar capacity not enforced server-side
+
+**Why:** `src/data/seminars.ts` declares `seats: 20` per seminar, but nothing enforces it. `LandingPage.tsx:504` inserts directly into `participants` via the anon client, and neither that path nor `/api/notify-registration` checks `count(active participants) < seats` before accepting a registration. Registrations #21, #50, #N all succeed. For paid seminars this means a real customer can pay for a seat that doesn't exist, which is a refund / reputation hit.
+
+**Verified 2026-04-17:** searched `src/pages/LandingPage.tsx` and `api/app.ts` for `capacity|seats|places` — zero hits on the registration path. `seats: 20` is display-only.
+
+**Options:**
+- **A. Postgres `BEFORE INSERT` trigger on `participants`** (~15 lines of SQL + migration). Counts active rows for the target seminar, raises `Séminaire complet` when at capacity. Atomic, race-safe, no API changes. Trade-off: business logic in the schema is harder to evolve than TypeScript.
+- **B. New `/api/registration/create` endpoint** that does `SELECT count FOR UPDATE` + insert in one transaction, replacing the direct client insert at `LandingPage.tsx:504`. Keeps logic in TypeScript. Race-safe via row lock. Bigger refactor — `/api/notify-registration` would merge in or become internal-only.
+- **C. Client-side pre-check only.** Not race-safe — overshoots under concurrent load. Not acceptable as the sole guard for paid registrations.
+
+**Recommended:** A, plus a "complet" badge in the UI (query count from `LandingPage.tsx` on mount, disable "S'inscrire" and swap CTA text when a seminar is full). Two small changes beat one medium refactor. Total ~30 min of CC time.
+
 ## P3 — nice-to-haves
 
 ### 10. Community post date from `created_at`
@@ -73,4 +135,4 @@ Cosmetic. The prefix costs the ability to index `community_posts.id` as native U
 
 ---
 
-_Last updated: 2026-04-15 — Sprint 7 Phase 3 review follow-ups from PR #3._
+_Last updated: 2026-04-17 — Added P2 #12 (Twilio WhatsApp deferral), P2 #13 (capacity enforcement)._
