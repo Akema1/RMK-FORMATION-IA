@@ -590,3 +590,18 @@ Record the outcome in the PR description.
 - Total estimated time: ~45 minutes of focused work (Task 1 is the bulk; Tasks 2-5 are mechanical).
 - Task 1 commit must land before Tasks 2-5 so the migration exists when CI/preview runs the client changes. Can be bundled into a single commit if preferred, but keeping them separate helps git-bisect later if the trigger regresses a future UPDATE path.
 - After all commits, invoke the mandatory parallel Gemini + Qwen pre-commit gate before `git push`.
+
+---
+
+## Post-ship amendment (2026-04-18)
+
+**Bug caught at /ship review:** the original migration in this plan declared
+`enforce_seminar_capacity()` as `SECURITY INVOKER`. RLS on `participants` lets
+`anon` INSERT but not SELECT, so the trigger's `SELECT count(*)` returned 0 for
+every anonymous registration and the cap silently never tripped. Both Gemini
+security and Qwen flagged it independently during the parallel pre-landing
+review. Fix: trigger function changed to `SECURITY DEFINER SET search_path =
+public` (matches the pattern already used by `get_seminar_capacity()`). The
+canonical migration in `supabase/migrations/20260418000000_seminar_capacity_trigger.sql`
+reflects the fix; the SQL listing earlier in this doc is unchanged for
+historical reference but DO NOT copy from it.

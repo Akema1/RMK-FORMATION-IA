@@ -105,7 +105,12 @@ Gemini flagged (unverified in this session): `isValidUUID` check in `attemptSave
      (pack2/pack4 — see TODOS #14). Error-mapping unit at
      api/__tests__/capacity-error.test.ts (7 passing). Trigger itself
      validated manually against a Supabase preview branch per the plan at
-     docs/superpowers/plans/2026-04-18-seminar-capacity-enforcement.md. -->
+     docs/superpowers/plans/2026-04-18-seminar-capacity-enforcement.md.
+     Caught at /ship review and fixed before merge: the trigger function
+     was originally SECURITY INVOKER, which would have made the count(*)
+     return 0 under anon RLS (anon has INSERT-only on participants) and
+     silently fail-open. Both Gemini and Qwen flagged it; fix is
+     SECURITY DEFINER + SET search_path = public. -->
 
 ### 14. Pack registrations (pack2/pack4) have no capacity enforcement
 
@@ -144,4 +149,4 @@ Cosmetic. The prefix costs the ability to index `community_posts.id` as native U
 
 ---
 
-_Last updated: 2026-04-18 — Fixed P0 #0 (portal E2E tests rewritten to match 4-step onboarding UX; Playwright now auto-starts the dev server via `webServer` config). Fixed P1-B (TZ-unsafe date parsing — all four call-sites anchored to UTC; regression guarded by `e2e/landing-timezone.spec.ts`). Pruned P1 #1 (coaching endpoint — already shipped; audited + verified). Fixed P2 #13 (server-side seminar capacity enforcement via Postgres trigger + advisory lock + SECURITY DEFINER capacity function). Added #14 (pack capacity follow-up). Surfaced rate-limit test flake into P2 #7._
+_Last updated: 2026-04-18 — Fixed P0 #0 (portal E2E tests rewritten to match 4-step onboarding UX; Playwright now auto-starts the dev server via `webServer` config). Fixed P1-B (TZ-unsafe date parsing — all four call-sites anchored to UTC; regression guarded by `e2e/landing-timezone.spec.ts`). Pruned P1 #1 (coaching endpoint — already shipped; audited + verified). Fixed P2 #13 (server-side seminar capacity enforcement via Postgres trigger + advisory lock + SECURITY DEFINER capacity function). Caught + fixed at /ship: trigger originally SECURITY INVOKER, would have fail-opened under anon RLS. Both Gemini and Qwen flagged it; fix is SECURITY DEFINER + pinned search_path. Added #14 (pack capacity follow-up). Surfaced rate-limit test flake into P2 #7._

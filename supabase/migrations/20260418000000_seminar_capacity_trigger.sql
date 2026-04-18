@@ -27,11 +27,20 @@ BEGIN;
 
 -- ─────────────────────────────────────────────────────────────
 -- 1. Trigger function
+--
+-- SECURITY DEFINER (not INVOKER) is required: anon registrations fire this
+-- trigger under the anon role, which has no SELECT policy on participants
+-- (RLS lets anon INSERT but not read). Under INVOKER the count(*) below
+-- would return 0 for every anon insert and the cap would silently never
+-- trip. DEFINER runs as the function owner (postgres in Supabase), which
+-- bypasses RLS for the aggregate count. search_path is pinned so a poisoned
+-- caller search_path can't redirect count() to a malicious schema.
 -- ─────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.enforce_seminar_capacity()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SECURITY INVOKER
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_seats      INTEGER;
