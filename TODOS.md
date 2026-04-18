@@ -2,6 +2,25 @@
 
 Living list of known work items, tracked outside of sprint plans. Items get promoted to PRs or issues as they're scheduled.
 
+## P0 — broken on main, fix ASAP
+
+### 0. Client portal E2E tests all failing
+
+**Why:** All 6 tests in `e2e/portal.spec.ts` timeout waiting for `input[type="email"]` to render. Verified pre-existing on `main` (not caused by the Improvements branch's landing-page work). The `ClientPortal` page is either failing to hydrate or the email input selector drifted. Real users may be hitting this too — the portal login flow is likely broken in production.
+
+**Reproduction:**
+```bash
+npx playwright test e2e/portal.spec.ts
+# 6 failed, 1 passed
+```
+
+**First checks:**
+1. Load `/portal` in a real browser and check the console. Hydration error? Missing env var? Supabase client throwing?
+2. Grep `ClientPortal.tsx` for the email input — has the selector changed to `type="text"` or been wrapped in a component that doesn't surface the input?
+3. Test isolation: run one failing test with `--headed --debug` to see what the DOM actually contains at the fail point.
+
+**Discovered:** 2026-04-18 during `/ship` of the Improvements branch. Noted here instead of blocking the landing-refresh PR since the failures are orthogonal.
+
 ## P1 — follow-up from PR #3 review
 
 ### 1. Authed `/api/ai/coaching` endpoint + re-enable Coaching tab
