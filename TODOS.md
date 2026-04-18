@@ -52,15 +52,34 @@ Living list of known work items, tracked outside of sprint plans. Items get prom
 Read-modify-write on a single JSONB `settings` row. Two admins editing different seminars concurrently → last writer wins. Fix: refetch-then-merge before upsert, or split budgets/pricing into per-seminar rows in a dedicated table.
 **Blast radius:** 2 active admins — low probability, real data loss when triggered.
 
-### 4. `/api/notify-registration` task idempotency
+<!-- 4. /api/notify-registration task idempotency — RESOLVED (mostly) 2026-04-18.
+     Audit trail: commit 52ca9ee ("P2 production hardening") added a read-then-write
+     idempotency guard at api/app.ts:514-541. Queries `tasks` for matching
+     (seminar, task_name) before inserting; task names embed `${fullName}` so
+     dedup is effectively per-participant-per-seminar. Handles all documented
+     scenarios (client retry, network timeout, back-button, webhook double-delivery).
+     Residual gap: read-then-write has a TOCTOU window under truly concurrent
+     double-click (sub-100ms). Defense-in-depth fix would be a DB-level
+     UNIQUE (seminar, task) constraint — deferred as cosmetic (admin deletes dupes). -->
 
-Every call creates two "tasks" rows (`[Onboarding] Vérifier dossier` + `[Finance] Confirmer paiement`). Client retry or webhook double-delivery = duplicate task rows. Fix: dedup key (e.g. `UNIQUE (seminar, participant_id, task_type)`) on `tasks`, or an idempotency key on the endpoint.
-**Blast radius:** low — admin can delete dupes, but pollutes the task list.
+### 5. `/api/lead/capture` task-flood — partially mitigated
 
-### 5. `/api/lead/capture` task-flood DoS
+**Status (audited 2026-04-18):** Contact-based dedup guard exists at
+`api/app.ts:644-654` (commit `52ca9ee`). Any POST with a previously-seen
+`contact` short-circuits to `{success: true}` without inserting a lead or
+task. Blocks naive retries and same-contact spam.
 
-Public endpoint with 5/min per-IP rate limit, but each success creates a high-priority "[Commercial] Rappeler le prospect" task assigned to alexis. Rotating IPs → task list flooded. Fix: captcha on the lead magnet form, or server-side dedup on `(nom, contact)` within a time window.
-**Blast radius:** medium — degrades operational workflow, not data loss.
+**Residual gap:** the original attack vector (IP rotation → flood tasks) still
+works if the attacker *also* rotates the contact field (`attacker+1@`,
+`attacker+2@`, etc). The 5/min per-IP `leadLimiter` is per-instance in-memory
+(see P2 #7) — cross-instance rotation on Fluid Compute bypasses it.
+
+**Recommended fix:** captcha (hCaptcha / Turnstile) on the lead magnet form.
+Server-side `(nom, contact)`-tuple dedup within a 24h window is a weaker
+alternative — an attacker can still vary `nom` freely.
+**Blast radius:** low-to-medium — degrades operational workflow, not data loss.
+No active exploitation observed; deferred behind pack capacity (#14) and
+Redis rate-limiter (#7) which is the real substrate.
 
 ### 6. `schema_reshape_upstream.sql` `DROP TABLE ... CASCADE` verification
 
@@ -149,4 +168,4 @@ Cosmetic. The prefix costs the ability to index `community_posts.id` as native U
 
 ---
 
-_Last updated: 2026-04-18 — Fixed P0 #0 (portal E2E tests rewritten to match 4-step onboarding UX; Playwright now auto-starts the dev server via `webServer` config). Fixed P1-B (TZ-unsafe date parsing — all four call-sites anchored to UTC; regression guarded by `e2e/landing-timezone.spec.ts`). Pruned P1 #1 (coaching endpoint — already shipped; audited + verified). Fixed P2 #13 (server-side seminar capacity enforcement via Postgres trigger + advisory lock + SECURITY DEFINER capacity function). Caught + fixed at /ship: trigger originally SECURITY INVOKER, would have fail-opened under anon RLS. Both Gemini and Qwen flagged it; fix is SECURITY DEFINER + pinned search_path. Added #14 (pack capacity follow-up). Surfaced rate-limit test flake into P2 #7._
+_Last updated: 2026-04-18 — Audited P2 #4 and #5 against the live code. Both had idempotency guards added in commit `52ca9ee` that were never reflected in TODOS. Pruned #4 (read-then-write dedup covers all documented scenarios; TOCTOU residual is cosmetic). Rewrote #5 to reflect reality: contact-dedup blocks naive abuse, but the rotating-IP-plus-rotating-contact vector remains; captcha is still the real fix. Earlier in session: fixed P0 #0 (portal E2E tests rewritten for 4-step onboarding; Playwright auto-starts dev server). Fixed P1-B (TZ-unsafe date parsing anchored to UTC; regression guarded by `e2e/landing-timezone.spec.ts`). Pruned P1 #1 (coaching endpoint already shipped). Fixed P2 #13 (server-side seminar capacity via Postgres trigger + advisory lock; SECURITY DEFINER fix caught at /ship). Added #14 (pack capacity follow-up). Surfaced rate-limit test flake into P2 #7._
