@@ -323,7 +323,7 @@ function buildProgrammePage(doc: jsPDF): void {
   const days = [
     {
       day: 'JOUR 1',
-      label: 'Lundi',
+      label: 'Mardi',
       type: 'Presentiel',
       color: NAVY,
       sessions: [
@@ -333,7 +333,7 @@ function buildProgrammePage(doc: jsPDF): void {
     },
     {
       day: 'JOUR 2',
-      label: 'Mardi',
+      label: 'Mercredi',
       type: 'Presentiel',
       color: NAVY,
       sessions: [
@@ -343,7 +343,7 @@ function buildProgrammePage(doc: jsPDF): void {
     },
     {
       day: 'JOUR 3',
-      label: 'Mercredi',
+      label: 'Jeudi',
       type: 'Presentiel',
       color: NAVY,
       sessions: [
@@ -353,7 +353,7 @@ function buildProgrammePage(doc: jsPDF): void {
     },
     {
       day: 'JOUR 4',
-      label: 'Jeudi',
+      label: 'Vendredi',
       type: 'En Ligne',
       color: '#2980B9',
       sessions: [
@@ -363,7 +363,7 @@ function buildProgrammePage(doc: jsPDF): void {
     },
     {
       day: 'JOUR 5',
-      label: 'Vendredi',
+      label: 'Samedi',
       type: 'En Ligne',
       color: '#2980B9',
       sessions: [
