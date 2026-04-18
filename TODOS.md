@@ -12,13 +12,15 @@ Living list of known work items, tracked outside of sprint plans. Items get prom
 
 **Impact:** Revenue leakage — small, since the discount is only 10% and our buyer pool is trust-verified via follow-up call. But still a real gap.
 
-### B. Timezone-unsafe date parsing in hero countdown and early-bird cutoff
-
-**Why:** `LandingPage.tsx:129` uses `new Date("2026-05-26T08:30:00")` (no `Z`) for the countdown. `LandingPage.tsx:441-442` uses `new Date(selectedSeminar.dates.start + "T00:00:00")` for the early-bird cutoff. Both parse in the client's local timezone. For Côte d'Ivoire users (UTC+0) this is fine, but users browsing from Paris (UTC+1/+2) will see the countdown and cutoff drift by 1–2 hours.
-
-**Fix:** Append `Z` to date strings, or use `Date.UTC()` to construct. Two lines. Wait until CinetPay integration lands to also normalize the server-side cutoff check.
-
-**Impact:** Low for the CI-native audience. Slightly visible to diaspora buyers.
+<!-- B. Timezone-unsafe date parsing — RESOLVED 2026-04-18.
+     All four call-sites in `LandingPage.tsx` (countdown, early-bird cutoff,
+     `formatDeadline` helper) and `seminars.ts` (`EARLY_BIRD_DEADLINE` fallback)
+     now append `Z` to ISO strings, anchoring them to UTC. The Atelier runs in
+     Abidjan (UTC+0, no DST), so UTC interpretation matches business intent.
+     `formatDeadline` also switched to getUTCDate / setUTCDate / getUTCMonth to
+     avoid off-by-one calendar rendering for non-UTC visitors near midnight.
+     Regression guarded by `e2e/landing-timezone.spec.ts` (pins Europe/Paris,
+     freezes clock, asserts countdown renders the UTC-anchored diff). -->
 
 ## P1 — follow-up from PR #3 review
 
@@ -118,4 +120,4 @@ Cosmetic. The prefix costs the ability to index `community_posts.id` as native U
 
 ---
 
-_Last updated: 2026-04-18 — Fixed P0 #0 (portal E2E tests rewritten to match 4-step onboarding UX; Playwright now auto-starts the dev server via `webServer` config). Surfaced rate-limit test flake into P2 #7._
+_Last updated: 2026-04-18 — Fixed P0 #0 (portal E2E tests rewritten to match 4-step onboarding UX; Playwright now auto-starts the dev server via `webServer` config). Fixed P1-B (TZ-unsafe date parsing — all four call-sites anchored to UTC; regression guarded by `e2e/landing-timezone.spec.ts`). Surfaced rate-limit test flake into P2 #7._

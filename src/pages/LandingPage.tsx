@@ -126,7 +126,9 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
 }
 
 function CountdownBlock() {
-  const cd = useCountdown(new Date("2026-05-26T08:30:00").getTime());
+  // Anchored in UTC: the Atelier is in Abidjan (UTC+0) so 08:30Z is the true start.
+  // Without the Z suffix, diaspora visitors see the countdown drift by their offset.
+  const cd = useCountdown(new Date("2026-05-26T08:30:00Z").getTime());
   const units = [
     { val: cd.days, label: "Jours" },
     { val: cd.hours, label: "Heures" },
@@ -445,7 +447,7 @@ function InscriptionPage({ selectedSem, seminars }: { selectedSem: string; semin
     // the most conservative cutoff.
     const selectedSeminar = seminars.find(s => s.id === form.seminaire);
     const earlyBirdCutoff = selectedSeminar
-      ? new Date(new Date(selectedSeminar.dates.start + "T00:00:00").getTime() - EARLY_BIRD_DAYS_BEFORE * 86400000)
+      ? new Date(new Date(selectedSeminar.dates.start + "T00:00:00Z").getTime() - EARLY_BIRD_DAYS_BEFORE * 86400000)
       : EARLY_BIRD_DEADLINE;
     const isEarlyBird = new Date() <= earlyBirdCutoff;
     const amount = isEarlyBird ? prices.earlyBird : prices.standard;
@@ -717,13 +719,16 @@ function ContactLead() {
 }
 
 // Format a seminar start date ("2026-05-26") as "jj MMMM" in French, minus N days.
+// UTC throughout: Atelier timeline is anchored in Abidjan (UTC+0), and getDate /
+// getMonth would read the visitor's local calendar day — wrong for any non-UTC
+// browser near midnight.
 function formatDeadline(startIso: string, daysBefore: number): string {
-  const d = new Date(startIso + "T00:00:00");
-  d.setDate(d.getDate() - daysBefore);
-  const day = d.getDate();
+  const d = new Date(startIso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() - daysBefore);
+  const day = d.getUTCDate();
   const months = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
   const dayLabel = day === 1 ? "1ᵉʳ" : String(day);
-  return `${dayLabel} ${months[d.getMonth()]}`;
+  return `${dayLabel} ${months[d.getUTCMonth()]}`;
 }
 
 function EarlyBirdBanner({ seminars }: { seminars: Seminar[] }) {
