@@ -834,7 +834,15 @@ export default function LandingPage() {
     const fetchSeminars = async () => {
       const { data, error } = await supabase.from('seminars').select('*').order('code');
       if (!error && data && data.length > 0) {
-        setSeminars(data);
+        // Merge DB rows onto SEMINARS defaults: DB is the source of truth for
+        // mutable fields (title, seats, dates...), SEMINARS provides the
+        // design/content fields that don't live in the schema (gradient,
+        // highlights, modules, subtitle, target). Replacing wholesale drops
+        // those TS-only fields and breaks tile rendering.
+        setSeminars(SEMINARS.map((defaults) => {
+          const override = data.find((d: { id: string }) => d.id === defaults.id);
+          return override ? { ...defaults, ...override } : defaults;
+        }));
       }
     };
     fetchSeminars();
