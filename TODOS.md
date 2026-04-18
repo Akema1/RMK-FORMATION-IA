@@ -73,6 +73,19 @@ Gemini flagged (unverified in this session): `isValidUUID` check in `attemptSave
 - Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` to Vercel (all three environments).
 - Smoke test via a real registration with a reachable phone number; confirm the template renders correctly.
 
+### 13. Seminar capacity not enforced server-side
+
+**Why:** `src/data/seminars.ts` declares `seats: 20` per seminar, but nothing enforces it. `LandingPage.tsx:504` inserts directly into `participants` via the anon client, and neither that path nor `/api/notify-registration` checks `count(active participants) < seats` before accepting a registration. Registrations #21, #50, #N all succeed. For paid seminars this means a real customer can pay for a seat that doesn't exist, which is a refund / reputation hit.
+
+**Verified 2026-04-17:** searched `src/pages/LandingPage.tsx` and `api/app.ts` for `capacity|seats|places` — zero hits on the registration path. `seats: 20` is display-only.
+
+**Options:**
+- **A. Postgres `BEFORE INSERT` trigger on `participants`** (~15 lines of SQL + migration). Counts active rows for the target seminar, raises `Séminaire complet` when at capacity. Atomic, race-safe, no API changes. Trade-off: business logic in the schema is harder to evolve than TypeScript.
+- **B. New `/api/registration/create` endpoint** that does `SELECT count FOR UPDATE` + insert in one transaction, replacing the direct client insert at `LandingPage.tsx:504`. Keeps logic in TypeScript. Race-safe via row lock. Bigger refactor — `/api/notify-registration` would merge in or become internal-only.
+- **C. Client-side pre-check only.** Not race-safe — overshoots under concurrent load. Not acceptable as the sole guard for paid registrations.
+
+**Recommended:** A, plus a "complet" badge in the UI (query count from `LandingPage.tsx` on mount, disable "S'inscrire" and swap CTA text when a seminar is full). Two small changes beat one medium refactor. Total ~30 min of CC time.
+
 ## P3 — nice-to-haves
 
 ### 10. Community post date from `created_at`
@@ -85,4 +98,4 @@ Cosmetic. The prefix costs the ability to index `community_posts.id` as native U
 
 ---
 
-_Last updated: 2026-04-17 — Added P2 #12 (Twilio WhatsApp deferral)._
+_Last updated: 2026-04-17 — Added P2 #12 (Twilio WhatsApp deferral), P2 #13 (capacity enforcement)._
