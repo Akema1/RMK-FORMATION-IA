@@ -24,16 +24,13 @@ Living list of known work items, tracked outside of sprint plans. Items get prom
 
 ## P1 — follow-up from PR #3 review
 
-### 1. Authed `/api/ai/coaching` endpoint + re-enable Coaching tab
-
-**Why:** `PortalCoaching.tsx:92` currently posts to `/api/ai/generate` with a malformed payload and no admin auth. The call always 400/401/403s, so participants see a hardcoded mock "analysis" every time. For PR #3 the Coaching tab is feature-flagged OFF via `COACHING_ENABLED = false` in `src/pages/ClientPortal.tsx`. Shipping it fake is not acceptable.
-
-**Work:**
-- New endpoint `POST /api/ai/coaching` — pattern matches `POST /api/community/post`: `requireAuth` + participant lookup + `status === "confirmed"` gate + rate limit.
-- New `coaching` templateId in `api/prompts.ts` with `safe()`-escaped vars (defi, entreprise, secteur, role, objectif).
-- Vitest coverage mirroring `community.test.ts`: auth 401, not-confirmed 403, happy path 200, rate limit, prompt-injection in user fields.
-- Flip `COACHING_ENABLED = true` after end-to-end preview test.
-- Delete the hardcoded fallback string in `PortalCoaching.tsx:101-114`.
+<!-- 1. Authed /api/ai/coaching endpoint + re-enable Coaching tab — SHIPPED.
+     Verified 2026-04-18 during TODOS audit: endpoint lives at api/app.ts:817,
+     protected by requireAuth + coachingLimiter (5/min) + .eq(status,confirmed)
+     participant gate. Template + sanitizeText at api/prompts.ts:235 / api/app.ts:872.
+     10 Vitest tests green at api/__tests__/coaching.test.ts. COACHING_ENABLED = true
+     at src/pages/ClientPortal.tsx:27. Client path at src/lib/coachingApi.ts.
+     No hardcoded mock fallback remains. -->
 
 ### 2. Participant email uniqueness — business rule decision
 
@@ -95,18 +92,45 @@ Gemini flagged (unverified in this session): `isValidUUID` check in `attemptSave
 - Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` to Vercel (all three environments).
 - Smoke test via a real registration with a reachable phone number; confirm the template renders correctly.
 
-### 13. Seminar capacity not enforced server-side
+<!-- 13. Seminar capacity not enforced server-side — RESOLVED 2026-04-18.
+     Postgres BEFORE INSERT OR UPDATE trigger on participants joins
+     public.seminars for the seat count, serializes concurrent inserts per
+     seminar via pg_advisory_xact_lock, and raises SQLSTATE P0013
+     'Atelier complet' when full. Migration:
+     supabase/migrations/20260418000000_seminar_capacity_trigger.sql.
+     Landing page reads public.get_seminar_capacity() (SECURITY DEFINER
+     function, not a view, to avoid PG-version-dependent RLS behaviour) on
+     mount to disable full options; handles P0013 via the shared
+     src/lib/errors.ts utility. Trigger fail-opens for unknown seminar ids
+     (pack2/pack4 — see TODOS #14). Error-mapping unit at
+     api/__tests__/capacity-error.test.ts (7 passing). Trigger itself
+     validated manually against a Supabase preview branch per the plan at
+     docs/superpowers/plans/2026-04-18-seminar-capacity-enforcement.md. -->
 
-**Why:** `src/data/seminars.ts` declares `seats: 20` per seminar, but nothing enforces it. `LandingPage.tsx:504` inserts directly into `participants` via the anon client, and neither that path nor `/api/notify-registration` checks `count(active participants) < seats` before accepting a registration. Registrations #21, #50, #N all succeed. For paid seminars this means a real customer can pay for a seat that doesn't exist, which is a refund / reputation hit.
+### 14. Pack registrations (pack2/pack4) have no capacity enforcement
 
-**Verified 2026-04-17:** searched `src/pages/LandingPage.tsx` and `api/app.ts` for `capacity|seats|places` — zero hits on the registration path. `seats: 20` is display-only.
+**Why:** The enforce_seminar_capacity trigger fail-opens for any seminar id
+not present in `public.seminars` — this is intentional for legacy data but
+means pack2/pack4 buyers bypass the 20-seat-per-atelier cap entirely. A
+user buying `pack4` occupies a seat in each of S1–S4 conceptually, but the
+current schema stores `seminar='pack4'` as a single row with no link to
+the four underlying ateliers.
 
 **Options:**
-- **A. Postgres `BEFORE INSERT` trigger on `participants`** (~15 lines of SQL + migration). Counts active rows for the target seminar, raises `Séminaire complet` when at capacity. Atomic, race-safe, no API changes. Trade-off: business logic in the schema is harder to evolve than TypeScript.
-- **B. New `/api/registration/create` endpoint** that does `SELECT count FOR UPDATE` + insert in one transaction, replacing the direct client insert at `LandingPage.tsx:504`. Keeps logic in TypeScript. Race-safe via row lock. Bigger refactor — `/api/notify-registration` would merge in or become internal-only.
-- **C. Client-side pre-check only.** Not race-safe — overshoots under concurrent load. Not acceptable as the sole guard for paid registrations.
+- **A. Explode packs at registration.** Insert 4 rows (one per atelier) when
+  someone buys pack4, 2 rows (user-chosen) for pack2. Each row goes through
+  the capacity trigger normally. Requires: pack→ateliers mapping in the
+  form, plus a `participant_pack_id` FK so refunds/cancellations stay
+  atomic. Medium refactor.
+- **B. Join table.** New `participant_seminars` join — one participant row,
+  N seminar rows. Cleaner long-term but touches portal, dashboard, billing,
+  notifications. Large refactor (also TODOS #2 is adjacent).
+- **C. Pack-level cap.** Add `pack_seats` on a new `packs` table, count
+  active pack registrations against it. Doesn't solve individual-atelier
+  oversell if 20 pack4 buyers plus 20 s1 buyers all register — s1 would
+  have 40 attendees. Not recommended.
 
-**Recommended:** A, plus a "complet" badge in the UI (query count from `LandingPage.tsx` on mount, disable "S'inscrire" and swap CTA text when a seminar is full). Two small changes beat one medium refactor. Total ~30 min of CC time.
+Recommended: A for the near term; promote to B when TODOS #2 is scheduled.
 
 ## P3 — nice-to-haves
 
@@ -120,4 +144,4 @@ Cosmetic. The prefix costs the ability to index `community_posts.id` as native U
 
 ---
 
-_Last updated: 2026-04-18 — Fixed P0 #0 (portal E2E tests rewritten to match 4-step onboarding UX; Playwright now auto-starts the dev server via `webServer` config). Fixed P1-B (TZ-unsafe date parsing — all four call-sites anchored to UTC; regression guarded by `e2e/landing-timezone.spec.ts`). Surfaced rate-limit test flake into P2 #7._
+_Last updated: 2026-04-18 — Fixed P0 #0 (portal E2E tests rewritten to match 4-step onboarding UX; Playwright now auto-starts the dev server via `webServer` config). Fixed P1-B (TZ-unsafe date parsing — all four call-sites anchored to UTC; regression guarded by `e2e/landing-timezone.spec.ts`). Pruned P1 #1 (coaching endpoint — already shipped; audited + verified). Fixed P2 #13 (server-side seminar capacity enforcement via Postgres trigger + advisory lock + SECURITY DEFINER capacity function). Added #14 (pack capacity follow-up). Surfaced rate-limit test flake into P2 #7._
