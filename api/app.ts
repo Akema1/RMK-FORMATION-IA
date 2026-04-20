@@ -36,7 +36,11 @@ export interface CreateAppOptions {
 }
 
 // Scoped to this project's preview URLs only — prevents other Vercel apps from passing CORS.
-const VERCEL_PREVIEW_RE = /^https:\/\/rmk-formation-ia-[a-z0-9-]+\.vercel\.app$/;
+// Vercel emits two preview hostnames for the same deployment:
+//   - Branch alias:       rmk-formation-ia-git-<branch>-akemas-projects.vercel.app
+//   - Deployment-unique:  rmk-formation-<hash>-akemas-projects.vercel.app  (drops "-ia")
+// Anchor on the team suffix so only this team's previews are allowed.
+const VERCEL_PREVIEW_RE = /^https:\/\/rmk-formation(-ia)?-[a-z0-9-]+-akemas-projects\.vercel\.app$/;
 
 // ── Sanitization helpers ────────────────────────────────────────────────────
 
