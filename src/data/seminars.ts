@@ -133,9 +133,9 @@ export const SEMINAR_ICONS: Record<string, string> = {
 };
 
 // Pricing constants
-export const PRICE = 600000;
+export const PRICE = 700000;
 export const PRICE_DIRIGEANTS = 680000;
-export const EARLY_BIRD_PRICE = 540000;
+export const EARLY_BIRD_PRICE = 630000;
 // Early-bird: 10% off when purchased 15+ days before the first Atelier (S1 starts 2026-05-26).
 // Anchored in UTC because the Atelier is held in Abidjan (UTC+0, no DST); a bare
 // local-time string would drift for diaspora visitors (Paris, Montréal, etc.).

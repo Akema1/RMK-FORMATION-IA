@@ -406,11 +406,11 @@ function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: strin
 }
 
 function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange }: { selectedSem: string; seminars: Seminar[]; fullSeminars: Set<string>; onCapacityChange: () => void }) {
-  const [form, setForm] = useState({ nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
+  const [form, setForm] = useState({ civilite: "", nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [prices] = useLocalStorage("rmk_prices", { standard: 600000, earlyBird: 540000, discountPct: 10 });
+  const [prices] = useLocalStorage("rmk_prices", { standard: 700000, earlyBird: 630000, discountPct: 10 });
   
   const upd = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [k]: e.target.value });
@@ -421,6 +421,7 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
+    if (!form.civilite) errs.civilite = "La civilité est obligatoire";
     if (!form.nom.trim()) errs.nom = "Le nom est obligatoire";
     if (!form.prenom.trim()) errs.prenom = "Le prénom est obligatoire";
     if (!form.email.trim()) {
@@ -428,7 +429,9 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errs.email = "Format d'email invalide";
     }
-    if (form.tel && !/^[+]?[\d\s()-]{8,20}$/.test(form.tel.trim())) {
+    if (!form.tel.trim()) {
+      errs.tel = "Le téléphone est obligatoire";
+    } else if (!/^[+]?[\d\s()-]{8,20}$/.test(form.tel.trim())) {
       errs.tel = "Format de téléphone invalide (ex: +225 07 00 00 00 00)";
     }
     if (!form.societe.trim()) errs.societe = "La société est obligatoire";
@@ -541,7 +544,7 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
         await fetch('/api/notify-registration', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newParticipant)
+          body: JSON.stringify({ ...newParticipant, civilite: form.civilite })
         });
       } catch (notifyError) {
         console.error("Failed to send notifications:", notifyError);
@@ -580,12 +583,21 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
         </div>
         <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 20, padding: 36, border: "1px solid rgba(0,0,0,0.08)" }}>
           {errors._global && <div style={{ ...errorStyle, padding: "12px 16px", background: "rgba(231,76,60,0.08)", borderRadius: 10, marginBottom: 16, textAlign: "center" }}>{errors._global}</div>}
+          <div style={{ marginBottom: 16 }}>
+            <label htmlFor="field-civilite" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Civilité *</label>
+            <select id="field-civilite" style={{ ...inputStyle, cursor: "pointer", background: "rgba(0,0,0,0.05)", color: form.civilite ? "#1B2A4A" : "#94A3B8", borderColor: errors.civilite ? "#E74C3C" : "rgba(0,0,0,0.1)" }} value={form.civilite} onChange={upd("civilite")}>
+              <option value="" style={{ color: "#000" }}>-- Choisir --</option>
+              <option value="M." style={{ color: "#000" }}>M.</option>
+              <option value="Mme" style={{ color: "#000" }}>Mme</option>
+            </select>
+            {errors.civilite && <div style={errorStyle}>{errors.civilite}</div>}
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div><label htmlFor="field-nom" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Nom *</label><input id="field-nom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.nom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.nom} onChange={upd("nom")} placeholder="Votre nom" />{errors.nom && <div style={errorStyle}>{errors.nom}</div>}</div>
             <div><label htmlFor="field-prenom" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Prénom *</label><input id="field-prenom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.prenom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.prenom} onChange={upd("prenom")} placeholder="Votre prénom" />{errors.prenom && <div style={errorStyle}>{errors.prenom}</div>}</div>
           </div>
           <div style={{ marginTop: 16 }}><label htmlFor="field-email" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Email professionnel *</label><input id="field-email" type="email" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.email ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.email} onChange={upd("email")} placeholder="email@entreprise.com" />{errors.email && <div style={errorStyle}>{errors.email}</div>}</div>
-          <div style={{ marginTop: 16 }}><label htmlFor="field-tel" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence)</label><input id="field-tel" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.tel ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 02 61 15 82" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
+          <div style={{ marginTop: 16 }}><label htmlFor="field-tel" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence) *</label><input id="field-tel" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.tel ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 02 61 15 82" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
             <div><label htmlFor="field-societe" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Société *</label><input id="field-societe" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.societe ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.societe} onChange={upd("societe")} placeholder="Nom de l'entreprise" />{errors.societe && <div style={errorStyle}>{errors.societe}</div>}</div>
             <div><label htmlFor="field-fonction" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Fonction *</label><input id="field-fonction" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.fonction ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." />{errors.fonction && <div style={errorStyle}>{errors.fonction}</div>}</div>
@@ -665,7 +677,6 @@ function Footer({ setPage }: { setPage: (p: string) => void }) {
             <div style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, letterSpacing: 1, marginBottom: 12, textTransform: "uppercase" }}>Contact</div>
             <div style={{ color: "#CBD5E1", fontSize: 14, lineHeight: 2 }}>
               📧 contact@rmkconsulting.pro<br />
-              📧 rkedem@rmkconsulting.pro<br />
               📱 +225 07 02 61 15 82 WhatsApp
             </div>
           </div>

@@ -149,9 +149,6 @@ export function FlyerPage({ seminars }: FlyerPageProps) {
             <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#1B2A4A", fontSize: 16, fontWeight: 700 }}>
               contact@rmkconsulting.pro
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#1B2A4A", fontSize: 16, fontWeight: 700 }}>
-              rkedem@rmkconsulting.pro
-            </div>
           </div>
         </div>
       </div>
