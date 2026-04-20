@@ -5,6 +5,7 @@
 
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
 
@@ -28,6 +29,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </Router>
+      <Analytics />
     </ErrorBoundary>
   );
 }

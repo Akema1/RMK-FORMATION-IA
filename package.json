@@ -19,6 +19,7 @@
     "@fontsource-variable/geist": "^5.2.8",
     "@supabase/supabase-js": "^2.102.1",
     "@tailwindcss/vite": "^4.1.14",
+    "@vercel/analytics": "^2.0.1",
     "@vitejs/plugin-react": "^5.0.4",
     "ai": "^6.0.158",
     "class-variance-authority": "^0.7.1",
