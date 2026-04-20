@@ -142,6 +142,13 @@ Raw reviewer outputs go in collapsed blocks only if the user asks to see them.
 - `superpowers-gemini-plugin:verification-before-completion` — run commands, confirm output, cite evidence. No success claims without running the verification command.
 - For UI work: actually open the browser via `gstack:browse` or the Playwright MCP. Lint passing ≠ feature working.
 
+### Branch workflow
+
+All work follows this merge order: `dev_<name>` → `Improvements` → `main`.
+
+- PRs from personal dev branches must target **`Improvements`**, never `main` directly.
+- `Improvements` is the integration branch; it gets merged to `main` after validation.
+
 ### Ship
 
 ```

@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
 import { registrationErrorToBanner } from "../lib/errors";
 import { LogoRMK } from "../components/LogoRMK";
 import { ChatWidget } from "../components/ChatWidget";
-import { SEMINARS, PRICE, PRICE_DIRIGEANTS, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, EARLY_BIRD_DAYS_BEFORE, COACHING_PRICE, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
+import { SEMINARS, PRICE, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, EARLY_BIRD_DAYS_BEFORE, COACHING_PRICE, getSeminarPricing, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
 import { Settings, X, Menu, Building2, Monitor, Check, CheckCircle, Zap, type LucideIcon } from "lucide-react";
 
 const ICON_MAP: Record<string, LucideIcon> = { Briefcase, BarChart3, Scale, Users };
@@ -328,8 +327,8 @@ function SeminarCard({ sem, onSelect, delay = 0 }: SeminarCardProps) {
         
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, paddingTop: 16, borderTop: "1px solid rgba(0,0,0,0.05)" }}>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: "#1B2A4A" }}>{fmt(PRICE)} <span style={{ fontSize: 13, fontWeight: 400, color: '#1B2A4A' }}>FCFA</span></div>
-            <div style={{ fontSize: 12, color: "#27AE60", fontWeight: 600 }}>Early bird : {fmt(EARLY_BIRD_PRICE)} FCFA</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: "#1B2A4A" }}>{fmt(sem.price)} <span style={{ fontSize: 13, fontWeight: 400, color: '#1B2A4A' }}>FCFA</span></div>
+            <div style={{ fontSize: 12, color: "#27AE60", fontWeight: 600 }}>Early bird : {fmt(sem.earlyBirdPrice)} FCFA</div>
           </div>
           <button onClick={() => onSelect(sem.id)} style={{
             background: sem.gradient, color: "#1B2A4A", border: "none", padding: "12px 24px",
@@ -363,9 +362,13 @@ function SeminarsPage({ setPage, seminars, setSelectedSem }: { setPage: (p: stri
 
 function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: string) => void; seminars: Seminar[]; setSelectedSem: (id: string) => void }) {
   const [ref, vis] = useInView();
+  // Surface any atelier whose price differs from the default so users see per-workshop tariffs.
+  const pricingExceptions = seminars
+    .filter(s => s.price !== PRICE)
+    .map(s => `Atelier ${s.title} (${s.code}) : ${fmt(s.price)} FCFA`);
   const offers = [
-    { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne", `Atelier Dirigeants (S1) : ${fmt(PRICE_DIRIGEANTS)} FCFA`], cta: "S'inscrire", primary: false },
-    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "Réduction de 60 000 FCFA", `Inscription au moins ${EARLY_BIRD_DAYS_BEFORE} jours avant le début de l'atelier choisi`, "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
+    { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne", ...pricingExceptions], cta: "S'inscrire", primary: false },
+    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "-10% sur le tarif de l'atelier choisi", `Inscription au moins ${EARLY_BIRD_DAYS_BEFORE} jours avant le début de l'atelier`, "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
     { name: "Pack Entreprise", price: "Sur devis", unit: "dès 3 inscrits", features: ["-15% dès 3 inscrits même entreprise", "Pack 2 ateliers : -10%", "Pack 4 ateliers : -20%", "Facturation entreprise", `Coaching personnalisé : ${fmt(COACHING_PRICE)} FCFA / 2h`], cta: "Nous contacter", primary: false },
   ];
   return (
@@ -406,11 +409,12 @@ function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: strin
 }
 
 function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange }: { selectedSem: string; seminars: Seminar[]; fullSeminars: Set<string>; onCapacityChange: () => void }) {
-  const [form, setForm] = useState({ nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
+  const [form, setForm] = useState({ civilite: "", nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [prices] = useLocalStorage("rmk_prices", { standard: 600000, earlyBird: 540000, discountPct: 10 });
+  // Pricing reacts to the currently-selected atelier: S1 and other workshops can have distinct tariffs.
+  const currentPricing = getSeminarPricing(form.seminaire, seminars);
   
   const upd = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [k]: e.target.value });
@@ -421,6 +425,7 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
+    if (!form.civilite) errs.civilite = "La civilité est obligatoire";
     if (!form.nom.trim()) errs.nom = "Le nom est obligatoire";
     if (!form.prenom.trim()) errs.prenom = "Le prénom est obligatoire";
     if (!form.email.trim()) {
@@ -428,7 +433,9 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errs.email = "Format d'email invalide";
     }
-    if (form.tel && !/^[+]?[\d\s()-]{8,20}$/.test(form.tel.trim())) {
+    if (!form.tel.trim()) {
+      errs.tel = "Le téléphone est obligatoire";
+    } else if (!/^[+]?[\d\s()-]{8,20}$/.test(form.tel.trim())) {
       errs.tel = "Format de téléphone invalide (ex: +225 07 00 00 00 00)";
     }
     if (!form.societe.trim()) errs.societe = "La société est obligatoire";
@@ -451,7 +458,7 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
       ? new Date(new Date(selectedSeminar.dates.start + "T00:00:00Z").getTime() - EARLY_BIRD_DAYS_BEFORE * 86400000)
       : EARLY_BIRD_DEADLINE;
     const isEarlyBird = new Date() <= earlyBirdCutoff;
-    const amount = isEarlyBird ? prices.earlyBird : prices.standard;
+    const amount = isEarlyBird ? currentPricing.earlyBird : currentPricing.standard;
 
     const newParticipant = {
       nom: form.nom.trim(),
@@ -541,7 +548,7 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
         await fetch('/api/notify-registration', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newParticipant)
+          body: JSON.stringify({ ...newParticipant, civilite: form.civilite })
         });
       } catch (notifyError) {
         console.error("Failed to send notifications:", notifyError);
@@ -580,12 +587,21 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
         </div>
         <div style={{ background: "rgba(0,0,0,0.03)", borderRadius: 20, padding: 36, border: "1px solid rgba(0,0,0,0.08)" }}>
           {errors._global && <div style={{ ...errorStyle, padding: "12px 16px", background: "rgba(231,76,60,0.08)", borderRadius: 10, marginBottom: 16, textAlign: "center" }}>{errors._global}</div>}
+          <div style={{ marginBottom: 16 }}>
+            <label htmlFor="field-civilite" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Civilité *</label>
+            <select id="field-civilite" style={{ ...inputStyle, cursor: "pointer", background: "rgba(0,0,0,0.05)", color: form.civilite ? "#1B2A4A" : "#94A3B8", borderColor: errors.civilite ? "#E74C3C" : "rgba(0,0,0,0.1)" }} value={form.civilite} onChange={upd("civilite")}>
+              <option value="" style={{ color: "#000" }}>-- Choisir --</option>
+              <option value="M." style={{ color: "#000" }}>M.</option>
+              <option value="Mme" style={{ color: "#000" }}>Mme</option>
+            </select>
+            {errors.civilite && <div style={errorStyle}>{errors.civilite}</div>}
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div><label htmlFor="field-nom" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Nom *</label><input id="field-nom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.nom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.nom} onChange={upd("nom")} placeholder="Votre nom" />{errors.nom && <div style={errorStyle}>{errors.nom}</div>}</div>
             <div><label htmlFor="field-prenom" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Prénom *</label><input id="field-prenom" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.prenom ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.prenom} onChange={upd("prenom")} placeholder="Votre prénom" />{errors.prenom && <div style={errorStyle}>{errors.prenom}</div>}</div>
           </div>
           <div style={{ marginTop: 16 }}><label htmlFor="field-email" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Email professionnel *</label><input id="field-email" type="email" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.email ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.email} onChange={upd("email")} placeholder="email@entreprise.com" />{errors.email && <div style={errorStyle}>{errors.email}</div>}</div>
-          <div style={{ marginTop: 16 }}><label htmlFor="field-tel" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence)</label><input id="field-tel" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.tel ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 02 61 15 82" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
+          <div style={{ marginTop: 16 }}><label htmlFor="field-tel" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Téléphone (WhatsApp de préférence) *</label><input id="field-tel" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.tel ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.tel} onChange={upd("tel")} placeholder="+225 07 02 61 15 82" />{errors.tel && <div style={errorStyle}>{errors.tel}</div>}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
             <div><label htmlFor="field-societe" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Société *</label><input id="field-societe" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.societe ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.societe} onChange={upd("societe")} placeholder="Nom de l'entreprise" />{errors.societe && <div style={errorStyle}>{errors.societe}</div>}</div>
             <div><label htmlFor="field-fonction" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Fonction *</label><input id="field-fonction" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.fonction ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." />{errors.fonction && <div style={errorStyle}>{errors.fonction}</div>}</div>
@@ -618,8 +634,8 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
           </div>
           
           <div style={{ marginTop: 20, padding: 16, background: "rgba(201,168,76,0.1)", borderRadius: 10, border: "1px solid rgba(201,168,76,0.3)" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#C9A84C" }}>🔥 Offre Early Bird : -10% avant le 30 avril 2026</div>
-            <div style={{ fontSize: 12, color: '#1B2A4A', marginTop: 4 }}>Payez {fmt(prices?.earlyBird || EARLY_BIRD_PRICE)} FCFA au lieu de {fmt(prices?.standard || PRICE)} FCFA · Économisez {fmt((prices?.standard || PRICE) - (prices?.earlyBird || EARLY_BIRD_PRICE))} FCFA</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#C9A84C" }}>🔥 Offre Early Bird : -10% jusqu&apos;à {EARLY_BIRD_DAYS_BEFORE} jours avant le début de l&apos;atelier</div>
+            <div style={{ fontSize: 12, color: '#1B2A4A', marginTop: 4 }}>Payez {fmt(currentPricing.earlyBird)} FCFA au lieu de {fmt(currentPricing.standard)} FCFA · Économisez {fmt(currentPricing.standard - currentPricing.earlyBird)} FCFA</div>
           </div>
           
           <button onClick={handleSubmit} disabled={isSubmitting} style={{
@@ -665,7 +681,6 @@ function Footer({ setPage }: { setPage: (p: string) => void }) {
             <div style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, letterSpacing: 1, marginBottom: 12, textTransform: "uppercase" }}>Contact</div>
             <div style={{ color: "#CBD5E1", fontSize: 14, lineHeight: 2 }}>
               📧 contact@rmkconsulting.pro<br />
-              📧 rkedem@rmkconsulting.pro<br />
               📱 +225 07 02 61 15 82 WhatsApp
             </div>
           </div>
@@ -748,7 +763,8 @@ function formatDeadline(startIso: string, daysBefore: number): string {
 }
 
 function EarlyBirdBanner({ seminars }: { seminars: Seminar[] }) {
-  const savings = PRICE - EARLY_BIRD_PRICE;
+  // Per-atelier savings can differ, so surface the max to keep the headline accurate.
+  const maxSavings = seminars.reduce((max, s) => Math.max(max, s.price - s.earlyBirdPrice), PRICE - EARLY_BIRD_PRICE);
   return (
     <div
       role="region"
@@ -792,7 +808,7 @@ function EarlyBirdBanner({ seminars }: { seminars: Seminar[] }) {
           Offre Early Bird
         </div>
         <div style={{ fontSize: 20, fontWeight: 800, margin: "4px 0 6px", lineHeight: 1.25 }}>
-          Économisez {fmt(savings)} FCFA sur chaque atelier
+          Économisez jusqu&apos;à {fmt(maxSavings)} FCFA sur votre atelier
         </div>
         <div style={{ fontSize: 14, lineHeight: 1.5 }}>
           10 % de remise pour toute inscription réalisée au moins <strong>{EARLY_BIRD_DAYS_BEFORE} jours</strong> avant le début de l'atelier choisi.

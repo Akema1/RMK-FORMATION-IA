@@ -36,7 +36,11 @@ export interface CreateAppOptions {
 }
 
 // Scoped to this project's preview URLs only — prevents other Vercel apps from passing CORS.
-const VERCEL_PREVIEW_RE = /^https:\/\/rmk-formation-ia-[a-z0-9-]+\.vercel\.app$/;
+// Vercel emits two preview hostnames for the same deployment:
+//   - Branch alias:       rmk-formation-ia-git-<branch>-akemas-projects.vercel.app
+//   - Deployment-unique:  rmk-formation-<hash>-akemas-projects.vercel.app  (drops "-ia")
+// Anchor on the team suffix so only this team's previews are allowed.
+const VERCEL_PREVIEW_RE = /^https:\/\/rmk-formation(-ia)?-[a-z0-9-]+-akemas-projects\.vercel\.app$/;
 
 // ── Sanitization helpers ────────────────────────────────────────────────────
 
@@ -70,9 +74,10 @@ function escapeLike(str: string): string {
 
 const registrationSchema = z.object({
   email: z.string().email().max(254),
+  civilite: z.enum(["M.", "Mme"]).optional(),
   prenom: z.string().min(1).max(100),
   nom: z.string().min(1).max(100),
-  tel: z.string().max(20).regex(/^\+?[\d\s()-]{6,20}$/, "Invalid phone format").optional(),
+  tel: z.string().min(1).max(20).regex(/^\+?[\d\s()-]{8,20}$/, "Invalid phone format"),
   societe: z.string().max(200).optional(),
   fonction: z.string().max(200).optional(),
   seminar: z.string().min(1).max(50),
@@ -550,18 +555,40 @@ export function createApp(opts: CreateAppOptions): express.Express {
 
       if (process.env.RESEND_API_KEY) {
         const resend = new Resend(process.env.RESEND_API_KEY);
+        const salutation = participant.civilite
+          ? `${escapeHtml(participant.civilite)} ${escapeHtml(participant.nom)}`
+          : escapeHtml(participant.prenom);
         await resend.emails.send({
           from: "RMK Conseils <noreply@rmk-conseils.com>",
           to: [participant.email],
           subject:
             "Confirmation de votre demande d'inscription - RMK Conseils",
           html: `
-            <h2>Bonjour ${escapeHtml(participant.prenom)},</h2>
+            <h2>Bonjour ${salutation},</h2>
             <p>Nous avons bien reçu votre demande d'inscription pour l'atelier <strong>${escapeHtml(seminarTitle)}</strong>.</p>
-            <p>L'équipe RMK vous contactera sous 24h pour confirmer votre inscription et les modalités de paiement.</p>
+            <p>Notre équipe vous contactera sous 24h pour confirmer votre inscription et vous communiquer les modalités de règlement.</p>
             <br/>
             <p>Cordialement,</p>
             <p>L'équipe RMK Conseils</p>
+          `,
+        });
+
+        await resend.emails.send({
+          from: "RMK Conseils <noreply@rmk-conseils.com>",
+          to: (process.env.ADMIN_NOTIFY_EMAILS || "ericatta@gmail.com,donzigre@gmail.com").split(",").map(e => e.trim()).filter(Boolean),
+          subject: `[Nouvelle inscription] ${escapeHtml(participant.civilite || "")} ${escapeHtml(participant.prenom)} ${escapeHtml(participant.nom)} — ${escapeHtml(seminarTitle)}`,
+          html: `
+            <h2>Nouvelle demande d'inscription</h2>
+            <table style="border-collapse:collapse;font-size:14px">
+              <tr><td style="padding:4px 12px 4px 0;color:#666">Civilité</td><td>${escapeHtml(participant.civilite || "—")}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;color:#666">Nom</td><td>${escapeHtml(participant.nom)}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;color:#666">Prénom</td><td>${escapeHtml(participant.prenom)}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;color:#666">Email</td><td>${escapeHtml(participant.email)}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;color:#666">Téléphone</td><td>${escapeHtml(participant.tel)}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;color:#666">Société</td><td>${escapeHtml(participant.societe || "—")}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;color:#666">Fonction</td><td>${escapeHtml(participant.fonction || "—")}</td></tr>
+              <tr><td style="padding:4px 12px 4px 0;color:#666">Atelier</td><td><strong>${escapeHtml(seminarTitle)}</strong></td></tr>
+            </table>
           `,
         });
       }
