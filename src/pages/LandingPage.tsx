@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStorage } from "../lib/store";
 import { supabase } from "../lib/supabaseClient";
 import { registrationErrorToBanner } from "../lib/errors";
 import { LogoRMK } from "../components/LogoRMK";
 import { ChatWidget } from "../components/ChatWidget";
-import { SEMINARS, PRICE, PRICE_DIRIGEANTS, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, EARLY_BIRD_DAYS_BEFORE, COACHING_PRICE, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
+import { SEMINARS, PRICE, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, EARLY_BIRD_DAYS_BEFORE, COACHING_PRICE, getSeminarPricing, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
 import { Settings, X, Menu, Building2, Monitor, Check, CheckCircle, Zap, type LucideIcon } from "lucide-react";
 
 const ICON_MAP: Record<string, LucideIcon> = { Briefcase, BarChart3, Scale, Users };
@@ -328,8 +327,8 @@ function SeminarCard({ sem, onSelect, delay = 0 }: SeminarCardProps) {
         
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, paddingTop: 16, borderTop: "1px solid rgba(0,0,0,0.05)" }}>
           <div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: "#1B2A4A" }}>{fmt(PRICE)} <span style={{ fontSize: 13, fontWeight: 400, color: '#1B2A4A' }}>FCFA</span></div>
-            <div style={{ fontSize: 12, color: "#27AE60", fontWeight: 600 }}>Early bird : {fmt(EARLY_BIRD_PRICE)} FCFA</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: "#1B2A4A" }}>{fmt(sem.price)} <span style={{ fontSize: 13, fontWeight: 400, color: '#1B2A4A' }}>FCFA</span></div>
+            <div style={{ fontSize: 12, color: "#27AE60", fontWeight: 600 }}>Early bird : {fmt(sem.earlyBirdPrice)} FCFA</div>
           </div>
           <button onClick={() => onSelect(sem.id)} style={{
             background: sem.gradient, color: "#1B2A4A", border: "none", padding: "12px 24px",
@@ -363,9 +362,13 @@ function SeminarsPage({ setPage, seminars, setSelectedSem }: { setPage: (p: stri
 
 function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: string) => void; seminars: Seminar[]; setSelectedSem: (id: string) => void }) {
   const [ref, vis] = useInView();
+  // Surface any atelier whose price differs from the default so users see per-workshop tariffs.
+  const pricingExceptions = seminars
+    .filter(s => s.price !== PRICE)
+    .map(s => `Atelier ${s.title} (${s.code}) : ${fmt(s.price)} FCFA`);
   const offers = [
-    { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne", `Atelier Dirigeants (S1) : ${fmt(PRICE_DIRIGEANTS)} FCFA`], cta: "S'inscrire", primary: false },
-    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "Réduction de 60 000 FCFA", `Inscription au moins ${EARLY_BIRD_DAYS_BEFORE} jours avant le début de l'atelier choisi`, "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
+    { name: "Standard", price: fmt(PRICE), unit: "FCFA / personne", features: ["5 jours de formation (3+2)", "Supports pédagogiques complets", "Restauration 3 jours présentiel", "Certificat de participation", "Accès aux replays en ligne", ...pricingExceptions], cta: "S'inscrire", primary: false },
+    { name: "Early Bird", price: fmt(EARLY_BIRD_PRICE), unit: "FCFA / personne", badge: "-10%", features: ["Tout le Standard inclus", "-10% sur le tarif de l'atelier choisi", `Inscription au moins ${EARLY_BIRD_DAYS_BEFORE} jours avant le début de l'atelier`, "Places prioritaires", "Bonus : accès groupe WhatsApp VIP"], cta: "Profiter de l'offre", primary: true },
     { name: "Pack Entreprise", price: "Sur devis", unit: "dès 3 inscrits", features: ["-15% dès 3 inscrits même entreprise", "Pack 2 ateliers : -10%", "Pack 4 ateliers : -20%", "Facturation entreprise", `Coaching personnalisé : ${fmt(COACHING_PRICE)} FCFA / 2h`], cta: "Nous contacter", primary: false },
   ];
   return (
@@ -410,7 +413,8 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [prices] = useLocalStorage("rmk_prices", { standard: PRICE, earlyBird: EARLY_BIRD_PRICE, discountPct: 10 });
+  // Pricing reacts to the currently-selected atelier: S1 and other workshops can have distinct tariffs.
+  const currentPricing = getSeminarPricing(form.seminaire, seminars);
   
   const upd = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [k]: e.target.value });
@@ -454,7 +458,7 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
       ? new Date(new Date(selectedSeminar.dates.start + "T00:00:00Z").getTime() - EARLY_BIRD_DAYS_BEFORE * 86400000)
       : EARLY_BIRD_DEADLINE;
     const isEarlyBird = new Date() <= earlyBirdCutoff;
-    const amount = isEarlyBird ? prices.earlyBird : prices.standard;
+    const amount = isEarlyBird ? currentPricing.earlyBird : currentPricing.standard;
 
     const newParticipant = {
       nom: form.nom.trim(),
@@ -630,8 +634,8 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
           </div>
           
           <div style={{ marginTop: 20, padding: 16, background: "rgba(201,168,76,0.1)", borderRadius: 10, border: "1px solid rgba(201,168,76,0.3)" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#C9A84C" }}>🔥 Offre Early Bird : -10% avant le 30 avril 2026</div>
-            <div style={{ fontSize: 12, color: '#1B2A4A', marginTop: 4 }}>Payez {fmt(prices?.earlyBird || EARLY_BIRD_PRICE)} FCFA au lieu de {fmt(prices?.standard || PRICE)} FCFA · Économisez {fmt((prices?.standard || PRICE) - (prices?.earlyBird || EARLY_BIRD_PRICE))} FCFA</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#C9A84C" }}>🔥 Offre Early Bird : -10% jusqu&apos;à {EARLY_BIRD_DAYS_BEFORE} jours avant le début de l&apos;atelier</div>
+            <div style={{ fontSize: 12, color: '#1B2A4A', marginTop: 4 }}>Payez {fmt(currentPricing.earlyBird)} FCFA au lieu de {fmt(currentPricing.standard)} FCFA · Économisez {fmt(currentPricing.standard - currentPricing.earlyBird)} FCFA</div>
           </div>
           
           <button onClick={handleSubmit} disabled={isSubmitting} style={{
@@ -759,7 +763,8 @@ function formatDeadline(startIso: string, daysBefore: number): string {
 }
 
 function EarlyBirdBanner({ seminars }: { seminars: Seminar[] }) {
-  const savings = PRICE - EARLY_BIRD_PRICE;
+  // Per-atelier savings can differ, so surface the max to keep the headline accurate.
+  const maxSavings = seminars.reduce((max, s) => Math.max(max, s.price - s.earlyBirdPrice), PRICE - EARLY_BIRD_PRICE);
   return (
     <div
       role="region"
@@ -803,7 +808,7 @@ function EarlyBirdBanner({ seminars }: { seminars: Seminar[] }) {
           Offre Early Bird
         </div>
         <div style={{ fontSize: 20, fontWeight: 800, margin: "4px 0 6px", lineHeight: 1.25 }}>
-          Économisez {fmt(savings)} FCFA sur chaque atelier
+          Économisez jusqu&apos;à {fmt(maxSavings)} FCFA sur votre atelier
         </div>
         <div style={{ fontSize: 14, lineHeight: 1.5 }}>
           10 % de remise pour toute inscription réalisée au moins <strong>{EARLY_BIRD_DAYS_BEFORE} jours</strong> avant le début de l'atelier choisi.

@@ -5,7 +5,7 @@
  */
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { SEMINARS, PRICE, PRICE_DIRIGEANTS, EARLY_BIRD_PRICE, COACHING_PRICE, fmt } from '../data/seminars';
+import { SEMINARS, PRICE, EARLY_BIRD_PRICE, COACHING_PRICE, fmt } from '../data/seminars';
 import type { Seminar as BaseSeminar } from '../data/seminars';
 
 // ---- Color constants ----
@@ -641,7 +641,11 @@ function buildPricingPage(doc: jsPDF): void {
     body: [
       ['Early Bird', `${fmt(EARLY_BIRD_PRICE)} FCFA`, '-10% si inscription 15 jours avant le debut de l\'atelier'],
       ['Standard', `${fmt(PRICE)} FCFA`, 'Tarif de base par atelier'],
-      ['Dirigeants (S1)', `${fmt(PRICE_DIRIGEANTS)} FCFA`, 'Atelier S1 dedie aux decideurs'],
+      ...SEMINARS.filter(s => s.price !== PRICE).map(s => [
+        `${s.code} - ${s.title}`,
+        `${fmt(s.price)} FCFA`,
+        `Tarif specifique (early bird : ${fmt(s.earlyBirdPrice)} FCFA)`,
+      ]),
       ['Coaching individuel', `${fmt(COACHING_PRICE)} FCFA`, 'Session individuelle de 2h (optionnel)'],
     ],
     headStyles: {

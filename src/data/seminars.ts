@@ -23,6 +23,10 @@ export interface Seminar {
   icon: string;
   highlights: string[];
   modules: string[];
+  // Per-atelier pricing. Each atelier can have its own tariff and early-bird
+  // discount, so adding a new workshop with a different price is data-only.
+  price: number;
+  earlyBirdPrice: number;
   // Admin-specific fields
   targets: string[];
   sectors: string[];
@@ -49,6 +53,8 @@ export const SEMINARS: Seminar[] = [
       "Plan d'action IA individuel avec feuille de route",
     ],
     modules: ["IA & Transformation du Leadership", "Prompt Engineering Stratégique", "IA & Décision Augmentée", "Construction d'Agents IA", "Feuille de Route Personnelle"],
+    price: 700000,
+    earlyBirdPrice: 630000,
     targets: ["DG", "CEO", "DGA", "Directeurs de département", "Cadres dirigeants"],
     sectors: ["Banque", "Assurance", "Télécoms", "Énergie", "Distribution", "Industrie"],
   },
@@ -72,6 +78,8 @@ export const SEMINARS: Seminar[] = [
       "IA et conformité bancaire (BCEAO, UEMOA)",
     ],
     modules: ["IA & Métiers de la Finance", "Prompt Engineering Financier", "Analyse des États Financiers", "Gestion des Risques", "Prise de Décision & Conformité"],
+    price: 600000,
+    earlyBirdPrice: 540000,
     targets: ["DAF", "Analystes financiers", "Trésoriers", "Risk Managers", "Contrôleurs de gestion"],
     sectors: ["Banques (SGBCI, SIB, BICICI, Ecobank)", "Assurances", "SGI", "Microfinance", "BCEAO/BRVM"],
   },
@@ -95,6 +103,8 @@ export const SEMINARS: Seminar[] = [
       "Sécurité des données et responsabilité professionnelle",
     ],
     modules: ["IA & Pratique Notariale", "Prompt Engineering Juridique", "Rédaction d'Actes Assistée", "Analyse de Contrats", "Modernisation des Études"],
+    price: 600000,
+    earlyBirdPrice: 540000,
     targets: ["Notaires", "Clercs de notaires", "Collaborateurs d'études", "Juristes immobilier"],
     sectors: ["Études notariales Abidjan", "Études notariales hors Abidjan", "Cabinets juridiques"],
   },
@@ -118,6 +128,8 @@ export const SEMINARS: Seminar[] = [
       "Planification stratégique des ressources humaines",
     ],
     modules: ["IA & Transformation RH", "Prompt Engineering RH", "Recrutement & Talents", "Communication RH", "Gestion Stratégique"],
+    price: 600000,
+    earlyBirdPrice: 540000,
     targets: ["DRH", "Responsables RH", "Chargés de recrutement", "Responsables formation", "Managers"],
     sectors: ["Multinationales CI", "Grandes entreprises locales", "Secteur public", "ONG internationales"],
   },
@@ -132,16 +144,24 @@ export const SEMINAR_ICONS: Record<string, string> = {
   Users: "Users",
 };
 
-// Pricing constants
-export const PRICE = 700000;
-export const PRICE_DIRIGEANTS = 680000;
-export const EARLY_BIRD_PRICE = 630000;
+// Pricing defaults — used for packs, fallback display, and unknown seminar IDs.
+// Individual ateliers override these via `Seminar.price` / `Seminar.earlyBirdPrice`.
+export const PRICE = 600000;
+export const EARLY_BIRD_PRICE = 540000;
 // Early-bird: 10% off when purchased 15+ days before the first Atelier (S1 starts 2026-05-26).
 // Anchored in UTC because the Atelier is held in Abidjan (UTC+0, no DST); a bare
 // local-time string would drift for diaspora visitors (Paris, Montréal, etc.).
 export const EARLY_BIRD_DEADLINE = new Date("2026-05-11T23:59:59Z");
 export const EARLY_BIRD_DAYS_BEFORE = 15;
 export const COACHING_PRICE = 100000; // par session de 2h (inclus pour dirigeants, optionnel pour les autres)
+
+// Returns the standard + early-bird price for a given atelier.
+// Falls back to PRICE / EARLY_BIRD_PRICE for packs or unknown IDs.
+export function getSeminarPricing(seminarId: string, seminars: Seminar[] = SEMINARS): { standard: number; earlyBird: number } {
+  const sem = seminars.find(s => s.id === seminarId);
+  if (sem) return { standard: sem.price, earlyBird: sem.earlyBirdPrice };
+  return { standard: PRICE, earlyBird: EARLY_BIRD_PRICE };
+}
 
 // Formatting helper
 export const fmt = (n: number) => typeof n === 'number' ? n.toLocaleString("fr-FR") : n;
