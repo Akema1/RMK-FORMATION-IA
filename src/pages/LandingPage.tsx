@@ -410,7 +410,7 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [prices] = useLocalStorage("rmk_prices", { standard: 700000, earlyBird: 630000, discountPct: 10 });
+  const [prices] = useLocalStorage("rmk_prices", { standard: PRICE, earlyBird: EARLY_BIRD_PRICE, discountPct: 10 });
   
   const upd = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [k]: e.target.value });

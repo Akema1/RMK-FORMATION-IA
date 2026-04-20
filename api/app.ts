@@ -73,7 +73,7 @@ const registrationSchema = z.object({
   civilite: z.enum(["M.", "Mme"]).optional(),
   prenom: z.string().min(1).max(100),
   nom: z.string().min(1).max(100),
-  tel: z.string().min(1).max(20).regex(/^\+?[\d\s()-]{6,20}$/, "Invalid phone format"),
+  tel: z.string().min(1).max(20).regex(/^\+?[\d\s()-]{8,20}$/, "Invalid phone format"),
   societe: z.string().max(200).optional(),
   fonction: z.string().max(200).optional(),
   seminar: z.string().min(1).max(50),
@@ -571,7 +571,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
 
         await resend.emails.send({
           from: "RMK Conseils <noreply@rmk-conseils.com>",
-          to: ["ericatta@gmail.com", "donzigre@gmail.com"],
+          to: (process.env.ADMIN_NOTIFY_EMAILS || "ericatta@gmail.com,donzigre@gmail.com").split(",").map(e => e.trim()).filter(Boolean),
           subject: `[Nouvelle inscription] ${escapeHtml(participant.civilite || "")} ${escapeHtml(participant.prenom)} ${escapeHtml(participant.nom)} — ${escapeHtml(seminarTitle)}`,
           html: `
             <h2>Nouvelle demande d'inscription</h2>
