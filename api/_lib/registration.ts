@@ -16,6 +16,7 @@ export const RegisterBodySchema = z
     referral_channel: z.enum(REFERRAL_CHANNELS),
     referrer_name: z.string().trim().max(200).optional(),
     channel_other: z.string().trim().max(500).optional(),
+    message: z.string().trim().max(2000).optional(),
     consent: z.literal(true),
   })
   .superRefine((v, ctx) => {
@@ -122,6 +123,7 @@ export async function registerOrDedup(
         referral_channel: body.referral_channel,
         referrer_name: body.referrer_name ?? null,
         channel_other: body.channel_other ?? null,
+        notes: body.message ?? null,
         consent_at: new Date().toISOString(),
         payment_reference: ref,
       })

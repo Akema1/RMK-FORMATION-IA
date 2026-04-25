@@ -26,6 +26,7 @@ export interface RegisterRequest {
   referral_channel: ReferralChannel;
   referrer_name?: string;
   channel_other?: string;
+  message?: string;
   consent: true;
 }
 

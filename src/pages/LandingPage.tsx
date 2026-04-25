@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { registrationErrorToBanner } from "../lib/errors";
 import { LogoRMK } from "../components/LogoRMK";
 import { ChatWidget } from "../components/ChatWidget";
+import { ChannelField, type ChannelFieldValue } from "../components/ChannelField";
+import { ConsentCheckbox } from "../components/ConsentCheckbox";
 import { SEMINARS, PRICE, EARLY_BIRD_PRICE, EARLY_BIRD_DEADLINE, EARLY_BIRD_DAYS_BEFORE, COACHING_PRICE, getSeminarPricing, fmt, type Seminar, Briefcase, BarChart3, Scale, Users } from "../data/seminars";
 import { Settings, X, Menu, Building2, Monitor, Check, CheckCircle, Zap, type LucideIcon } from "lucide-react";
 
@@ -408,10 +409,12 @@ function PricingPage({ setPage, seminars, setSelectedSem }: { setPage: (p: strin
   );
 }
 
-function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange }: { selectedSem: string; seminars: Seminar[]; fullSeminars: Set<string>; onCapacityChange: () => void }) {
-  const [form, setForm] = useState({ civilite: "", nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
+export function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange }: { selectedSem: string; seminars: Seminar[]; fullSeminars: Set<string>; onCapacityChange: () => void }) {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ civilite: "", nom: "", prenom: "", email: "", tel: "+225 ", societe: "", fonction: "", seminaire: selectedSem || "", message: "" });
+  const [channelData, setChannelData] = useState<ChannelFieldValue>({ channel: "", referrerName: "", channelOther: "" });
+  const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Pricing reacts to the currently-selected atelier: S1 and other workshops can have distinct tariffs.
   const currentPricing = getSeminarPricing(form.seminaire, seminars);
@@ -433,7 +436,7 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errs.email = "Format d'email invalide";
     }
-    if (!form.tel.trim()) {
+    if (!form.tel.trim() || form.tel.trim() === "+225") {
       errs.tel = "Le téléphone est obligatoire";
     } else if (!/^[+]?[\d\s()-]{8,20}$/.test(form.tel.trim())) {
       errs.tel = "Format de téléphone invalide (ex: +225 07 00 00 00 00)";
@@ -441,6 +444,14 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
     if (!form.societe.trim()) errs.societe = "La société est obligatoire";
     if (!form.fonction.trim()) errs.fonction = "La fonction est obligatoire";
     if (!form.seminaire) errs.seminaire = "Veuillez choisir un atelier";
+    if (!channelData.channel) errs.channel = "Indiquez comment vous nous avez connus";
+    if (channelData.channel === "Recommandation" && !channelData.referrerName.trim()) {
+      errs.referrerName = "Indiquez qui vous a recommandé";
+    }
+    if (channelData.channel === "Autre" && !channelData.channelOther.trim()) {
+      errs.channelOther = "Précisez votre canal";
+    }
+    if (!consent) errs.consent = "Vous devez accepter les CGU et la politique de confidentialité";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -449,133 +460,97 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
     if (!validate()) return;
 
     setIsSubmitting(true);
-    // Early bird applies when the purchase is made ≥ EARLY_BIRD_DAYS_BEFORE days
-    // before the selected atelier's start. Packs (pack2/pack4) have no single
-    // start date, so they fall back to S1's deadline — the earliest, and therefore
-    // the most conservative cutoff.
-    const selectedSeminar = seminars.find(s => s.id === form.seminaire);
-    const earlyBirdCutoff = selectedSeminar
-      ? new Date(new Date(selectedSeminar.dates.start + "T00:00:00Z").getTime() - EARLY_BIRD_DAYS_BEFORE * 86400000)
-      : EARLY_BIRD_DEADLINE;
-    const isEarlyBird = new Date() <= earlyBirdCutoff;
-    const amount = isEarlyBird ? currentPricing.earlyBird : currentPricing.standard;
+    setErrors({});
 
-    const newParticipant = {
+    const payload = {
+      civilite: form.civilite || undefined,
       nom: form.nom.trim(),
       prenom: form.prenom.trim(),
       email: form.email.trim().toLowerCase(),
-      tel: form.tel.trim(),
-      societe: form.societe.trim(),
+      tel: form.tel.trim() || undefined,
+      societe: form.societe.trim() || undefined,
       fonction: form.fonction.trim(),
       seminar: form.seminaire,
-      amount: amount,
-      status: "pending",
-      // payment column has a CHECK constraint (NULL or one of
-      // pending|partial|paid|refunded). Upstream's merge sent "" which fails
-      // the check and silently breaks registration. Omit until the user
-      // actually pays so the DB stores NULL.
-      payment: null,
-      notes: form.message.trim()
+      referral_channel: channelData.channel,
+      referrer_name: channelData.referrerName.trim() || undefined,
+      channel_other: channelData.channelOther.trim() || undefined,
+      message: form.message.trim() || undefined,
+      consent: true as const,
     };
 
     try {
-      // Sprint 7 Phase 4 — idempotency guard. Ask the server if this
-      // (email, seminar) tuple already has a row before we insert, so a
-      // client retry (network timeout, back-button, double-click edge case)
-      // doesn't create a duplicate. Participants RLS blocks anon SELECT, so
-      // this MUST go through the rate-limited server endpoint — a client-
-      // side query would silently return [] and block nothing. Fail-closed:
-      // if the check returns non-OK, surface the error and abort the insert.
-      //
-      // NOTE: this is a check-then-insert, NOT an atomic upsert. Two
-      // concurrent submissions from different tabs/devices can still both
-      // pass the check and both insert, producing duplicate rows. The
-      // authoritative fix is a UNIQUE (email, seminar) constraint on
-      // participants — tracked in TODOS.md as P1 "email uniqueness business
-      // rule". This client-side guard covers the 99% case (one user
-      // double-clicking or hitting back-submit after a network hiccup).
-      // 5s timeout — if the check endpoint hangs (DNS failure, upstream
-      // outage) we must abort so the button doesn't stay disabled forever.
-      // Fail-closed on timeout: the catch block surfaces the error banner
-      // rather than proceeding to an unchecked insert.
-      const checkRes = await fetch('/api/registration/check-duplicate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newParticipant.email, seminar: newParticipant.seminar }),
-        signal: AbortSignal.timeout(5000),
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000),
       });
-      if (!checkRes.ok) {
-        throw new Error(`Duplicate check failed: ${checkRes.status}`);
-      }
-      const checkData = await checkRes.json() as { exists: boolean };
-      if (checkData.exists) {
-        // Functional updater — the input fields are still editable while
-        // handleSubmit is in flight, so another field handler might have
-        // mutated `errors` in state since this closure captured it. A plain
-        // `{...errors}` spread would blow away those concurrent updates.
-        setErrors(prev => ({
-          ...prev,
-          _global: "Vous êtes déjà inscrit(e) à cet atelier. Consultez le Portail Client pour suivre votre inscription.",
-        }));
-        setIsSubmitting(false);
+
+      if (res.status === 201) {
+        const data = (await res.json()) as { participant_id: string; payment_reference: string };
+        const navState = {
+          paymentReference: data.payment_reference,
+          participantId: data.participant_id,
+          seminarId: form.seminaire,
+        };
+        try {
+          sessionStorage.setItem("rmk:lastReg", JSON.stringify(navState));
+        } catch {
+          // sessionStorage unavailable (privacy mode) — non-fatal; nav state still works.
+        }
+        navigate("/inscription/confirmee", { state: navState });
         return;
       }
 
-      const { error: dbError } = await supabase.from('participants').insert([newParticipant]);
-      if (dbError) {
-        // 23505 = unique_violation from participants_email_seminar_active_udx
-        // (optimistic duplicate guard). P0013 = capacity exceeded, raised by
-        // the enforce_seminar_capacity trigger. Both map to a French banner
-        // via the shared utility so the Vitest suite can test the same code.
-        const banner = registrationErrorToBanner(dbError);
-        if (banner) {
-          setErrors(prev => ({ ...prev, _global: banner.message }));
-          if (banner.refetchCapacity) {
-            // The atelier filled between our capacity fetch and this submit.
-            // Ask the parent to re-fetch so the dropdown reflects reality.
-            onCapacityChange();
-          }
-          setIsSubmitting(false);
-          return;
+      if (res.status === 409) {
+        const data = (await res.json()) as {
+          state: "pending_unpaid" | "pending_paid" | "confirmed";
+          action_taken: "resent_confirmation" | "sent_magic_link" | "none";
+          payment_reference: string | null;
+        };
+        const banner =
+          data.action_taken === "sent_magic_link"
+            ? "Vous êtes déjà inscrit(e) à cet atelier. Nous venons de vous renvoyer un lien magique pour accéder à votre portail."
+            : data.action_taken === "resent_confirmation"
+              ? "Vous avez déjà commencé une inscription. Nous venons de vous renvoyer votre confirmation et votre référence de paiement."
+              : "Vous êtes déjà inscrit(e) à cet atelier. Consultez votre boîte mail pour les prochaines étapes.";
+        setErrors({ _global: banner });
+        return;
+      }
+
+      if (res.status === 400) {
+        const data = (await res.json()) as { issues: Array<{ path: (string | number)[]; message: string }> };
+        const fieldErrors: Record<string, string> = {};
+        for (const issue of data.issues) {
+          const key = String(issue.path[0] ?? "");
+          const mapped =
+            key === "referral_channel" ? "channel" :
+            key === "referrer_name" ? "referrerName" :
+            key === "channel_other" ? "channelOther" :
+            key === "seminar" ? "seminaire" :
+            key;
+          if (mapped) fieldErrors[mapped] = issue.message;
         }
-        throw dbError;
+        if (Object.keys(fieldErrors).length === 0) {
+          fieldErrors._global = "Certains champs sont invalides. Vérifiez vos informations.";
+        }
+        setErrors(fieldErrors);
+        return;
       }
 
-      // Send notifications + auto-task creation (onboarding + finance) —
-      // both handled server-side by /api/notify-registration since RLS now
-      // blocks anon inserts into `tasks`. Best-effort; non-blocking.
-      try {
-        await fetch('/api/notify-registration', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...newParticipant, civilite: form.civilite })
-        });
-      } catch (notifyError) {
-        console.error("Failed to send notifications:", notifyError);
-        // We don't block the user if notifications fail, they are already registered
-      }
-
-      setSubmitted(true);
-    } catch (error) {
-      console.error("Error saving participant:", error);
-      // Functional updater — same stale-closure concern as the dupe-check
-      // branch above, applies across the whole async submit lifetime.
-      setErrors(prev => ({ ...prev, _global: "Une erreur est survenue lors de l'inscription. Veuillez réessayer." }));
+      // 5xx, network, or unexpected status
+      setErrors({
+        _global: "Une erreur est survenue, réessayez ou contactez-nous au +225 07 02 61 15 82.",
+      });
+    } catch (err) {
+      console.error("Registration request failed:", err);
+      setErrors({
+        _global: "Connexion impossible. Vérifiez votre réseau et réessayez.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  if (submitted) return (
-    <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F5F0E8", paddingTop: 80 }}>
-      <div style={{ textAlign: "center", maxWidth: 500, padding: 40 }}>
-        <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><CheckCircle size={56} style={{ color: "#27AE60" }} /></div>
-        <h2 style={{ fontSize: 32, fontWeight: 800, color: "#1B2A4A", marginBottom: 12 }}>Demande envoyée !</h2>
-        <p style={{ color: '#1B2A4A', fontSize: 16, lineHeight: 1.7 }}>Merci {form.prenom}. L'équipe RMK vous contactera sous 24h pour confirmer votre inscription et les modalités de paiement.</p>
-        <p style={{ color: "#C9A84C", fontWeight: 600, fontSize: 14, marginTop: 16 }}>Vous recevrez un email de confirmation à {form.email}</p>
-      </div>
-    </section>
-  );
 
   return (
     <section style={{ minHeight: "100vh", background: "#F5F0E8", paddingTop: 100, paddingBottom: 80 }}>
@@ -607,7 +582,7 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
             <div><label htmlFor="field-fonction" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Fonction *</label><input id="field-fonction" style={{...inputStyle, background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.fonction ? "#E74C3C" : "rgba(0,0,0,0.1)"}} value={form.fonction} onChange={upd("fonction")} placeholder="Directeur Financier..." />{errors.fonction && <div style={errorStyle}>{errors.fonction}</div>}</div>
           </div>
           <div style={{ marginTop: 16 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Atelier souhaité *</label>
+            <label htmlFor="field-seminaire" style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Atelier souhaité *</label>
             <select id="field-seminaire" style={{ ...inputStyle, cursor: "pointer", background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: errors.seminaire ? "#E74C3C" : "rgba(0,0,0,0.1)" }} value={form.seminaire} onChange={upd("seminaire")}>
               <option value="" style={{ color: "#000" }}>-- Choisir un atelier --</option>
               {seminars.map((s: any) => {
@@ -632,7 +607,34 @@ function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacityChange
             <label style={{ fontSize: 13, fontWeight: 600, color: "#1B2A4A", display: "block", marginBottom: 6 }}>Message (optionnel)</label>
             <textarea style={{ ...inputStyle, minHeight: 80, resize: "vertical", background: "rgba(0,0,0,0.05)", color: "#1B2A4A", borderColor: "rgba(0,0,0,0.1)" }} value={form.message} onChange={upd("message")} placeholder="Besoins spécifiques, questions..." />
           </div>
-          
+
+          <div style={{ marginTop: 16 }}>
+            <ChannelField
+              channel={channelData.channel}
+              referrerName={channelData.referrerName}
+              channelOther={channelData.channelOther}
+              onChange={(v) => {
+                setChannelData(v);
+                if (errors.channel || errors.referrerName || errors.channelOther) {
+                  setErrors({ ...errors, channel: "", referrerName: "", channelOther: "" });
+                }
+              }}
+              errors={{ channel: errors.channel, referrerName: errors.referrerName, channelOther: errors.channelOther }}
+              required
+            />
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <ConsentCheckbox
+              checked={consent}
+              onChange={(c) => {
+                setConsent(c);
+                if (errors.consent) setErrors({ ...errors, consent: "" });
+              }}
+              error={errors.consent}
+            />
+          </div>
+
           <div style={{ marginTop: 20, padding: 16, background: "rgba(201,168,76,0.1)", borderRadius: 10, border: "1px solid rgba(201,168,76,0.3)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#C9A84C" }}>🔥 Offre Early Bird : -10% jusqu&apos;à {EARLY_BIRD_DAYS_BEFORE} jours avant le début de l&apos;atelier</div>
             <div style={{ fontSize: 12, color: '#1B2A4A', marginTop: 4 }}>Payez {fmt(currentPricing.earlyBird)} FCFA au lieu de {fmt(currentPricing.standard)} FCFA · Économisez {fmt(currentPricing.standard - currentPricing.earlyBird)} FCFA</div>
