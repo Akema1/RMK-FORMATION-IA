@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generatePaymentReference } from "./payment-reference.js";
+import { REFERRAL_CHANNELS } from "../../src/types/registration.js";
 
 export const RegisterBodySchema = z
   .object({
@@ -12,16 +13,7 @@ export const RegisterBodySchema = z
     societe: z.string().trim().max(200).optional(),
     fonction: z.string().trim().min(1).max(200),
     seminar: z.string().trim().min(1),
-    referral_channel: z.enum([
-      "Recommandation",
-      "LinkedIn",
-      "Facebook",
-      "Instagram",
-      "Google",
-      "Email",
-      "Évènement",
-      "Autre",
-    ]),
+    referral_channel: z.enum(REFERRAL_CHANNELS),
     referrer_name: z.string().trim().max(200).optional(),
     channel_other: z.string().trim().max(500).optional(),
     consent: z.literal(true),
@@ -44,14 +36,16 @@ export const RegisterBodySchema = z
   });
 
 export type RegisterBody = z.infer<typeof RegisterBodySchema>;
-export type DedupState = "pending_unpaid" | "pending_paid" | "confirmed";
+export type { DedupState, DedupAction } from "../../src/types/registration.js";
+
+import type { DedupState, DedupAction } from "../../src/types/registration.js";
 
 export interface RegisterResult {
   status: "created" | "duplicate";
   participantId?: string;
   paymentReference?: string;
   state?: DedupState;
-  actionTaken?: "resent_confirmation" | "sent_magic_link" | "none";
+  actionTaken?: DedupAction;
 }
 
 interface ExistingRow {
