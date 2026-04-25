@@ -33,6 +33,7 @@ import {
 import { magicLink } from "./_email-templates/magic-link.js";
 import { registrationConfirmation } from "./_email-templates/registration-confirmation.js";
 import { adminNewRegistration } from "./_email-templates/admin-new-registration.js";
+import { welcomeConfirmed } from "./_email-templates/welcome-confirmed.js";
 
 export interface CreateAppOptions {
   supabaseUrl?: string;
@@ -1172,6 +1173,97 @@ export function createApp(opts: CreateAppOptions): express.Express {
         return res.status(502).json({ error: "AI service temporarily unavailable" });
       }
     }
+  );
+
+  // ── Admin mark-paid (Phase 1C / Task 13) ─────────────────────────────────
+  // Admin flips a participant from pending→confirmed in one call. Idempotent
+  // via conditional UPDATE: the .neq("status","confirmed") clause ensures
+  // already-confirmed rows are no-ops, and the affected-row count tells us
+  // whether to fire the welcome email. Same-shape 200 in both branches —
+  // distinguished by `was_already_confirmed`.
+  const MarkPaidBody = z.object({
+    payment_provider: z
+      .enum(["wave", "orange_money", "bank_transfer", "cash", "flutterwave"])
+      .optional(),
+    confirmation_notes: z.string().trim().max(2000).optional(),
+  });
+
+  app.post(
+    "/api/admin/participants/:id/mark-paid",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      if (!supabaseAdmin) {
+        return res.status(503).json({ error: "Database not configured" });
+      }
+      const parsed = MarkPaidBody.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "validation" });
+
+      const { data: current } = await supabaseAdmin
+        .from("participants")
+        .select("id, email, prenom, seminar, status, payment")
+        .eq("id", req.params.id)
+        .maybeSingle();
+      if (!current) return res.status(404).json({ error: "not_found" });
+
+      const { data: updated, error } = await supabaseAdmin
+        .from("participants")
+        .update({
+          status: "confirmed",
+          payment: "paid",
+          confirmed_at: new Date().toISOString(),
+          confirmation_notes: parsed.data.confirmation_notes ?? null,
+          payment_provider: parsed.data.payment_provider ?? null,
+        })
+        .eq("id", req.params.id)
+        .neq("status", "confirmed")
+        .select("id");
+
+      if (error) {
+        console.error("[mark-paid] update failed:", error);
+        return res.status(500).json({ error: "update_failed" });
+      }
+      const wasAlreadyConfirmed = !updated || updated.length === 0;
+
+      if (!wasAlreadyConfirmed) {
+        try {
+          const seminarMeta = SEMINARS.find((s) => s.id === (current as { seminar: string }).seminar);
+          const seminarTitle = seminarMeta?.title ?? "votre formation";
+          const seminarDates = seminarMeta?.week ?? "";
+          const url = await generateMagicLinkUrl(
+            (current as { email: string }).email,
+            supabaseAdmin,
+          );
+          if (url) {
+            const supportPhone = process.env.SUPPORT_PHONE ?? "+225 07 02 61 15 82";
+            const siteUrl = process.env.SITE_URL ?? "https://rmkconseils.com";
+            await sendEmail(
+              {
+                ...renderEmail(welcomeConfirmed, {
+                  prenom: (current as { prenom: string }).prenom,
+                  seminarTitle,
+                  seminarDates,
+                  magicLinkUrl: url,
+                  portalUrl: `${siteUrl}/portal`,
+                  supportPhone,
+                }),
+                to: (current as { email: string }).email,
+              },
+              {
+                resendApiKey: process.env.RESEND_API_KEY ?? "",
+                from:
+                  process.env.EMAIL_FROM ??
+                  "RMK Conseils <noreply@rmkconseils.com>",
+              },
+            );
+          }
+        } catch (err) {
+          console.error("[mark-paid] welcome email failed (non-fatal):", err);
+        }
+      }
+
+      res.json({ ok: true, was_already_confirmed: wasAlreadyConfirmed });
+    },
   );
 
   // ── AI generation (admin only) ────────────────────────────────────────────
