@@ -24,12 +24,16 @@ vi.mock("@supabase/supabase-js", () => ({
     auth: { getUser: vi.fn(), admin: { generateLink: vi.fn() } },
     from: (table: string) => {
       if (table === "participants") {
-        // The cron query: .select(...).eq("status","pending").eq("payment","pending").lt("created_at",cutoff)
+        // The cron query: .select(...).eq("status","pending").eq("payment","pending")
+        //   .gte("created_at", lower).lt("created_at", upper) — bracketed window
+        //   so a stale row only fires one reminder over its lifetime.
         return {
           select: () => ({
             eq: () => ({
               eq: () => ({
-                lt: () => mockStaleQuery(),
+                gte: () => ({
+                  lt: () => mockStaleQuery(),
+                }),
               }),
             }),
           }),

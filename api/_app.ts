@@ -20,7 +20,7 @@ import twilio from "twilio";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { z } from "zod";
-import { SEMINARS } from "../src/data/seminars.js";
+import { SEMINARS, EARLY_BIRD_DAYS_BEFORE, getSeminarPricing } from "../src/data/seminars.js";
 import { renderSystemPrompt, PROMPT_TEMPLATES, type TemplateId } from "./_prompts.js";
 import { renderEmail } from "./_lib/render-email.js";
 import { sendEmail } from "./_lib/send-email.js";
@@ -702,11 +702,18 @@ export function createApp(opts: CreateAppOptions): express.Express {
       return respond();
     }
 
+    // A user can be confirmed for multiple seminars under the same email — the
+    // unique index is (email, seminar). Without limit(1) the maybeSingle() call
+    // would PGRST116 and lock the user out of the magic-link flow. Order by
+    // most recent confirmation so the magic link points at the seminar they're
+    // most plausibly trying to access.
     const { data: participant } = await supabaseAdmin
       .from("participants")
-      .select("prenom, seminar")
+      .select("prenom, seminar, confirmed_at")
       .eq("email", email)
       .eq("status", "confirmed")
+      .order("confirmed_at", { ascending: false, nullsFirst: false })
+      .limit(1)
       .maybeSingle();
 
     if (!participant) return respond();
@@ -769,9 +776,21 @@ export function createApp(opts: CreateAppOptions): express.Express {
       return res.status(503).json({ error: "Database not configured" });
     }
 
+    // Early-bird pricing — owned server-side so the client cannot trick the
+    // backend into a discount it hasn't earned. Pack ids ("pack2"/"pack4") have
+    // no single start date, so they fall back to the EARLY_BIRD_DEADLINE-style
+    // rule: only standard-priced seminars (S1..S4) are eligible.
+    const pricing = getSeminarPricing(body.seminar);
+    let amountFcfa = pricing.standard;
+    if (seminarMeta.dates?.start) {
+      const startMs = new Date(seminarMeta.dates.start + "T00:00:00Z").getTime();
+      const cutoffMs = startMs - EARLY_BIRD_DAYS_BEFORE * 86_400_000;
+      if (Date.now() <= cutoffMs) amountFcfa = pricing.earlyBird;
+    }
+
     let result;
     try {
-      result = await registerOrDedup(body, supabaseAdmin, seminarMeta.price);
+      result = await registerOrDedup(body, supabaseAdmin, amountFcfa);
     } catch (e) {
       console.error("[register] insert failed", e);
       return res.status(500).json({ error: "internal" });
@@ -1282,13 +1301,20 @@ export function createApp(opts: CreateAppOptions): express.Express {
       return res.status(503).json({ error: "Database not configured" });
     }
 
-    const cutoff = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+    // Bracketed window: only registrations between 48h and 72h old. Without
+    // an upper bound the cron would re-include the same row every day forever
+    // — admins would get reminded daily about the same stale registration.
+    // The 24h window aligns with the daily cron schedule so each row fires
+    // exactly one reminder over its lifetime.
+    const lower = new Date(Date.now() - 72 * 3600 * 1000).toISOString();
+    const upper = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
     const { data: stale, error } = await supabaseAdmin
       .from("participants")
       .select("id, prenom, nom, email, seminar, payment_reference, created_at")
       .eq("status", "pending")
       .eq("payment", "pending")
-      .lt("created_at", cutoff);
+      .gte("created_at", lower)
+      .lt("created_at", upper);
 
     if (error) {
       console.error("[sla-reminder] query failed:", error);

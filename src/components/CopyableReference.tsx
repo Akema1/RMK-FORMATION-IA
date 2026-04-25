@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Copy, Check, AlertCircle } from "lucide-react";
 
 type CopyState = "idle" | "copied" | "error";
@@ -10,15 +10,23 @@ interface CopyableReferenceProps {
 
 export function CopyableReference({ value, className }: CopyableReferenceProps) {
   const [state, setState] = useState<CopyState>("idle");
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+    };
+  }, []);
 
   async function handleCopy() {
+    if (resetTimer.current) clearTimeout(resetTimer.current);
     try {
       await navigator.clipboard.writeText(value);
       setState("copied");
-      setTimeout(() => setState("idle"), 2500);
+      resetTimer.current = setTimeout(() => setState("idle"), 2500);
     } catch {
       setState("error");
-      setTimeout(() => setState("idle"), 3000);
+      resetTimer.current = setTimeout(() => setState("idle"), 3000);
     }
   }
 

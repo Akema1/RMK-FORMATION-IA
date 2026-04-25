@@ -33,6 +33,7 @@ function nextTasks(): MockResponse {
   return tasksQueue.shift() ?? { data: [], error: null };
 }
 
+const insertSpy = vi.fn();
 vi.mock("@supabase/supabase-js", () => {
   const buildParticipants = () => {
     const handler = {
@@ -46,7 +47,10 @@ vi.mock("@supabase/supabase-js", () => {
     };
     return {
       ...handler,
-      insert: () => ({ select: () => ({ single: handler.single }) }),
+      insert: (row: unknown) => {
+        insertSpy(row);
+        return { select: () => ({ single: handler.single }) };
+      },
     };
   };
   const buildTasks = () => {
@@ -107,6 +111,7 @@ function validBody() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  insertSpy.mockClear();
   participantsQueue.length = 0;
   tasksQueue.length = 0;
   process.env.RESEND_API_KEY = "re_test";
@@ -303,5 +308,47 @@ describe("POST /api/register — dedup matrix", () => {
       lastStatus = r.status;
     }
     expect(lastStatus).toBe(429);
+  });
+
+  // Early-bird regression — the legacy LandingPage computed isEarlyBird
+  // client-side and passed the discounted amount. The Phase 1C refactor
+  // accidentally hardcoded standard price; this test guards against that
+  // recurring. The fix moved the early-bird math into /api/register itself.
+  it("inserts the early-bird amount when the seminar is more than 15 days away", async () => {
+    participantsQueue.push({ data: null, error: null }); // dedup SELECT
+    participantsQueue.push({ data: { id: "uuid-eb" }, error: null }); // INSERT
+
+    const farFutureSeminar = "s4"; // S4 starts later in the program; well past the cutoff
+    const res = await request(app)
+      .post("/api/register")
+      .send({ ...validBody(), seminar: farFutureSeminar });
+
+    expect(res.status).toBe(201);
+    const inserted = insertSpy.mock.calls[0]?.[0] as { amount: number };
+    expect(inserted.amount).toBe(540000); // S4 earlyBirdPrice
+  });
+
+  it("inserts the standard amount when the seminar is within 15 days", async () => {
+    // Build an in-memory body for a seminar so close that early-bird is gone.
+    // Easier than mucking with system clock: use a seminar id that doesn't
+    // exist (falls back to standard) and assert standard price flows through.
+    // Actually the validator rejects unknown seminars, so instead we mock
+    // Date.now to be inside the cutoff for s1 (which starts 2026-05-26).
+    const realNow = Date.now;
+    Date.now = () => new Date("2026-05-20T00:00:00Z").getTime(); // 6 days before s1
+    try {
+      participantsQueue.push({ data: null, error: null });
+      participantsQueue.push({ data: { id: "uuid-std" }, error: null });
+
+      const res = await request(app)
+        .post("/api/register")
+        .send({ ...validBody(), seminar: "s1" });
+
+      expect(res.status).toBe(201);
+      const inserted = insertSpy.mock.calls[0]?.[0] as { amount: number };
+      expect(inserted.amount).toBe(700000); // S1 standard price (per seminars.ts)
+    } finally {
+      Date.now = realNow;
+    }
   });
 });

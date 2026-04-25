@@ -34,11 +34,19 @@ vi.mock("@supabase/supabase-js", () => ({
       select: () => ({
         eq: (_col: string, _val: unknown) => ({
           eq: () => ({
+            // participants: .eq.eq.order.limit.maybeSingle (multi-seminar guard)
+            order: () => ({
+              limit: () => ({
+                maybeSingle: () => mockParticipantLookup(),
+              }),
+            }),
+            // legacy / non-participants tables still use .eq.eq.maybeSingle
             maybeSingle: () =>
               table === "participants"
                 ? mockParticipantLookup()
                 : mockSeminarLookup(),
           }),
+          // seminars: .eq.maybeSingle (single column lookup)
           maybeSingle: () =>
             table === "seminars"
               ? mockSeminarLookup()
