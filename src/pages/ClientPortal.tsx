@@ -6,6 +6,7 @@ import { SEMINARS, type Seminar, fmt, PRICE, EARLY_BIRD_PRICE, COACHING_PRICE } 
 import type { Participant } from '../admin/types';
 import { LogoRMK } from '../components/LogoRMK';
 import { ChatWidget } from '../components/ChatWidget';
+import { sendPortalMagicLink } from '../lib/portalAuth';
 
 // ── Extracted portal modules ──
 import {
@@ -155,23 +156,23 @@ export default function ClientPortal() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Send magic link OTP ───
+  // ─── Send magic link via /api/auth/send-magic-link ───
+  // Backend is anti-enumeration: 200 means "request accepted", NOT "email exists".
+  // We always advance to the 'sent' screen on 200 — never leak whether the email
+  // matches a confirmed participant. Real delivery happens server-side via Resend.
   const sendMagicLink = useCallback(async (targetEmail?: string) => {
     const trimmedEmail = (targetEmail ?? email).trim().toLowerCase();
     if (!trimmedEmail) return;
     setLoading(true);
     setError('');
-    try {
-      const { error: otpErr } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: { emailRedirectTo: `${window.location.origin}/portal` },
-      });
-      if (otpErr) {
-        setError("Impossible d'envoyer le lien. Verifiez votre email et reessayez.");
-      } else {
-        setAuthStep('sent');
-      }
-    } catch {
+    const result = await sendPortalMagicLink(trimmedEmail);
+    if (result.ok) {
+      setAuthStep('sent');
+    } else if (result.reason === 'invalid_email') {
+      setError("Email invalide. Verifiez le format et reessayez.");
+    } else if (result.reason === 'rate_limited') {
+      setError('Trop de tentatives. Veuillez patienter quelques minutes.');
+    } else {
       setError('Erreur reseau. Veuillez reessayer.');
     }
     setLoading(false);
