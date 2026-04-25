@@ -88,7 +88,12 @@ git diff | .claude/bin/gemini-deep-review - # pipe a diff in directly
 
 ### Code navigation
 
-Activate serena at the start of every session. Use serena's symbolic tools (`find_symbol`, `get_symbols_overview`, `find_referencing_symbols`, `search_for_pattern`) instead of Grep/Glob for TS/TSX source code. Only fall back to Grep/Glob for non-code files (config, SQL, markdown, `.env`).
+Activate serena at the start of every session. Use serena for **all in-repo file work** — reads, searches, edits — regardless of file type. Two tool families:
+
+- **Symbolic** (`find_symbol`, `get_symbols_overview`, `find_referencing_symbols`, `replace_symbol_body`, `rename_symbol`) — for TS/TSX and Python source. Use these instead of Grep/Glob/Edit-by-line-number when navigating or refactoring code.
+- **File-level** (`read_file`, `find_file`, `search_for_pattern`, `replace_content`, `create_text_file`, `list_dir`) — file-agnostic; works on `.sql`, `.md`, `.env`, `.json`, `.yml`, anything text. Use these instead of Read/Grep/Glob/cat for any file inside the repo.
+
+Bash is only for shell operations: git, npm, curl, supabase CLI, and binaries outside the repo. Never use Grep/Glob on repo files when `search_for_pattern` and `find_file` are available.
 
 ## Workflow
 
