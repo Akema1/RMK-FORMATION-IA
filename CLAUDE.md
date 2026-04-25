@@ -88,7 +88,7 @@ git diff | .claude/bin/gemini-deep-review - # pipe a diff in directly
 
 ### Code navigation
 
-Use serena's symbolic tools (`find_symbol`, `get_symbols_overview`, `find_referencing_symbols`, `search_for_pattern`) instead of Grep/Glob for TS/TSX source code. Only fall back to Grep/Glob for non-code files (config, SQL, markdown, `.env`).
+Activate serena at the start of every session. Use serena's symbolic tools (`find_symbol`, `get_symbols_overview`, `find_referencing_symbols`, `search_for_pattern`) instead of Grep/Glob for TS/TSX source code. Only fall back to Grep/Glob for non-code files (config, SQL, markdown, `.env`).
 
 ## Workflow
 
