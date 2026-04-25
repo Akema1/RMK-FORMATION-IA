@@ -33,7 +33,18 @@ export function layout(opts: { title: string; bodyHtml: string }): string {
 </html>`;
 }
 
-function escapeHtml(s: string): string {
+/**
+ * HTML-escape user-provided strings before interpolating them into a template.
+ *
+ * IMPORTANT: every email template that interpolates props into HTML MUST
+ * call this on every prop value. The renderer does NOT escape automatically
+ * — we'd otherwise double-escape pre-rendered fragments (links with text,
+ * formatted prices, etc.).
+ *
+ * The cost of forgetting: stored XSS in the email client. Most clients
+ * sandbox JS but rendering-engine bugs and HTML-injected phishing still bite.
+ */
+export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
   );

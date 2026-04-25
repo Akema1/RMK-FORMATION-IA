@@ -27,4 +27,18 @@ describe("renderEmail", () => {
     const out = renderEmail(sample, { name: "<script>" });
     expect(out.html).toContain("&lt;script&gt;");
   });
+
+  it("invokes subject() exactly once (subject and title share the value)", () => {
+    let calls = 0;
+    const counted: EmailTemplate<{ name: string }> = {
+      subject: (p) => {
+        calls += 1;
+        return `Hello ${p.name}`;
+      },
+      html: (p) => `<p>Hi ${p.name}</p>`,
+      text: (p) => `Hi ${p.name}`,
+    };
+    renderEmail(counted, { name: "Bob" });
+    expect(calls).toBe(1);
+  });
 });
