@@ -25,7 +25,14 @@ import { renderSystemPrompt, PROMPT_TEMPLATES, type TemplateId } from "./_prompt
 import { renderEmail } from "./_lib/render-email.js";
 import { sendEmail } from "./_lib/send-email.js";
 import { generateMagicLinkUrl } from "./_lib/magic-link.js";
+import {
+  RegisterBodySchema,
+  registerOrDedup,
+  type RegisterBody,
+} from "./_lib/registration.js";
 import { magicLink } from "./_email-templates/magic-link.js";
+import { registrationConfirmation } from "./_email-templates/registration-confirmation.js";
+import { adminNewRegistration } from "./_email-templates/admin-new-registration.js";
 
 export interface CreateAppOptions {
   supabaseUrl?: string;
@@ -332,6 +339,19 @@ export function createApp(opts: CreateAppOptions): express.Express {
     windowMs: 60 * 1000,
     max: 5,
     message: { error: "Too many coaching requests. Try again in a minute." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // POST /api/register limiter: 5 req / 10 min / IP. Tighter than the legacy
+  // notify-registration (which only fires after a successful anon INSERT) —
+  // /api/register owns the INSERT itself, so abuse means real DB writes and
+  // real Resend quota burn. The dedup branch short-circuits before INSERT, but
+  // each request still hits the DB.
+  const registerLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 5,
+    message: { error: "Too many registration submissions. Try again in a few minutes." },
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -718,6 +738,159 @@ export function createApp(opts: CreateAppOptions): express.Express {
     }
 
     respond();
+  });
+
+  // ── Registration v2 (Phase 1C / Task 11) ─────────────────────────────────
+  // Owns the participant INSERT (replaces client-side anon INSERT + post-hoc
+  // /api/notify-registration). Dedup-aware:
+  //   201 created   — new (email, seminar) pair, sends 2 emails (participant + admin)
+  //   409 duplicate — existing row; behaviour depends on state:
+  //     pending_unpaid → resend confirmation
+  //     pending_paid   → no email (admin already saw, awaiting confirmation)
+  //     confirmed      → send fresh magic link
+  // Email failures do NOT roll back the DB row — the row is the source of truth.
+  // The legacy /api/notify-registration handler stays in place during Phase 1D
+  // until LandingPage is migrated to call /api/register.
+  app.post("/api/register", registerLimiter, async (req, res) => {
+    const parsed = RegisterBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "validation", issues: parsed.error.issues });
+    }
+    const body: RegisterBody = parsed.data;
+
+    const seminarMeta = SEMINARS.find((s) => s.id === body.seminar);
+    if (!seminarMeta) {
+      return res.status(400).json({ error: "unknown_seminar" });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(503).json({ error: "Database not configured" });
+    }
+
+    let result;
+    try {
+      result = await registerOrDedup(body, supabaseAdmin, seminarMeta.price);
+    } catch (e) {
+      console.error("[register] insert failed", e);
+      return res.status(500).json({ error: "internal" });
+    }
+
+    const supportPhone = process.env.SUPPORT_PHONE ?? "+225 07 02 61 15 82";
+    const siteUrl = process.env.SITE_URL ?? "https://rmkconseils.com";
+    const fromEmail = process.env.EMAIL_FROM ?? "RMK Conseils <noreply@rmkconseils.com>";
+    const resendApiKey = process.env.RESEND_API_KEY ?? "";
+    const adminEmails = (process.env.ADMIN_NOTIFY_EMAILS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const seminarDates = seminarMeta.week;
+    const seminarTitle = seminarMeta.title;
+
+    if (result.status === "created") {
+      // Email failures must not block the 201 — DB row is source of truth.
+      const sends: Promise<unknown>[] = [
+        sendEmail(
+          {
+            ...renderEmail(registrationConfirmation, {
+              prenom: body.prenom,
+              civilite: body.civilite,
+              seminarTitle,
+              seminarDates,
+              amountFcfa: seminarMeta.price,
+              paymentReference: result.paymentReference!,
+              supportPhone,
+              siteUrl,
+            }),
+            to: body.email,
+          },
+          { resendApiKey, from: fromEmail },
+        ),
+      ];
+      if (adminEmails.length) {
+        sends.push(
+          sendEmail(
+            {
+              ...renderEmail(adminNewRegistration, {
+                prenom: body.prenom,
+                nom: body.nom,
+                civilite: body.civilite,
+                email: body.email,
+                tel: body.tel,
+                societe: body.societe,
+                fonction: body.fonction,
+                seminarTitle,
+                amountFcfa: seminarMeta.price,
+                referralChannel: body.referral_channel,
+                referrerName: body.referrer_name,
+                channelOther: body.channel_other,
+                paymentReference: result.paymentReference!,
+                participantId: result.participantId!,
+                adminUrl: siteUrl,
+              }),
+              to: adminEmails,
+            },
+            { resendApiKey, from: fromEmail },
+          ),
+        );
+      }
+      const settled = await Promise.allSettled(sends);
+      settled.forEach((r, i) => {
+        if (r.status === "rejected") {
+          console.error(`[register] email ${i} failed for ${body.email}:`, r.reason);
+        }
+      });
+      return res.status(201).json({
+        participant_id: result.participantId,
+        payment_reference: result.paymentReference,
+      });
+    }
+
+    // Duplicate branches
+    try {
+      if (result.state === "pending_unpaid") {
+        await sendEmail(
+          {
+            ...renderEmail(registrationConfirmation, {
+              prenom: body.prenom,
+              civilite: body.civilite,
+              seminarTitle,
+              seminarDates,
+              amountFcfa: seminarMeta.price,
+              paymentReference: result.paymentReference!,
+              supportPhone,
+              siteUrl,
+            }),
+            to: body.email,
+          },
+          { resendApiKey, from: fromEmail },
+        );
+      } else if (result.state === "confirmed") {
+        const url = await generateMagicLinkUrl(body.email, supabaseAdmin);
+        if (url) {
+          await sendEmail(
+            {
+              ...renderEmail(magicLink, {
+                prenom: body.prenom,
+                seminarTitle,
+                magicLinkUrl: url,
+                supportPhone,
+              }),
+              to: body.email,
+            },
+            { resendApiKey, from: fromEmail },
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[register] dup-branch email failed:", err);
+    }
+
+    return res.status(409).json({
+      error: "duplicate_registration",
+      state: result.state,
+      payment_reference: result.paymentReference,
+      action_taken: result.actionTaken,
+    });
   });
 
   // ── Public lead capture (Blocker #2b) ─────────────────────────────────────
