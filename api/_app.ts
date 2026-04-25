@@ -34,6 +34,7 @@ import { magicLink } from "./_email-templates/magic-link.js";
 import { registrationConfirmation } from "./_email-templates/registration-confirmation.js";
 import { adminNewRegistration } from "./_email-templates/admin-new-registration.js";
 import { welcomeConfirmed } from "./_email-templates/welcome-confirmed.js";
+import { adminSlaReminder } from "./_email-templates/admin-sla-reminder.js";
 
 export interface CreateAppOptions {
   supabaseUrl?: string;
@@ -1265,6 +1266,89 @@ export function createApp(opts: CreateAppOptions): express.Express {
       res.json({ ok: true, was_already_confirmed: wasAlreadyConfirmed });
     },
   );
+
+  // ── SLA reminder cron (Phase 1C / Task 14) ───────────────────────────────
+  // Runs daily via Vercel Cron. Emails admins about pending registrations
+  // older than 48h that have not yet been paid. Auth via CRON_SECRET bearer
+  // token (Vercel Cron sets the Authorization header automatically when
+  // configured in vercel.json).
+  app.post("/api/cron/sla-reminder", async (req, res) => {
+    const auth = req.header("authorization") ?? "";
+    const expected = `Bearer ${process.env.CRON_SECRET ?? ""}`;
+    if (!process.env.CRON_SECRET || auth !== expected) {
+      return res.sendStatus(401);
+    }
+    if (!supabaseAdmin) {
+      return res.status(503).json({ error: "Database not configured" });
+    }
+
+    const cutoff = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+    const { data: stale, error } = await supabaseAdmin
+      .from("participants")
+      .select("id, prenom, nom, email, seminar, payment_reference, created_at")
+      .eq("status", "pending")
+      .eq("payment", "pending")
+      .lt("created_at", cutoff);
+
+    if (error) {
+      console.error("[sla-reminder] query failed:", error);
+      return res.status(500).json({ error: "query_failed" });
+    }
+    if (!stale || stale.length === 0) {
+      return res.json({ count: 0 });
+    }
+
+    const rows = (stale as Array<{
+      prenom: string;
+      nom: string;
+      email: string;
+      seminar: string;
+      payment_reference: string | null;
+      created_at: string;
+    }>).map((r) => {
+      const seminarMeta = SEMINARS.find((s) => s.id === r.seminar);
+      return {
+        prenom: r.prenom,
+        nom: r.nom,
+        email: r.email,
+        seminarTitle: seminarMeta?.title ?? r.seminar,
+        paymentReference: r.payment_reference ?? "—",
+        hoursWaiting: Math.floor(
+          (Date.now() - new Date(r.created_at).getTime()) / 3_600_000,
+        ),
+      };
+    });
+
+    const adminEmails = (process.env.ADMIN_NOTIFY_EMAILS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (adminEmails.length) {
+      try {
+        await sendEmail(
+          {
+            ...renderEmail(adminSlaReminder, {
+              rows,
+              adminUrl: process.env.SITE_URL ?? "https://rmkconseils.com",
+            }),
+            to: adminEmails,
+          },
+          {
+            resendApiKey: process.env.RESEND_API_KEY ?? "",
+            from:
+              process.env.EMAIL_FROM ??
+              "RMK Conseils <noreply@rmkconseils.com>",
+          },
+        );
+      } catch (err) {
+        console.error("[sla-reminder] email failed:", err);
+        // Still return count — cron observability is more useful than 500.
+      }
+    }
+
+    res.json({ count: stale.length });
+  });
 
   // ── AI generation (admin only) ────────────────────────────────────────────
   app.post("/api/ai/generate", aiLimiter, requireAuth, requireAdmin, async (req, res) => {
