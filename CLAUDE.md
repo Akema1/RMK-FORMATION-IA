@@ -95,6 +95,16 @@ Activate serena at the start of every session. Use serena for **all in-repo file
 
 Bash is only for shell operations: git, npm, curl, supabase CLI, and binaries outside the repo. Never use Grep/Glob on repo files when `search_for_pattern` and `find_file` are available.
 
+#### Serena 1.1.x parameter renames (model training-data drift)
+Several Serena tools renamed their parameters. The MCP server validates strictly, so old names error out. Use the new names:
+
+| Tool | OLD param | NEW param |
+|---|---|---|
+| `find_symbol` | `name_path` | `name_path_pattern` |
+| `replace_content` | `regex` / `content` | `needle` / `repl` (+ required `mode: "literal"\|"regex"`) |
+
+If any Serena tool errors with `Field required`, fetch the live schema via `ToolSearch select:mcp__plugin_serena_serena__<tool_name>` before retrying. Don't trust cached parameter names — Serena 1.1.x is the source of truth.
+
 ## Workflow
 
 ### Planning (non-trivial changes only)

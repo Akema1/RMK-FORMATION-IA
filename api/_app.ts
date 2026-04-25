@@ -18,10 +18,14 @@ import { gateway } from "@ai-sdk/gateway";
 import { Resend } from "resend";
 import twilio from "twilio";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { z } from "zod";
 import { SEMINARS } from "../src/data/seminars.js";
 import { renderSystemPrompt, PROMPT_TEMPLATES, type TemplateId } from "./_prompts.js";
+import { renderEmail } from "./_lib/render-email.js";
+import { sendEmail } from "./_lib/send-email.js";
+import { generateMagicLinkUrl } from "./_lib/magic-link.js";
+import { magicLink } from "./_email-templates/magic-link.js";
 
 export interface CreateAppOptions {
   supabaseUrl?: string;
@@ -328,6 +332,19 @@ export function createApp(opts: CreateAppOptions): express.Express {
     windowMs: 60 * 1000,
     max: 5,
     message: { error: "Too many coaching requests. Try again in a minute." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Magic-link send: per-IP+email key, 3 req / 5 min. Anti-enumeration is
+  // handled in the route (always 200), so this limiter only blocks abuse
+  // (mass-mailbomb of one address, or one IP probing many addresses).
+  const magicLinkLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 3,
+    keyGenerator: (req) =>
+      `${ipKeyGenerator(req.ip ?? "unknown")}:${String(req.body?.email ?? "").toLowerCase()}`,
+    message: { error: "Too many magic-link requests. Try again in a few minutes." },
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -642,6 +659,65 @@ export function createApp(opts: CreateAppOptions): express.Express {
       return res.status(500).json({ error: "Lookup failed" });
     }
     res.json(data || []);
+  });
+
+  // ── Magic-link send (Phase 1C / Task 12) ─────────────────────────────────
+  // Anti-enumeration: ALWAYS responds 200 {ok:true} regardless of whether the
+  // email matches a confirmed participant. Distinguishing 200/404 here would
+  // leak who has registered. Email is sent only when (a) participant exists,
+  // (b) status='confirmed', (c) Supabase generateLink() succeeds.
+  app.post("/api/auth/send-magic-link", magicLinkLimiter, async (req, res) => {
+    const respond = () => res.json({ ok: true });
+
+    const email = String(req.body?.email ?? "").trim().toLowerCase();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return res.status(400).json({ error: "invalid_email" });
+    }
+
+    if (!supabaseAdmin) {
+      // Fail-open into anti-enumeration shape so dev (graceful-degradation)
+      // and misconfigured prod don't leak DB-availability state.
+      return respond();
+    }
+
+    const { data: participant } = await supabaseAdmin
+      .from("participants")
+      .select("prenom, seminar")
+      .eq("email", email)
+      .eq("status", "confirmed")
+      .maybeSingle();
+
+    if (!participant) return respond();
+
+    const { data: seminar } = await supabaseAdmin
+      .from("seminars")
+      .select("title")
+      .eq("id", participant.seminar)
+      .maybeSingle();
+
+    const url = await generateMagicLinkUrl(email, supabaseAdmin);
+    if (!url) return respond();
+
+    try {
+      const rendered = renderEmail(magicLink, {
+        prenom: participant.prenom,
+        seminarTitle: seminar?.title ?? "votre formation",
+        magicLinkUrl: url,
+        supportPhone: process.env.SUPPORT_PHONE ?? "+225 07 02 61 15 82",
+      });
+      await sendEmail(
+        { ...rendered, to: email },
+        {
+          resendApiKey: process.env.RESEND_API_KEY ?? "",
+          from: process.env.EMAIL_FROM ?? "RMK Conseils <noreply@rmkconseils.com>",
+        },
+      );
+    } catch (err) {
+      // Email failure must not break anti-enumeration. Log and respond 200.
+      console.error("[magic-link] sendEmail failed for", email, err);
+    }
+
+    respond();
   });
 
   // ── Public lead capture (Blocker #2b) ─────────────────────────────────────
