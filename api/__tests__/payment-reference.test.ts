@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { generatePaymentReference } from "../lib/payment-reference.js";
 
 describe("generatePaymentReference", () => {
-  it("formats as RMK-<year>-<4-char>", () => {
+  it("formats as RMK-<year>-<5-char>", () => {
     const ref = generatePaymentReference("9c2b7e1a-4f8d-4b3a-9d12-3e4f5a6b7c8d");
-    expect(ref).toMatch(/^RMK-\d{4}-[A-Z0-9]{4}$/);
+    expect(ref).toMatch(/^RMK-\d{4}-[A-Z0-9]{5}$/);
   });
 
   it("uses current year", () => {
