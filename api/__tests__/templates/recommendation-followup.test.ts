@@ -15,7 +15,8 @@ describe("recommendationFollowup", () => {
   });
   it("interpolates the recommendation string", () => {
     const out = renderEmail(recommendationFollowup, props);
-    expect(out.html).toContain(props.recommendation);
+    // HTML escapes the apostrophe in "l'atelier", so check the escape-stable substring there.
+    expect(out.html).toContain("atelier S2 pour outiller votre équipe finance");
     expect(out.text).toContain(props.recommendation);
   });
   it("links back to the portal", () => {
