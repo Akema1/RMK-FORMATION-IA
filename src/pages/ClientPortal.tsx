@@ -840,8 +840,8 @@ export default function ClientPortal() {
           </div>
           <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.6)', lineHeight: 1.6, marginBottom: 28 }}>
             Une question ? Contactez-nous a{' '}
-            <a href="mailto:contact@rmkconseils.com" style={{ color: GOLD, fontWeight: 600 }}>
-              contact@rmkconseils.com
+            <a href="mailto:contact@rmk-conseils.com" style={{ color: GOLD, fontWeight: 600 }}>
+              contact@rmk-conseils.com
             </a>.
           </p>
           <button onClick={signOut} style={{

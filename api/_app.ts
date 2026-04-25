@@ -738,7 +738,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
         { ...rendered, to: email },
         {
           resendApiKey: process.env.RESEND_API_KEY ?? "",
-          from: process.env.EMAIL_FROM ?? "RMK Conseils <noreply@rmkconseils.com>",
+          from: process.env.EMAIL_FROM ?? "RMK Conseils <noreply@rmk-conseils.com>",
         },
       );
     } catch (err) {
@@ -797,8 +797,8 @@ export function createApp(opts: CreateAppOptions): express.Express {
     }
 
     const supportPhone = process.env.SUPPORT_PHONE ?? "+225 07 02 61 15 82";
-    const siteUrl = process.env.SITE_URL ?? "https://rmkconseils.com";
-    const fromEmail = process.env.EMAIL_FROM ?? "RMK Conseils <noreply@rmkconseils.com>";
+    const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
+    const fromEmail = process.env.EMAIL_FROM ?? "RMK Conseils <noreply@rmk-conseils.com>";
     const resendApiKey = process.env.RESEND_API_KEY ?? "";
     const adminEmails = (process.env.ADMIN_NOTIFY_EMAILS ?? "")
       .split(",")
@@ -1260,7 +1260,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
           );
           if (url) {
             const supportPhone = process.env.SUPPORT_PHONE ?? "+225 07 02 61 15 82";
-            const siteUrl = process.env.SITE_URL ?? "https://rmkconseils.com";
+            const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
             await sendEmail(
               {
                 ...renderEmail(welcomeConfirmed, {
@@ -1277,7 +1277,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
                 resendApiKey: process.env.RESEND_API_KEY ?? "",
                 from:
                   process.env.EMAIL_FROM ??
-                  "RMK Conseils <noreply@rmkconseils.com>",
+                  "RMK Conseils <noreply@rmk-conseils.com>",
               },
             );
           }
@@ -1360,7 +1360,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
           {
             ...renderEmail(adminSlaReminder, {
               rows,
-              adminUrl: process.env.SITE_URL ?? "https://rmkconseils.com",
+              adminUrl: process.env.SITE_URL ?? "https://rmk-conseils.com",
             }),
             to: adminEmails,
           },
@@ -1368,7 +1368,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
             resendApiKey: process.env.RESEND_API_KEY ?? "",
             from:
               process.env.EMAIL_FROM ??
-              "RMK Conseils <noreply@rmkconseils.com>",
+              "RMK Conseils <noreply@rmk-conseils.com>",
           },
         );
       } catch (err) {

@@ -5,7 +5,7 @@ import { recommendationFollowup } from "../../_email-templates/recommendation-fo
 const props = {
   prenom: "Fatou",
   recommendation: "Concentrez-vous sur l'atelier S2 pour outiller votre équipe finance.",
-  portalUrl: "https://rmkconseils.com/portal",
+  portalUrl: "https://rmk-conseils.com/portal",
 };
 
 describe("recommendationFollowup", () => {

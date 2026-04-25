@@ -10,7 +10,7 @@ const props = {
   amountFcfa: 700000,
   paymentReference: "RMK-2026-A4F2",
   supportPhone: "+225 07 02 61 15 82",
-  siteUrl: "https://rmkconseils.com",
+  siteUrl: "https://rmk-conseils.com",
 };
 
 describe("registrationConfirmation", () => {

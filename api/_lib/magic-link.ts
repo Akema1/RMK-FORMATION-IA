@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export async function generateMagicLinkUrl(
   email: string,
   supabaseAdmin: SupabaseClient,
-  redirectTo: string = `${process.env.SITE_URL ?? "https://rmkconseils.com"}/portal`,
+  redirectTo: string = `${process.env.SITE_URL ?? "https://rmk-conseils.com"}/portal`,
 ): Promise<string | null> {
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: "magiclink",

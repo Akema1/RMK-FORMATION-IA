@@ -5,7 +5,7 @@ import { magicLink } from "../../_email-templates/magic-link.js";
 const props = {
   prenom: "Jean",
   seminarTitle: "S2 — IA Finance",
-  magicLinkUrl: "https://rmkconseils.com/portal#access_token=xyz",
+  magicLinkUrl: "https://rmk-conseils.com/portal#access_token=xyz",
   supportPhone: "+225 07 02 61 15 82",
 };
 

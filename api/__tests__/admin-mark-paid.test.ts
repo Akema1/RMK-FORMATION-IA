@@ -111,8 +111,8 @@ beforeEach(() => {
   updateQueue.length = 0;
   adminQueue.length = 0;
   process.env.RESEND_API_KEY = "re_test";
-  process.env.EMAIL_FROM = "RMK <noreply@rmkconseils.com>";
-  process.env.SITE_URL = "https://rmkconseils.com";
+  process.env.EMAIL_FROM = "RMK <noreply@rmk-conseils.com>";
+  process.env.SITE_URL = "https://rmk-conseils.com";
   process.env.SUPPORT_PHONE = "+225 07 02 61 15 82";
   app = createApp({
     gracefulDegradation: false,

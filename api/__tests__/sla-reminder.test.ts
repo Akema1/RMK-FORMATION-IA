@@ -57,8 +57,8 @@ let app: Express;
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.RESEND_API_KEY = "re_test";
-  process.env.EMAIL_FROM = "RMK <noreply@rmkconseils.com>";
-  process.env.SITE_URL = "https://rmkconseils.com";
+  process.env.EMAIL_FROM = "RMK <noreply@rmk-conseils.com>";
+  process.env.SITE_URL = "https://rmk-conseils.com";
   process.env.ADMIN_NOTIFY_EMAILS = "admin@example.com";
   process.env.CRON_SECRET = "secret-token";
   app = createApp({

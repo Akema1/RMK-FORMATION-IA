@@ -6,8 +6,8 @@ const props = {
   prenom: "Aïcha",
   seminarTitle: "S1 — IA Stratégique pour Dirigeants",
   seminarDates: "26-30 mai 2026",
-  magicLinkUrl: "https://rmkconseils.com/portal#access_token=xyz",
-  portalUrl: "https://rmkconseils.com/portal",
+  magicLinkUrl: "https://rmk-conseils.com/portal#access_token=xyz",
+  portalUrl: "https://rmk-conseils.com/portal",
   supportPhone: "+225 07 02 61 15 82",
 };
 

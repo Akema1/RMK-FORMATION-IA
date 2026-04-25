@@ -9,7 +9,7 @@ const base = {
   seminarTitle: "S1", amountFcfa: 700000,
   paymentReference: "RMK-2026-A4F2",
   participantId: "abc-123",
-  adminUrl: "https://rmkconseils.com",
+  adminUrl: "https://rmk-conseils.com",
 };
 
 describe("adminNewRegistration", () => {

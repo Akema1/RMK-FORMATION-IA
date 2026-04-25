@@ -7,7 +7,7 @@ const rows: SlaReminderRow[] = [
   { prenom: "Jean", nom: "Diallo", email: "jean@example.com", seminarTitle: "S2", paymentReference: "RMK-2026-B7C9", hoursWaiting: 73 },
 ];
 
-const props = { rows, adminUrl: "https://rmkconseils.com" };
+const props = { rows, adminUrl: "https://rmk-conseils.com" };
 
 describe("adminSlaReminder", () => {
   it("subject contains the row count", () => {
@@ -26,14 +26,14 @@ describe("adminSlaReminder", () => {
     expect(out.html).toContain("73h");
   });
   it("links to the admin", () => {
-    expect(renderEmail(adminSlaReminder, props).html).toContain("https://rmkconseils.com/admin");
-    expect(renderEmail(adminSlaReminder, props).text).toContain("https://rmkconseils.com/admin");
+    expect(renderEmail(adminSlaReminder, props).html).toContain("https://rmk-conseils.com/admin");
+    expect(renderEmail(adminSlaReminder, props).text).toContain("https://rmk-conseils.com/admin");
   });
   it("escapes hostile input in row name", () => {
     const hostile: SlaReminderRow = {
       prenom: "<script>", nom: "x", email: "x@y.z", seminarTitle: "S1", paymentReference: "RMK-2026-XXX", hoursWaiting: 50,
     };
-    const out = renderEmail(adminSlaReminder, { rows: [hostile], adminUrl: "https://rmkconseils.com" });
+    const out = renderEmail(adminSlaReminder, { rows: [hostile], adminUrl: "https://rmk-conseils.com" });
     expect(out.html).toContain("&lt;script&gt;");
     expect(out.html).not.toContain("<script>x");
   });
