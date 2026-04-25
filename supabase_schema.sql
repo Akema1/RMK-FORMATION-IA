@@ -247,3 +247,86 @@ DO $$ BEGIN
     ALTER TABLE public.expenses ADD COLUMN seminar TEXT;
   END IF;
 END $$;
+
+-- Onboarding refresh (2026-04-25)
+-- Acquisition tracking, payment reference/provider, consent, admin
+-- confirmation metadata, and the participant_survey table with RLS.
+
+ALTER TABLE public.participants
+  ADD COLUMN IF NOT EXISTS referral_channel TEXT
+    CHECK (referral_channel IS NULL OR referral_channel IN
+      ('Recommandation','LinkedIn','Facebook','Instagram','Google','Email','Évènement','Autre')),
+  ADD COLUMN IF NOT EXISTS referrer_name TEXT,
+  ADD COLUMN IF NOT EXISTS channel_other TEXT,
+  ADD COLUMN IF NOT EXISTS consent_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS payment_provider TEXT
+    CHECK (payment_provider IS NULL OR payment_provider IN
+      ('wave','orange_money','bank_transfer','cash','flutterwave')),
+  ADD COLUMN IF NOT EXISTS payment_reference TEXT,
+  ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ,
+  -- Snapshot of auth.users.id at confirmation time. No FK by design:
+  -- audit rows must survive the admin's removal from the allowlist.
+  ADD COLUMN IF NOT EXISTS confirmed_by_admin_id UUID,
+  ADD COLUMN IF NOT EXISTS confirmation_notes TEXT,
+  ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMPTZ;
+
+CREATE UNIQUE INDEX IF NOT EXISTS participants_payment_reference_udx
+  ON public.participants (upper(payment_reference))
+  WHERE payment_reference IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS participants_referral_channel_idx
+  ON public.participants (referral_channel);
+
+CREATE INDEX IF NOT EXISTS participants_status_payment_created_idx
+  ON public.participants (status, payment, created_at);
+
+UPDATE public.participants
+   SET consent_at = created_at
+ WHERE consent_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS public.participant_survey (
+  participant_id UUID PRIMARY KEY REFERENCES public.participants(id) ON DELETE CASCADE,
+  secteur TEXT,
+  collaborateurs TEXT,
+  niveau TEXT CHECK (niveau IS NULL OR niveau IN ('Débutant','Intermédiaire','Avancé')),
+  defi TEXT,
+  attentes TEXT[],
+  recommendation TEXT,
+  started_at TIMESTAMPTZ DEFAULT timezone('utc', now()) NOT NULL,
+  completed_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc', now()) NOT NULL
+);
+
+ALTER TABLE public.participant_survey ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "participant_survey self upsert" ON public.participant_survey;
+CREATE POLICY "participant_survey self upsert"
+  ON public.participant_survey
+  FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.participants p
+       WHERE p.id = participant_survey.participant_id
+         AND lower(p.email) = lower(auth.jwt() ->> 'email')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.participants p
+       WHERE p.id = participant_survey.participant_id
+         AND lower(p.email) = lower(auth.jwt() ->> 'email')
+    )
+  );
+
+DROP POLICY IF EXISTS "participant_survey admin read" ON public.participant_survey;
+CREATE POLICY "participant_survey admin read"
+  ON public.participant_survey
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.admin_users a
+       WHERE lower(a.email) = lower(auth.jwt() ->> 'email')
+    )
+  );

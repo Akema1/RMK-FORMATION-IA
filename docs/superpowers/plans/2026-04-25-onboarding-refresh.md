@@ -166,7 +166,11 @@ ALTER TABLE public.participants
       ('wave','orange_money','bank_transfer','cash','flutterwave')),
   ADD COLUMN IF NOT EXISTS payment_reference TEXT,
   ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS confirmed_by_admin_id UUID REFERENCES public.admin_users(id),
+  -- Snapshot of auth.users.id at confirmation time. No FK by design:
+  -- audit rows must survive the admin's removal from the allowlist.
+  -- (admin_users is email-keyed, not id-keyed; original plan SQL was
+  --  REFERENCES public.admin_users(id) which fails Postgres validation.)
+  ADD COLUMN IF NOT EXISTS confirmed_by_admin_id UUID,
   ADD COLUMN IF NOT EXISTS confirmation_notes TEXT,
   ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMPTZ;
 
