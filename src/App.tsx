@@ -13,6 +13,10 @@ import LoadingSpinner from './components/LoadingSpinner';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
+const PostSubmitScreen = lazy(() => import('./pages/PostSubmitScreen'));
+const PaiementPage = lazy(() => import('./pages/PaiementPage'));
+const CguPage = lazy(() => import('./pages/CguPage'));
+const ConfidentialitePage = lazy(() => import('./pages/ConfidentialitePage'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 export default function App() {
@@ -25,6 +29,10 @@ export default function App() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/portal" element={<ClientPortal />} />
             <Route path="/portail" element={<Navigate to="/portal" replace />} />
+            <Route path="/inscription/confirmee" element={<PostSubmitScreen />} />
+            <Route path="/paiement" element={<PaiementPage />} />
+            <Route path="/cgu" element={<CguPage />} />
+            <Route path="/confidentialite" element={<ConfidentialitePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
