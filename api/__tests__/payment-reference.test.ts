@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generatePaymentReference } from "../lib/payment-reference.js";
+import { generatePaymentReference } from "../_lib/payment-reference.js";
 
 describe("generatePaymentReference", () => {
   it("formats as RMK-<year>-<5-char>", () => {

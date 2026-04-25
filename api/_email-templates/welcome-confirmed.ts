@@ -1,4 +1,4 @@
-import type { EmailTemplate } from "../lib/render-email.js";
+import type { EmailTemplate } from "../_lib/render-email.js";
 import { escapeHtml } from "./_layout.js";
 
 export interface WelcomeConfirmedProps {

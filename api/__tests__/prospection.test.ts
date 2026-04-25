@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import type { Express } from "express";
-import { createApp } from "../app.js";
+import { createApp } from "../_app.js";
 
 // Note: /api/ai/generate requires requireAuth + requireAdmin middleware.
 // In gracefulDegradation mode without Supabase env vars, supabaseAnon is null
@@ -74,10 +74,10 @@ describe("POST /api/ai/generate templateId=prospection", () => {
 // Direct unit tests for renderSystemPrompt — verifies schema/template logic
 // independently of the HTTP auth stack.
 describe("renderSystemPrompt prospection template", () => {
-  let renderSystemPrompt: typeof import("../prompts.js").renderSystemPrompt;
+  let renderSystemPrompt: typeof import("../_prompts.js").renderSystemPrompt;
 
   beforeEach(async () => {
-    const mod = await import("../prompts.js");
+    const mod = await import("../_prompts.js");
     renderSystemPrompt = mod.renderSystemPrompt;
   });
 

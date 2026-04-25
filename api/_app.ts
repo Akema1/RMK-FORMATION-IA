@@ -21,7 +21,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { SEMINARS } from "../src/data/seminars.js";
-import { renderSystemPrompt, PROMPT_TEMPLATES, type TemplateId } from "./prompts.js";
+import { renderSystemPrompt, PROMPT_TEMPLATES, type TemplateId } from "./_prompts.js";
 
 export interface CreateAppOptions {
   supabaseUrl?: string;

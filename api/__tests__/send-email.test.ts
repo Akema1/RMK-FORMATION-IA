@@ -11,7 +11,7 @@ vi.mock("resend", () => {
   return { Resend: MockResend };
 });
 
-import { sendEmail } from "../lib/send-email.js";
+import { sendEmail } from "../_lib/send-email.js";
 
 beforeEach(() => sendMock.mockReset());
 

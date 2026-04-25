@@ -1,4 +1,4 @@
-import { layout } from "../email-templates/_layout.js";
+import { layout } from "../_email-templates/_layout.js";
 
 /**
  * Contract for an email template.

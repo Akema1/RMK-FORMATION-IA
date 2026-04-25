@@ -3,7 +3,7 @@
  * All route logic lives in `api/app.ts`; this file is just the prod entry
  * point and startup guard.
  */
-import { createApp } from "./app.js";
+import { createApp } from "./_app.js";
 
 // ── Startup guard: fail loudly on missing critical secrets ───────────────────
 if (

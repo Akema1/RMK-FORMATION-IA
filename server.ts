@@ -11,7 +11,7 @@ import { generateText } from "ai";
 import { gateway } from "@ai-sdk/gateway";
 import cron from "node-cron";
 import path from "path";
-import { createApp } from "./api/app.js";
+import { createApp } from "./api/_app.js";
 
 dotenv.config();
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { renderEmail } from "../../lib/render-email.js";
-import { registrationConfirmation } from "../../email-templates/registration-confirmation.js";
+import { renderEmail } from "../../_lib/render-email.js";
+import { registrationConfirmation } from "../../_email-templates/registration-confirmation.js";
 
 const props = {
   prenom: "Marie",

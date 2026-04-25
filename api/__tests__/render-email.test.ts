@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderEmail, type EmailTemplate } from "../lib/render-email.js";
+import { renderEmail, type EmailTemplate } from "../_lib/render-email.js";
 
 const sample: EmailTemplate<{ name: string }> = {
   subject: (p) => `Hello ${p.name}`,

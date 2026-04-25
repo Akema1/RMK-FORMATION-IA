@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { renderEmail } from "../../lib/render-email.js";
-import { adminSlaReminder, type SlaReminderRow } from "../../email-templates/admin-sla-reminder.js";
+import { renderEmail } from "../../_lib/render-email.js";
+import { adminSlaReminder, type SlaReminderRow } from "../../_email-templates/admin-sla-reminder.js";
 
 const rows: SlaReminderRow[] = [
   { prenom: "Marie", nom: "Koffi", email: "marie@example.com", seminarTitle: "S1", paymentReference: "RMK-2026-A4F2", hoursWaiting: 52 },

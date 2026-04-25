@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { renderEmail } from "../../lib/render-email.js";
-import { adminNewRegistration } from "../../email-templates/admin-new-registration.js";
+import { renderEmail } from "../../_lib/render-email.js";
+import { adminNewRegistration } from "../../_email-templates/admin-new-registration.js";
 
 const base = {
   prenom: "Marie", nom: "Koffi", civilite: "Mme",

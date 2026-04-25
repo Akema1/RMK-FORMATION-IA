@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { renderEmail } from "../../lib/render-email.js";
-import { magicLink } from "../../email-templates/magic-link.js";
+import { renderEmail } from "../../_lib/render-email.js";
+import { magicLink } from "../../_email-templates/magic-link.js";
 
 const props = {
   prenom: "Jean",
