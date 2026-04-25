@@ -797,6 +797,63 @@ export default function ClientPortal() {
   // ═══════════════════════════════════════════
   if (!participant) return null;
 
+  // ── Gate: portal is only available after admin confirms payment ──
+  if (participant.status !== 'confirmed') {
+    const statusLabel =
+      participant.status === 'cancelled' ? 'Annulee' :
+      'En attente de confirmation';
+    return (
+      <div style={{
+        minHeight: '100vh', background: SURFACE, color: NAVY,
+        fontFamily: "'DM Sans', sans-serif",
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+      }}>
+        <div style={{
+          maxWidth: 520, width: '100%', background: WHITE,
+          padding: '48px 40px', borderRadius: 24,
+          border: '1px solid rgba(0,0,0,0.08)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.05)', textAlign: 'center',
+        }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: 'rgba(201,168,76,0.12)', color: GOLD,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 32, margin: '0 auto 24px',
+          }}>
+            &#9203;
+          </div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: NAVY, marginBottom: 12 }}>
+            Bonjour {participant.prenom},
+          </h2>
+          <p style={{ color: 'rgba(27,42,74,0.75)', fontSize: 15, lineHeight: 1.7, marginBottom: 20 }}>
+            Votre inscription est bien enregistree. Votre espace participant sera
+            accessible des que votre paiement aura ete confirme par notre equipe.
+          </p>
+          <div style={{
+            background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.18)',
+            borderRadius: 12, padding: 16, marginBottom: 24,
+          }}>
+            <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.7)', margin: 0 }}>
+              Statut actuel : <strong style={{ color: GOLD }}>{statusLabel}</strong>
+            </p>
+          </div>
+          <p style={{ fontSize: 13, color: 'rgba(27,42,74,0.6)', lineHeight: 1.6, marginBottom: 28 }}>
+            Une question ? Contactez-nous a{' '}
+            <a href="mailto:contact@rmkconseils.com" style={{ color: GOLD, fontWeight: 600 }}>
+              contact@rmkconseils.com
+            </a>.
+          </p>
+          <button onClick={signOut} style={{
+            background: 'none', border: '1px solid rgba(0,0,0,0.12)', color: 'rgba(27,42,74,0.7)',
+            fontSize: 14, cursor: 'pointer', padding: '10px 22px', borderRadius: 10,
+          }}>
+            Se deconnecter
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const isDirigeants = seminar?.code === 'S1' || seminar?.id === 's1';
   const sidebarItems: { key: PortalSection; label: string; icon: string; locked?: boolean; tag?: string }[] = [
     { key: 'dashboard', label: 'Tableau de bord', icon: '◆' },
