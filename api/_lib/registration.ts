@@ -47,6 +47,7 @@ export interface RegisterResult {
   paymentReference?: string;
   state?: DedupState;
   actionTaken?: DedupAction;
+  amountFcfa?: number;
 }
 
 interface ExistingRow {
@@ -54,6 +55,7 @@ interface ExistingRow {
   status: string | null;
   payment: string | null;
   payment_reference: string | null;
+  amount: number | null;
 }
 
 function classifyExisting(existing: ExistingRow): RegisterResult {
@@ -64,6 +66,7 @@ function classifyExisting(existing: ExistingRow): RegisterResult {
       actionTaken: "sent_magic_link",
       participantId: existing.id,
       paymentReference: existing.payment_reference ?? undefined,
+      amountFcfa: existing.amount ?? undefined,
     };
   }
   if (existing.status === "pending" && existing.payment === "paid") {
@@ -73,6 +76,7 @@ function classifyExisting(existing: ExistingRow): RegisterResult {
       actionTaken: "none",
       participantId: existing.id,
       paymentReference: existing.payment_reference ?? undefined,
+      amountFcfa: existing.amount ?? undefined,
     };
   }
   return {
@@ -81,6 +85,7 @@ function classifyExisting(existing: ExistingRow): RegisterResult {
     actionTaken: "resent_confirmation",
     participantId: existing.id,
     paymentReference: existing.payment_reference ?? undefined,
+    amountFcfa: existing.amount ?? undefined,
   };
 }
 
@@ -91,7 +96,7 @@ export async function registerOrDedup(
 ): Promise<RegisterResult> {
   const { data: existing } = await supabase
     .from("participants")
-    .select("id,status,payment,payment_reference")
+    .select("id,status,payment,payment_reference,amount")
     .eq("email", body.email)
     .eq("seminar", body.seminar)
     .neq("status", "cancelled")
@@ -155,7 +160,7 @@ export async function registerOrDedup(
       // SELECT and INSERT. Re-run dedup lookup; the row exists now.
       const { data: raced } = await supabase
         .from("participants")
-        .select("id,status,payment,payment_reference")
+        .select("id,status,payment,payment_reference,amount")
         .eq("email", body.email)
         .eq("seminar", body.seminar)
         .neq("status", "cancelled")

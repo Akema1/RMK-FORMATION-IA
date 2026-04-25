@@ -817,7 +817,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
               civilite: body.civilite,
               seminarTitle,
               seminarDates,
-              amountFcfa: seminarMeta.price,
+              amountFcfa,
               paymentReference: result.paymentReference!,
               supportPhone,
               siteUrl,
@@ -840,7 +840,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
                 societe: body.societe,
                 fonction: body.fonction,
                 seminarTitle,
-                amountFcfa: seminarMeta.price,
+                amountFcfa,
                 referralChannel: body.referral_channel,
                 referrerName: body.referrer_name,
                 channelOther: body.channel_other,
@@ -876,7 +876,11 @@ export function createApp(opts: CreateAppOptions): express.Express {
               civilite: body.civilite,
               seminarTitle,
               seminarDates,
-              amountFcfa: seminarMeta.price,
+              // Use the row's stored amount so the resent confirmation matches
+              // what the participant was originally invoiced (early-bird if they
+              // qualified at registration time, standard otherwise). Falls back
+              // to the freshly computed amount if the row didn't store one.
+              amountFcfa: result.amountFcfa ?? amountFcfa,
               paymentReference: result.paymentReference!,
               supportPhone,
               siteUrl,
