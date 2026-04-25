@@ -37,7 +37,7 @@ Question ? ${p.supportPhone} (Appel/WhatsApp)`,
 est définitivement réservée.</p>
 
 <p style="text-align:center;margin:32px 0;">
-  <a href="${p.magicLinkUrl}"
+  <a href="${escapeHtml(p.magicLinkUrl)}"
      style="display:inline-block;background:#C9A84C;color:#1B2A4A;text-decoration:none;
             padding:14px 32px;border-radius:8px;font-weight:700;font-size:16px;">
     Accéder à mon espace participant
@@ -46,7 +46,7 @@ est définitivement réservée.</p>
 
 <p style="color:#666;font-size:13px;text-align:center;margin-top:-16px;">
   Lien valide 1 heure. Pour toute connexion future, rendez-vous sur
-  <a href="${p.portalUrl}" style="color:#C9A84C;">${p.portalUrl}</a>.
+  <a href="${escapeHtml(p.portalUrl)}" style="color:#C9A84C;">${escapeHtml(p.portalUrl)}</a>.
 </p>
 
 <h4 style="color:#1B2A4A;margin-top:28px;">Prochaines étapes&nbsp;:</h4>

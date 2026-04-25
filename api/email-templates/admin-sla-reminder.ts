@@ -42,6 +42,6 @@ export const adminSlaReminder: EmailTemplate<AdminSlaReminderProps> = {
       <td align="right" style="color:#c44;"><strong>${r.hoursWaiting}h</strong></td>
     </tr>`).join("")}
 </table>
-<p><a href="${p.adminUrl}/admin" style="color:#C9A84C;">Ouvrir l'admin →</a></p>
+<p><a href="${escapeHtml(p.adminUrl)}/admin" style="color:#C9A84C;">Ouvrir l'admin →</a></p>
 `,
 };

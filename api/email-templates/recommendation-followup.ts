@@ -30,7 +30,7 @@ votre espace : ${p.portalUrl}
   ${escapeHtml(p.recommendation)}
 </div>
 <p style="text-align:center;margin:24px 0;">
-  <a href="${p.portalUrl}" style="display:inline-block;background:#1B2A4A;color:#fff;
+  <a href="${escapeHtml(p.portalUrl)}" style="display:inline-block;background:#1B2A4A;color:#fff;
      text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:600;">
     Retour à mon espace
   </a>

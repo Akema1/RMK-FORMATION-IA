@@ -22,7 +22,8 @@ export interface AdminNewRegistrationProps {
 const fmtAmount = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA";
 
 export const adminNewRegistration: EmailTemplate<AdminNewRegistrationProps> = {
-  subject: (p) => `[Inscription] ${p.civilite ?? ""} ${p.prenom} ${p.nom} — ${p.seminarTitle}`,
+  subject: (p) =>
+    `[Inscription] ${[p.civilite, p.prenom, p.nom].filter(Boolean).join(" ")} — ${p.seminarTitle}`,
 
   text: (p) => `Nouvelle inscription:
 
@@ -58,7 +59,7 @@ Voir dans l'admin : ${p.adminUrl}/admin?focus=${p.participantId}`,
 </table>
 
 <p style="margin-top:24px;">
-  <a href="${p.adminUrl}/admin?focus=${p.participantId}"
+  <a href="${escapeHtml(p.adminUrl)}/admin?focus=${escapeHtml(p.participantId)}"
      style="display:inline-block;background:#1B2A4A;color:#fff;text-decoration:none;
             padding:10px 20px;border-radius:6px;font-weight:600;">
     Ouvrir dans l'admin →

@@ -40,4 +40,14 @@ describe("adminNewRegistration", () => {
     expect(renderEmail(adminNewRegistration, base).subject).toContain("Marie Koffi");
     expect(renderEmail(adminNewRegistration, base).subject).toContain("S1");
   });
+  it("subject has no double-space when civilite is null", () => {
+    const out = renderEmail(adminNewRegistration, { ...base, civilite: null });
+    expect(out.subject).not.toMatch(/ {2,}/);
+    expect(out.subject).toContain("Marie Koffi");
+  });
+  it("escapes attribute-quote in adminUrl", () => {
+    const out = renderEmail(adminNewRegistration, { ...base, adminUrl: 'https://x"y' });
+    expect(out.html).toContain("https://x&quot;y");
+    expect(out.html).not.toMatch(/href="https:\/\/x"y/);
+  });
 });

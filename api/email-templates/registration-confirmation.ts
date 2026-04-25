@@ -82,12 +82,12 @@ L'équipe RMK Conseils`,
 <h3 style="color:#1B2A4A;margin-top:28px;border-bottom:1px solid #e7e3d6;padding-bottom:6px;">Modalités de paiement</h3>
 <table cellpadding="8" cellspacing="0" border="0" width="100%" style="margin:8px 0;">
   <tr>
-    <td width="32"><img src="${p.siteUrl}/payment-logos/wave@2x.png" alt="Wave" width="32" height="32" style="display:block;"></td>
+    <td width="32"><img src="${escapeHtml(p.siteUrl)}/payment-logos/wave@2x.png" alt="Wave" width="32" height="32" style="display:block;"></td>
     <td><strong>Wave</strong></td>
     <td align="right" style="font-family:Menlo,monospace;">${escapeHtml(p.supportPhone)}</td>
   </tr>
   <tr>
-    <td><img src="${p.siteUrl}/payment-logos/orange-money@2x.png" alt="Orange Money" width="32" height="32" style="display:block;"></td>
+    <td><img src="${escapeHtml(p.siteUrl)}/payment-logos/orange-money@2x.png" alt="Orange Money" width="32" height="32" style="display:block;"></td>
     <td><strong>Orange Money</strong></td>
     <td align="right" style="font-family:Menlo,monospace;">${escapeHtml(p.supportPhone)}</td>
   </tr>
@@ -105,7 +105,7 @@ L'équipe RMK Conseils`,
 <p>Dès réception de votre paiement, votre espace participant sera activé sous 24h ouvrées.</p>
 
 <p style="color:#999;font-size:12px;margin-top:24px;">
-  Coordonnées de paiement à jour&nbsp;: <a href="${p.siteUrl}/paiement" style="color:#C9A84C;">${p.siteUrl}/paiement</a>
+  Coordonnées de paiement à jour&nbsp;: <a href="${escapeHtml(p.siteUrl)}/paiement" style="color:#C9A84C;">${escapeHtml(p.siteUrl)}/paiement</a>
 </p>
 `,
 };
