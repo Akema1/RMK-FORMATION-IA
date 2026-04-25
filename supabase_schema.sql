@@ -299,10 +299,40 @@ CREATE TABLE IF NOT EXISTS public.participant_survey (
 
 ALTER TABLE public.participant_survey ENABLE ROW LEVEL SECURITY;
 
+-- Three scoped policies: SELECT, INSERT, UPDATE. DELETE is intentionally
+-- omitted — survey rows are removed only via the participants ON DELETE
+-- CASCADE or by an admin via service role. (Phase 1A review fix.)
 DROP POLICY IF EXISTS "participant_survey self upsert" ON public.participant_survey;
-CREATE POLICY "participant_survey self upsert"
+DROP POLICY IF EXISTS "participant_survey self select" ON public.participant_survey;
+CREATE POLICY "participant_survey self select"
   ON public.participant_survey
-  FOR ALL
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.participants p
+       WHERE p.id = participant_survey.participant_id
+         AND lower(p.email) = lower(auth.jwt() ->> 'email')
+    )
+  );
+
+DROP POLICY IF EXISTS "participant_survey self insert" ON public.participant_survey;
+CREATE POLICY "participant_survey self insert"
+  ON public.participant_survey
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.participants p
+       WHERE p.id = participant_survey.participant_id
+         AND lower(p.email) = lower(auth.jwt() ->> 'email')
+    )
+  );
+
+DROP POLICY IF EXISTS "participant_survey self update" ON public.participant_survey;
+CREATE POLICY "participant_survey self update"
+  ON public.participant_survey
+  FOR UPDATE
   TO authenticated
   USING (
     EXISTS (
@@ -318,6 +348,10 @@ CREATE POLICY "participant_survey self upsert"
          AND lower(p.email) = lower(auth.jwt() ->> 'email')
     )
   );
+
+-- Functional index for lower(email) — RLS join performance. (Phase 1A review fix.)
+CREATE INDEX IF NOT EXISTS participants_lower_email_idx
+  ON public.participants (lower(email));
 
 DROP POLICY IF EXISTS "participant_survey admin read" ON public.participant_survey;
 CREATE POLICY "participant_survey admin read"
