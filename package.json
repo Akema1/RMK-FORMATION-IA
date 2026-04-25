@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "test:api": "vitest run --project api",
     "test:ui": "vitest run --project ui",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "build:brochure": "tsx scripts/generate-brochure.ts"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.95",

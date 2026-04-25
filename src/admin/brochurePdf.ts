@@ -3,7 +3,7 @@
  * Improved structure: 6 pages with certification cover, "Ce que vous vivrez" pillars,
  * day-by-day program, seminar grid, formateur bio, and pricing.
  */
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { SEMINARS, PRICE, EARLY_BIRD_PRICE, COACHING_PRICE } from '../data/seminars';
 import type { Seminar as BaseSeminar } from '../data/seminars';
@@ -66,7 +66,7 @@ function drawFooterBar(doc: jsPDF): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(nr, ng, nb);
-  doc.text('contact@rmkconsulting.pro  |  +225 07 02 61 15 82  |  rmkconsulting.pro', PW / 2, PH - 6, { align: 'center' });
+  doc.text('contact@rmkconsulting.pro  |  +225 07 02 61 15 82  |  rmk-conseils.com', PW / 2, PH - 6, { align: 'center' });
 }
 
 // ---- Page 1: Cover ----
@@ -196,7 +196,7 @@ function buildCoverPage(doc: jsPDF): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(nr, ng, nb);
-  doc.text('contact@rmkconsulting.pro  |  +225 07 02 61 15 82  |  rmkconsulting.pro', PW / 2, PH - 4.5, { align: 'center' });
+  doc.text('contact@rmkconsulting.pro  |  +225 07 02 61 15 82  |  rmk-conseils.com', PW / 2, PH - 4.5, { align: 'center' });
 }
 
 // ---- Page 2: Ce que vous vivrez (5 piliers) ----
@@ -717,8 +717,8 @@ function buildPricingPage(doc: jsPDF): void {
   doc.text('Comment S\'inscrire ?', PW / 2, y + 14, { align: 'center' });
 
   const steps = [
-    '1.  Contactez-nous par email ou WhatsApp',
-    '2.  Remplissez le formulaire d\'inscription en ligne sur rmkconsulting.pro',
+    '1.  Contactez-nous par email ou WhatsApp au +225 07 02 61 15 82',
+    '2.  Remplissez le formulaire d\'inscription en ligne sur rmk-conseils.com',
     '3.  Recevez votre confirmation et les détails pratiques sous 24h',
   ];
   doc.setFont('helvetica', 'normal');
@@ -748,7 +748,7 @@ function buildPricingPage(doc: jsPDF): void {
 
 // ---- Public API ----
 
-export function generateBrochurePdf(selectedIds: Set<string>): void {
+export function buildBrochurePdfDoc(selectedIds: Set<string>): jsPDF {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const selected = SEMINARS.filter(s => selectedIds.has(s.id));
 
@@ -777,5 +777,10 @@ export function generateBrochurePdf(selectedIds: Set<string>): void {
   doc.addPage();
   buildPricingPage(doc);
 
+  return doc;
+}
+
+export function generateBrochurePdf(selectedIds: Set<string>): void {
+  const doc = buildBrochurePdfDoc(selectedIds);
   doc.save('Brochure_RMK_CABEXIA_Formations_IA_2026.pdf');
 }
