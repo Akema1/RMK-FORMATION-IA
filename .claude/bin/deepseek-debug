@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Fourth-opinion debug consult via deepseek-v4-pro.
+# Usage: deepseek-debug <context-file>
+# The context file should contain: symptoms, what was tried, failed hypotheses, relevant code snippets.
+set -euo pipefail
+CTX="${1:-}"
+if [ -z "$CTX" ] || [ ! -f "$CTX" ]; then
+  echo "deepseek-debug: usage: deepseek-debug <context-file>" >&2
+  exit 1
+fi
+cat "$CTX" | llm -m openrouter/deepseek/deepseek-v4-pro -s \
+"You are a debugging consultant called in after the primary investigator got stuck.
+Given the symptoms, failed hypotheses, and relevant code, propose 3 NEW hypotheses that were not already tried.
+For each: (1) what could cause this, (2) the fastest way to confirm or rule it out, (3) likelihood (high/medium/low).
+Do not repeat hypotheses already listed as failed.
+Look especially for: race conditions, env/config drift, stale caches, incorrect assumptions about library behavior, and problems at the boundary between layers.
+Be terse. Prioritize ranked by likelihood."

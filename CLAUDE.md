@@ -73,6 +73,7 @@ See `.env.example`. Required: `GEMINI_API_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPAB
 
 Active plugins: **gstack**, **superpowers-gemini-plugin**, **serena**.
 Third-opinion reviewer: **qwen3.6-plus via OpenRouter** (`llm` CLI, already configured).
+Fourth-opinion reviewer: **deepseek-v4-pro via OpenRouter** (`llm` CLI). Wrappers in `.claude/bin/deepseek-*`. Run in parallel with Gemini + Qwen at every review gate.
 
 ### Gemini model routing
 
@@ -85,6 +86,8 @@ For deep manual reviews, use **gemini-3-pro-preview** via `.claude/bin/gemini-de
 .claude/bin/gemini-deep-review feat/branch  # diff against a different base
 git diff | .claude/bin/gemini-deep-review - # pipe a diff in directly
 ```
+
+For an OpenRouter-routed deep pass (no preview-quota dependency, runs in parallel with Gemini), use `.claude/bin/deepseek-deep-review` — same flag shape, backed by deepseek-v4-pro. Useful for diffs >5k lines where qwen's pre-push cap drops coverage.
 
 ### Code navigation
 
@@ -127,25 +130,25 @@ Skip planning entirely for mechanical fixes (typos, config flips, single-file tw
   - `.claude/bin/qwen-debug <context-file>`
 - **Parallelism**: 2+ independent tasks → `dispatching-parallel-agents` + `using-git-worktrees`.
 
-### Review gates — qwen is MANDATORY at every gemini review point
+### Review gates — qwen AND deepseek are MANDATORY at every gemini review point
 
-Every time the superpowers plugin invokes Gemini for a review, run Qwen in parallel on the same input. Both reviewers run in a single message (two parallel tool calls). Do not act on the diff until both have responded.
+Every time the superpowers plugin invokes Gemini for a review, run Qwen AND DeepSeek in parallel on the same input. All three reviewers run in a single message (three parallel tool calls). Do not act on the diff until all three have responded.
 
-| Gate | Gemini | Qwen (mandatory parallel) | Trigger |
-|---|---|---|---|
-| Pre-commit | `gemini-pre-commit-review` | `.claude/bin/qwen-pre-commit` | Every commit (auto) |
-| Code review | `gemini-code-review` | `.claude/bin/qwen-review` | >100 LOC diff, or on request |
-| Security scan | `gemini-security-scan` | `.claude/bin/qwen-security` | Edits to `api/`, `server.ts`, auth, schema |
-| Plan review | `gemini-plan-review` | `.claude/bin/qwen-plan-review` | After `writing-plans` |
-| Debug consult | `gemini-debug-consult` | `.claude/bin/qwen-debug` | Stuck 3+ hypotheses |
-| Test critique | `gemini-test-critique` | `.claude/bin/qwen-test-critique` | After test file edits |
-| Design review | `gemini-design-review` | `.claude/bin/qwen-design-review` | After brainstorming |
+| Gate | Gemini | Qwen (mandatory parallel) | DeepSeek (mandatory parallel) | Trigger |
+|---|---|---|---|---|
+| Pre-commit | `gemini-pre-commit-review` | `.claude/bin/qwen-pre-commit` | `.claude/bin/deepseek-pre-commit` | Every commit (auto) |
+| Code review | `gemini-code-review` | `.claude/bin/qwen-review` | `.claude/bin/deepseek-review` | >100 LOC diff, or on request |
+| Security scan | `gemini-security-scan` | `.claude/bin/qwen-security` | `.claude/bin/deepseek-security` | Edits to `api/`, `server.ts`, auth, schema |
+| Plan review | `gemini-plan-review` | `.claude/bin/qwen-plan-review` | `.claude/bin/deepseek-plan-review` | After `writing-plans` |
+| Debug consult | `gemini-debug-consult` | `.claude/bin/qwen-debug` | `.claude/bin/deepseek-debug` | Stuck 3+ hypotheses |
+| Test critique | `gemini-test-critique` | `.claude/bin/qwen-test-critique` | `.claude/bin/deepseek-test-critique` | After test file edits |
+| Design review | `gemini-design-review` | `.claude/bin/qwen-design-review` | `.claude/bin/deepseek-design-review` | After brainstorming |
 
 ### Presenting parallel reviews — synthesis mode
 
-After running Gemini + Qwen in parallel, **do not dump both outputs verbatim**. Synthesize:
+After running Gemini + Qwen + DeepSeek in parallel, **do not dump all three outputs verbatim**. Synthesize:
 
-1. **Agreements** — one sentence: "Both flag X."
+1. **Agreements** — one sentence per cluster: "All three flag X." / "Gemini and DeepSeek flag Y; Qwen disagrees."
 2. **Disagreements** — name each reviewer, summarize their position, state which one I find more credible and why (cite the code).
 3. **My recommendation** — one paragraph. What I think matters, what I'd act on, what I'd override.
 4. Then wait for the user's decision.

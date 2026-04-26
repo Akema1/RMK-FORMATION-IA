@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# On-demand deep code review via deepseek-v4-pro on OpenRouter.
+#
+# Companion to gemini-deep-review for diffs that exceed gate caps (qwen 5k-line
+# limit) or when an OpenRouter-routed second deep pass is desired alongside
+# Gemini. No preview-quota dependency.
+#
+# Usage:
+#   deepseek-deep-review [base-ref]     # diff base...HEAD (default base=main)
+#   git diff | deepseek-deep-review -   # pipe a diff in directly
+set -euo pipefail
+
+MODEL="openrouter/deepseek/deepseek-v4-pro"
+
+if [ "${1:-}" = "-" ]; then
+  DIFF=$(cat)
+else
+  BASE="${1:-main}"
+  DIFF=$(git diff "$BASE...HEAD" 2>/dev/null || git diff --staged)
+fi
+
+if [ -z "$DIFF" ]; then
+  echo "deepseek-deep-review: no diff to review" >&2
+  exit 0
+fi
+
+printf '%s' "$DIFF" | llm -m "$MODEL" -s \
+"You are a senior code reviewer. Give a deep, reasoned review of this diff.
+Focus on: logic errors, subtle concurrency/ordering bugs, security (injection, authz, data exposure, timing), architectural smells, and requirements coverage.
+Cite file:line for each finding. Explain *why* — not just *what*.
+End with either 'LGTM' or a 'BLOCKERS' section listing must-fix items."
