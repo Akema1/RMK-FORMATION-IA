@@ -8,6 +8,9 @@
 # Usage:
 #   deepseek-deep-review [base-ref]     # diff base...HEAD (default base=main)
 #   git diff | deepseek-deep-review -   # pipe a diff in directly
+# NOTE: sends diff/context content to OpenRouter via the `llm` CLI. Do not run on
+# code that is not authorized to leave the local environment.
+
 set -euo pipefail
 
 MODEL="openrouter/deepseek/deepseek-v4-pro"

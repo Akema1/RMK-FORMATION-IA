@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Fourth-opinion design/API-surface review via deepseek-v4-pro.
 # Usage: deepseek-design-review <design-doc-or-file>
+# NOTE: sends diff/context content to OpenRouter via the `llm` CLI. Do not run on
+# code that is not authorized to leave the local environment.
+
 set -euo pipefail
 INPUT="${1:-}"
 if [ -z "$INPUT" ] || [ ! -f "$INPUT" ]; then

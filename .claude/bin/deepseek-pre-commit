@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Fourth-opinion pre-commit sanity check via deepseek-v4-pro.
 # Scans staged changes for secrets, debug code, and obvious mistakes.
+# NOTE: sends diff/context content to OpenRouter via the `llm` CLI. Do not run on
+# code that is not authorized to leave the local environment.
+
 set -euo pipefail
 DIFF=$(git diff --staged)
 if [ -z "$DIFF" ]; then

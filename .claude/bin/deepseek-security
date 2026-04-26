@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Fourth-opinion security scan via deepseek-v4-pro.
 # Usage: deepseek-security [base-ref]
+# NOTE: sends diff/context content to OpenRouter via the `llm` CLI. Do not run on
+# code that is not authorized to leave the local environment.
+
 set -euo pipefail
 BASE="${1:-main}"
 DIFF=$(git diff "$BASE...HEAD" 2>/dev/null || git diff --staged)

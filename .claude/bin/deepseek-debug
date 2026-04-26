@@ -2,6 +2,9 @@
 # Fourth-opinion debug consult via deepseek-v4-pro.
 # Usage: deepseek-debug <context-file>
 # The context file should contain: symptoms, what was tried, failed hypotheses, relevant code snippets.
+# NOTE: sends diff/context content to OpenRouter via the `llm` CLI. Do not run on
+# code that is not authorized to leave the local environment.
+
 set -euo pipefail
 CTX="${1:-}"
 if [ -z "$CTX" ] || [ ! -f "$CTX" ]; then

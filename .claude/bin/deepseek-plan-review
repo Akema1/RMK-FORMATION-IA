@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Fourth-opinion plan review via deepseek-v4-pro.
 # Usage: deepseek-plan-review <path-to-plan.md>
+# NOTE: sends diff/context content to OpenRouter via the `llm` CLI. Do not run on
+# code that is not authorized to leave the local environment.
+
 set -euo pipefail
 PLAN="${1:-}"
 if [ -z "$PLAN" ] || [ ! -f "$PLAN" ]; then
