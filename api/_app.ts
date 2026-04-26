@@ -830,8 +830,46 @@ export function createApp(opts: CreateAppOptions): express.Express {
     const safeEntreprise = entreprise ? sanitizeText(entreprise, 200) : null;
     const safeNotes = notes ? sanitizeText(notes, 500) : null;
 
-    // Idempotency guard: skip if a lead with the same contact info already
-    // exists. Prevents duplicate leads on client retry or form re-submission.
+    // Best-effort brochure email. Pulled out so it fires on BOTH paths
+    // below — fresh-lead AND already-known contact. The user clicked
+    // "M'envoyer la brochure" expecting the brochure; whether they're
+    // already in our CRM is irrelevant from their perspective. Dedup
+    // still keeps the leads table clean (no second row), but the email
+    // and follow-up task only fire on the fresh-lead path. The contact
+    // field accepts phone OR email, so we only send when it parses as
+    // an email; phone-only leads rely on the manual callback task.
+    // Failures are non-fatal: a Resend outage must not fail capture.
+    const sendBrochureIfEmail = async () => {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safeContact)) return;
+      try {
+        const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
+        const prenom = safeNom.split(/\s+/)[0] || safeNom;
+        await sendEmail(
+          {
+            ...renderEmail(brochureRequest, {
+              prenom,
+              brochureUrl: `${siteUrl}/brochure.pdf`,
+              contactEmail: "contact@rmkconsulting.pro",
+              contactPhone: "+225 07 02 61 15 82",
+              websiteUrl: "https://rmk-conseils.com",
+            }),
+            to: safeContact,
+          },
+          {
+            resendApiKey: process.env.RESEND_API_KEY ?? "",
+            from:
+              process.env.EMAIL_FROM ??
+              "RMK Conseils <noreply@rmk-conseils.com>",
+          },
+        );
+      } catch (emailErr) {
+        console.error("Brochure email send failed (non-fatal):", emailErr);
+      }
+    };
+
+    // Idempotency guard: skip the lead INSERT and follow-up task if a lead
+    // with the same contact info already exists. The brochure email still
+    // fires — the user asked for the brochure, give them the brochure.
     const { data: existingLead } = await supabaseAdmin
       .from("leads")
       .select("id")
@@ -839,6 +877,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
       .limit(1);
 
     if (existingLead && existingLead.length > 0) {
+      await sendBrochureIfEmail();
       return res.json({ success: true });
     }
 
@@ -870,39 +909,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
         console.error("Lead follow-up task insert failed (non-fatal):", taskErr);
       }
 
-      // Best-effort brochure email. The contact field accepts phone OR email,
-      // so we only send when it parses as an email — phone-only leads still
-      // get the manual callback task above. Failures are non-fatal: a Resend
-      // outage must not fail the lead capture.
-      const emailMatch = safeContact.match(
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      );
-      if (emailMatch) {
-        try {
-          const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
-          const prenom = safeNom.split(/\s+/)[0] || safeNom;
-          await sendEmail(
-            {
-              ...renderEmail(brochureRequest, {
-                prenom,
-                brochureUrl: `${siteUrl}/brochure.pdf`,
-                contactEmail: "contact@rmkconsulting.pro",
-                contactPhone: "+225 07 02 61 15 82",
-                websiteUrl: "https://rmk-conseils.com",
-              }),
-              to: safeContact,
-            },
-            {
-              resendApiKey: process.env.RESEND_API_KEY ?? "",
-              from:
-                process.env.EMAIL_FROM ??
-                "RMK Conseils <noreply@rmk-conseils.com>",
-            },
-          );
-        } catch (emailErr) {
-          console.error("Brochure email send failed (non-fatal):", emailErr);
-        }
-      }
+      await sendBrochureIfEmail();
 
       res.json({ success: true });
     } catch (err) {
