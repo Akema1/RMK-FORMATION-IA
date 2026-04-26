@@ -23,6 +23,8 @@ export interface Participant {
   payment: string;
   notes: string;
   created_at: string;
+  referral_channel?: string | null;
+  payment_reference?: string | null;
 }
 
 // ─── Lead ───
