@@ -34,6 +34,7 @@ import { adminNewRegistration } from "./_email-templates/admin-new-registration.
 import { welcomeConfirmed } from "./_email-templates/welcome-confirmed.js";
 import { adminSlaReminder } from "./_email-templates/admin-sla-reminder.js";
 import { recommendationFollowup } from "./_email-templates/recommendation-followup.js";
+import { brochureRequest } from "./_email-templates/brochure-request.js";
 
 export interface CreateAppOptions {
   supabaseUrl?: string;
@@ -867,6 +868,40 @@ export function createApp(opts: CreateAppOptions): express.Express {
         ]);
       } catch (taskErr) {
         console.error("Lead follow-up task insert failed (non-fatal):", taskErr);
+      }
+
+      // Best-effort brochure email. The contact field accepts phone OR email,
+      // so we only send when it parses as an email — phone-only leads still
+      // get the manual callback task above. Failures are non-fatal: a Resend
+      // outage must not fail the lead capture.
+      const emailMatch = safeContact.match(
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      );
+      if (emailMatch) {
+        try {
+          const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
+          const prenom = safeNom.split(/\s+/)[0] || safeNom;
+          await sendEmail(
+            {
+              ...renderEmail(brochureRequest, {
+                prenom,
+                brochureUrl: `${siteUrl}/brochure.pdf`,
+                contactEmail: "contact@rmkconsulting.pro",
+                contactPhone: "+225 07 02 61 15 82",
+                websiteUrl: "https://rmk-conseils.com",
+              }),
+              to: safeContact,
+            },
+            {
+              resendApiKey: process.env.RESEND_API_KEY ?? "",
+              from:
+                process.env.EMAIL_FROM ??
+                "RMK Conseils <noreply@rmk-conseils.com>",
+            },
+          );
+        } catch (emailErr) {
+          console.error("Brochure email send failed (non-fatal):", emailErr);
+        }
       }
 
       res.json({ success: true });

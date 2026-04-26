@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { LogoRMK } from "../components/LogoRMK";
@@ -126,10 +126,24 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
   );
 }
 
-function CountdownBlock() {
-  // Anchored in UTC: the Atelier is in Abidjan (UTC+0) so 08:30Z is the true start.
-  // Without the Z suffix, diaspora visitors see the countdown drift by their offset.
-  const cd = useCountdown(new Date("2026-05-26T08:30:00Z").getTime());
+function CountdownBlock({ seminars }: { seminars: Seminar[] }) {
+  // Earliest-upcoming logic: anchor the countdown to whichever atelier's
+  // start date is next-future. The program is a 4-week rolling schedule
+  // (s1 May 26 → s4 June 16), so a single hardcoded May 26 anchor would
+  // tell June-cohort prospects they've already missed it. Falls back to
+  // the last atelier's start when all are past, which lets the countdown
+  // read negative rather than crash. Anchored in UTC: ateliers run in
+  // Abidjan (UTC+0) so 08:30Z is the true start — without the Z suffix,
+  // diaspora visitors see the countdown drift by their offset.
+  const target = useMemo(() => {
+    const now = Date.now();
+    const starts = seminars
+      .map((s) => new Date(`${s.dates.start}T08:30:00Z`).getTime())
+      .sort((a, b) => a - b);
+    const upcoming = starts.find((t) => t > now);
+    return upcoming ?? starts[starts.length - 1] ?? Date.now();
+  }, [seminars]);
+  const cd = useCountdown(target);
   const units = [
     { val: cd.days, label: "Jours" },
     { val: cd.hours, label: "Heures" },
@@ -162,7 +176,7 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
         <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}><LogoRMK scale={1.8} variant="light" /></div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 100, padding: "6px 20px", marginBottom: 32 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#27AE60", animation: "pulse 2s infinite" }} />
-          <span style={{ color: "#C9A84C", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>MAI 2026 · ABIDJAN · 4 ATELIERS</span>
+          <span style={{ color: "#C9A84C", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>MAI – JUIN 2026 · ABIDJAN · 4 ATELIERS</span>
         </div>
         
         <h1 style={{ fontSize: "clamp(36px, 6vw, 64px)", fontWeight: 800, color: "#1B2A4A", lineHeight: 1.08, margin: "0 0 16px", letterSpacing: -1 }}>
@@ -191,7 +205,7 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
           }}>Découvrir le programme →</button>
         </div>
         
-        <CountdownBlock />
+        <CountdownBlock seminars={seminars} />
         <p style={{ color: '#1B2A4A', fontSize: 12, marginTop: 12, letterSpacing: 1 }}>AVANT LE PREMIER ATELIER</p>
       </div>
 
