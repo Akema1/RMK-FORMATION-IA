@@ -24,7 +24,8 @@ export function layout(opts: { title: string; bodyHtml: string }): string {
         <tr><td style="background:${NAVY};padding:20px 32px;color:#cbd0dc;font-size:12px;">
           RMK Conseils — Abidjan, Côte d'Ivoire<br>
           Contact : +225 07 02 61 15 82 (Appel/WhatsApp) —
-          <a href="https://rmk-conseils.com" style="color:${GOLD};text-decoration:none;">rmk-conseils.com</a>
+          <a href="https://rmk-conseils.com" style="color:${GOLD};text-decoration:none;">rmk-conseils.com</a><br>
+          Email : <a href="mailto:contact@rmkconsulting.pro" style="color:${GOLD};text-decoration:none;">contact@rmkconsulting.pro</a>
         </td></tr>
       </table>
     </td></tr>

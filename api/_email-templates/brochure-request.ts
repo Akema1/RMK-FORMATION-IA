@@ -13,7 +13,7 @@ export const brochureRequest: EmailTemplate<BrochureRequestProps> = {
   subject: () =>
     "Votre brochure — Séminaires IA RMK × CABEXIA",
 
-  text: (p) => `Bonjour ${p.prenom},
+  text: (p) => `${p.prenom ? `Bonjour ${p.prenom},` : "Bonjour,"}
 
 Merci pour votre intérêt. Vous trouverez la brochure complète du
 programme à cette adresse :
@@ -43,7 +43,7 @@ Email : ${p.contactEmail}
 Tél : ${p.contactPhone}`,
 
   html: (p) => `
-<p>Bonjour <strong>${escapeHtml(p.prenom)}</strong>,</p>
+<p>${p.prenom ? `Bonjour <strong>${escapeHtml(p.prenom)}</strong>,` : "Bonjour,"}</p>
 <p>Merci pour votre intérêt. Vous trouverez la brochure complète du programme en téléchargement ci-dessous.</p>
 
 <p style="text-align:center;margin:24px 0;">

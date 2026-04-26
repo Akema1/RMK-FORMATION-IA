@@ -843,7 +843,15 @@ export function createApp(opts: CreateAppOptions): express.Express {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safeContact)) return;
       try {
         const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
-        const prenom = safeNom.split(/\s+/)[0] || safeNom;
+        // Reject email-shaped or otherwise non-name input so we don't greet
+        // "Bonjour ericatta@gmail.com" when a user pastes their email into
+        // the Nom field. Falls through to an empty string, which the
+        // template renders as a generic "Bonjour,".
+        const looksLikeName = (s: string) =>
+          s.length >= 2 && !s.includes("@") && /[A-Za-zÀ-ÿ]/.test(s);
+        const prenom = looksLikeName(safeNom)
+          ? (safeNom.split(/\s+/)[0] || safeNom)
+          : "";
         await sendEmail(
           {
             ...renderEmail(brochureRequest, {
