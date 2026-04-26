@@ -506,7 +506,6 @@ export function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacit
         const data = (await res.json()) as {
           state: "pending_unpaid" | "pending_paid" | "confirmed";
           action_taken: "resent_confirmation" | "sent_magic_link" | "none";
-          payment_reference: string | null;
         };
         const banner =
           data.action_taken === "sent_magic_link"

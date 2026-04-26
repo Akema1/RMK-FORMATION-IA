@@ -89,6 +89,13 @@ function classifyExisting(existing: ExistingRow): RegisterResult {
   };
 }
 
+// Both the dedup SELECT and the post-23505 retry exclude cancelled rows. This
+// matches the DB-side partial unique index `participants_email_seminar_active_udx`
+// (CREATE UNIQUE INDEX … WHERE status <> 'cancelled') from the 20260410 baseline
+// migration. If that index is ever dropped or rewritten as a full unique
+// constraint, a cancelled-then-re-registering user would 23505 here, the
+// retry SELECT would still find no active row, and the request would 500.
+// Keep the index partial.
 export async function registerOrDedup(
   body: RegisterBody,
   supabase: SupabaseClient,

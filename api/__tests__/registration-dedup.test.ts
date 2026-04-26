@@ -157,7 +157,9 @@ describe("POST /api/register — dedup matrix", () => {
     expect(res.status).toBe(409);
     expect(res.body.state).toBe("pending_unpaid");
     expect(res.body.action_taken).toBe("resent_confirmation");
-    expect(res.body.payment_reference).toBe("RMK-2026-ABCDE");
+    // Anti-enumeration: payment_reference is NOT echoed in the 409 body —
+    // duplicate registrants get it via the resent confirmation email instead.
+    expect(res.body.payment_reference).toBeUndefined();
     expect(mockResendSend).toHaveBeenCalledTimes(1);
   });
 

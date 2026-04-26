@@ -794,10 +794,13 @@ export function createApp(opts: CreateAppOptions): express.Express {
       console.error("[register] dup-branch email failed:", err);
     }
 
+    // Anti-enumeration: do NOT echo payment_reference in the 409 body. The
+    // duplicate registrant gets the reference via the resent confirmation
+    // email (action_taken === "resent_confirmation"); leaking it in the API
+    // response would let any caller probe known emails to harvest references.
     return res.status(409).json({
       error: "duplicate_registration",
       state: result.state,
-      payment_reference: result.paymentReference,
       action_taken: result.actionTaken,
     });
   });
