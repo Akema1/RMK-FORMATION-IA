@@ -1,5 +1,5 @@
 import type { EmailTemplate } from "../_lib/render-email.js";
-import { layout, escapeHtml } from "./_layout.js";
+import { escapeHtml } from "./_layout.js";
 
 export interface BrochureRequestProps {
   prenom: string;
@@ -42,10 +42,7 @@ Web : ${p.websiteUrl}
 Email : ${p.contactEmail}
 Tél : ${p.contactPhone}`,
 
-  html: (p) =>
-    layout({
-      title: "Votre brochure — Séminaires IA RMK × CABEXIA",
-      bodyHtml: `
+  html: (p) => `
 <p>Bonjour <strong>${escapeHtml(p.prenom)}</strong>,</p>
 <p>Merci pour votre intérêt. Vous trouverez la brochure complète du programme en téléchargement ci-dessous.</p>
 
@@ -80,5 +77,4 @@ Tél : ${p.contactPhone}`,
 <p style="margin-top:28px;">Cordialement,<br>
 <em>L'équipe CABEXIA × RMK Conseils</em></p>
 `,
-    }),
 };

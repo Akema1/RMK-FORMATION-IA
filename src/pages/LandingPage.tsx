@@ -137,8 +137,13 @@ function CountdownBlock({ seminars }: { seminars: Seminar[] }) {
   // diaspora visitors see the countdown drift by their offset.
   const target = useMemo(() => {
     const now = Date.now();
+    // Guard against admin-edited rows where the JSONB `dates` column is null
+    // or `dates.start` is missing — without filtering NaN, the countdown would
+    // anchor to "Invalid Date" and tick gibberish; with optional chaining +
+    // NaN filter we degrade gracefully to the next valid atelier.
     const starts = seminars
-      .map((s) => new Date(`${s.dates.start}T08:30:00Z`).getTime())
+      .map((s) => new Date(`${s.dates?.start ?? ""}T08:30:00Z`).getTime())
+      .filter((t) => !Number.isNaN(t))
       .sort((a, b) => a - b);
     const upcoming = starts.find((t) => t > now);
     return upcoming ?? starts[starts.length - 1] ?? Date.now();
