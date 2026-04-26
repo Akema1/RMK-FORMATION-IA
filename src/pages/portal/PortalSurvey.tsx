@@ -1,37 +1,96 @@
 // ─────────────────────────────────────────────
 // PORTAL SURVEY — Discovery questionnaire component
+//
+// State is owned internally so the same component can render in two contexts:
+// the persistent /portal "Decouverte" tab AND the first-visit modal. Pass
+// `participantId` to enable per-step persistence to participant_survey + the
+// completion side-effects (recommendation email, onboarding flag flip).
+// `onComplete` lets the parent close any wrapping modal/banner once the user
+// finishes the questionnaire. `setActiveSection` is optional — the modal
+// rendering doesn't need the "Voir les formations" navigation button.
 // ─────────────────────────────────────────────
-import React from 'react';
+import React, { useState } from 'react';
+import { supabase } from '../../lib/supabaseClient';
 import { NAVY, GOLD, GOLD_DARK, WHITE, GREEN, cardBase, goldButton } from './tokens';
-import type { SurveyAnswer } from './tokens';
+import type { SurveyAnswer, PortalSection } from './tokens';
 import { SURVEY_QUESTIONS, getRecommendation } from './surveyConfig';
-import type { PortalSection } from './tokens';
+
+const initialAnswers: SurveyAnswer = {
+  secteur: '', collaborateurs: '', niveau: '', defi: '', attentes: [],
+};
 
 export interface PortalSurveyProps {
-  surveyStarted: boolean;
-  setSurveyStarted: React.Dispatch<React.SetStateAction<boolean>>;
-  surveyComplete: boolean;
-  setSurveyComplete: React.Dispatch<React.SetStateAction<boolean>>;
-  surveyStep: number;
-  setSurveyStep: React.Dispatch<React.SetStateAction<number>>;
-  surveyAnswers: SurveyAnswer;
-  setSurveyAnswers: React.Dispatch<React.SetStateAction<SurveyAnswer>>;
-  showEncouragement: boolean;
-  setShowEncouragement: React.Dispatch<React.SetStateAction<boolean>>;
-  setActiveSection: React.Dispatch<React.SetStateAction<PortalSection>>;
+  participantId?: string;
+  onComplete?: () => void;
+  setActiveSection?: React.Dispatch<React.SetStateAction<PortalSection>>;
 }
 
 export default function PortalSurvey({
-  surveyStarted, setSurveyStarted,
-  surveyComplete, setSurveyComplete,
-  surveyStep, setSurveyStep,
-  surveyAnswers, setSurveyAnswers,
-  showEncouragement, setShowEncouragement,
-  setActiveSection,
+  participantId, onComplete, setActiveSection,
 }: PortalSurveyProps) {
+  const [surveyStarted, setSurveyStarted] = useState(false);
+  const [surveyComplete, setSurveyComplete] = useState(false);
+  const [surveyStep, setSurveyStep] = useState(0);
+  const [surveyAnswers, setSurveyAnswers] = useState<SurveyAnswer>(initialAnswers);
+  const [showEncouragement, setShowEncouragement] = useState(false);
 
-  const handleSurveyAnswer = (questionId: string, value: string | string[]) => {
-    setSurveyAnswers(prev => ({ ...prev, [questionId]: value }));
+  const persistAnswer = async (partial: Partial<SurveyAnswer>) => {
+    if (!participantId) return;
+    try {
+      await supabase.from('participant_survey').upsert(
+        { participant_id: participantId, ...partial, updated_at: new Date().toISOString() },
+        { onConflict: 'participant_id' },
+      );
+    } catch (err) {
+      console.error('[survey] persistAnswer failed (non-fatal):', err);
+    }
+  };
+
+  const finishSurvey = async (final: SurveyAnswer) => {
+    if (!participantId) return;
+    const recommendation = getRecommendation(final);
+    try {
+      await supabase.from('participant_survey').upsert(
+        {
+          participant_id: participantId,
+          ...final,
+          niveau: final.niveau || null,
+          recommendation,
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'participant_id' },
+      );
+      await supabase
+        .from('participants')
+        .update({ onboarding_completed_at: new Date().toISOString() })
+        .eq('id', participantId);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const res = await fetch('/api/portal/send-recommendation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ recommendation }),
+        });
+        if (!res.ok) {
+          console.error('[survey] send-recommendation returned', res.status);
+        }
+      }
+    } catch (err) {
+      console.error('[survey] finishSurvey failed (non-fatal):', err);
+    } finally {
+      onComplete?.();
+    }
+  };
+
+  const handleSurveyAnswer = (questionId: keyof SurveyAnswer, value: string | string[]) => {
+    const updatedAnswers = { ...surveyAnswers, [questionId]: value } as SurveyAnswer;
+    setSurveyAnswers(updatedAnswers);
+    persistAnswer({ [questionId]: value } as Partial<SurveyAnswer>);
     setShowEncouragement(true);
     setTimeout(() => {
       setShowEncouragement(false);
@@ -39,6 +98,7 @@ export default function PortalSurvey({
         setSurveyStep(prev => prev + 1);
       } else {
         setSurveyComplete(true);
+        finishSurvey(updatedAnswers);
       }
     }, 1200);
   };
@@ -93,17 +153,24 @@ export default function PortalSurvey({
             </p>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <button onClick={() => { setSurveyStarted(false); setSurveyComplete(false); setSurveyStep(0); }} style={{
+        <div style={{ display: 'grid', gridTemplateColumns: setActiveSection ? '1fr 1fr' : '1fr', gap: 16 }}>
+          <button onClick={() => {
+            setSurveyStarted(false);
+            setSurveyComplete(false);
+            setSurveyStep(0);
+            setSurveyAnswers(initialAnswers);
+          }} style={{
             padding: '14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.1)',
             background: 'transparent', color: 'rgba(27,42,74,0.5)', fontSize: 14,
             fontWeight: 600, cursor: 'pointer',
           }}>
             Recommencer
           </button>
-          <button onClick={() => setActiveSection('dashboard')} style={goldButton()}>
-            Voir les formations
-          </button>
+          {setActiveSection && (
+            <button onClick={() => setActiveSection('dashboard')} style={goldButton()}>
+              Voir les formations
+            </button>
+          )}
         </div>
       </div>
     );
@@ -148,25 +215,29 @@ export default function PortalSurvey({
 
           {q.type === 'select' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {q.options.map(opt => (
-                <button key={opt} onClick={() => handleSurveyAnswer(q.id, opt)} style={{
-                  padding: '16px 20px', borderRadius: 12, textAlign: 'left',
-                  border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(0,0,0,0.02)',
-                  color: NAVY, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s',
-                  fontWeight: 500,
-                }}
-                  onMouseOver={e => {
-                    e.currentTarget.style.borderColor = GOLD;
-                    e.currentTarget.style.background = 'rgba(201,168,76,0.06)';
+              {q.options.map(opt => {
+                const value = typeof opt === 'string' ? opt : opt.value;
+                const label = typeof opt === 'string' ? opt : opt.label;
+                return (
+                  <button key={value} onClick={() => handleSurveyAnswer(q.id, value)} style={{
+                    padding: '16px 20px', borderRadius: 12, textAlign: 'left',
+                    border: '1px solid rgba(0,0,0,0.08)', background: 'rgba(0,0,0,0.02)',
+                    color: NAVY, fontSize: 15, cursor: 'pointer', transition: 'all 0.2s',
+                    fontWeight: 500,
                   }}
-                  onMouseOut={e => {
-                    e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)';
-                    e.currentTarget.style.background = 'rgba(0,0,0,0.02)';
-                  }}
-                >
-                  {opt}
-                </button>
-              ))}
+                    onMouseOver={e => {
+                      e.currentTarget.style.borderColor = GOLD;
+                      e.currentTarget.style.background = 'rgba(201,168,76,0.06)';
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)';
+                      e.currentTarget.style.background = 'rgba(0,0,0,0.02)';
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -200,14 +271,16 @@ export default function PortalSurvey({
             <div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
                 {q.options.map(opt => {
-                  const isSelected = surveyAnswers.attentes.includes(opt);
+                  const value = typeof opt === 'string' ? opt : opt.value;
+                  const label = typeof opt === 'string' ? opt : opt.label;
+                  const isSelected = surveyAnswers.attentes.includes(value);
                   return (
-                    <button key={opt} onClick={() => {
+                    <button key={value} onClick={() => {
                       setSurveyAnswers(prev => ({
                         ...prev,
                         attentes: isSelected
-                          ? prev.attentes.filter(x => x !== opt)
-                          : [...prev.attentes, opt],
+                          ? prev.attentes.filter(x => x !== value)
+                          : [...prev.attentes, value],
                       }));
                     }} style={{
                       padding: '10px 18px', borderRadius: 20, fontSize: 14,
@@ -216,7 +289,7 @@ export default function PortalSurvey({
                       color: isSelected ? GOLD_DARK : 'rgba(27,42,74,0.6)',
                       fontWeight: isSelected ? 700 : 500, cursor: 'pointer', transition: 'all 0.2s',
                     }}>
-                      {opt}
+                      {label}
                     </button>
                   );
                 })}

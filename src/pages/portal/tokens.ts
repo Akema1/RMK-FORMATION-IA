@@ -20,13 +20,14 @@ export interface OnboardingProfile {
   fonction: string;
 }
 
+export type NiveauValue = 'Débutant' | 'Intermédiaire' | 'Avancé';
+
 export interface SurveyAnswer {
   secteur: string;
   collaborateurs: string;
-  aiUsage: string;
+  niveau: NiveauValue | '';
   defi: string;
   attentes: string[];
-  source: string;
 }
 
 export interface CommunityPost {

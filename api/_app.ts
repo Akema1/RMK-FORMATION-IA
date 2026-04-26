@@ -33,6 +33,7 @@ import { registrationConfirmation } from "./_email-templates/registration-confir
 import { adminNewRegistration } from "./_email-templates/admin-new-registration.js";
 import { welcomeConfirmed } from "./_email-templates/welcome-confirmed.js";
 import { adminSlaReminder } from "./_email-templates/admin-sla-reminder.js";
+import { recommendationFollowup } from "./_email-templates/recommendation-followup.js";
 
 export interface CreateAppOptions {
   supabaseUrl?: string;
@@ -514,6 +515,59 @@ export function createApp(opts: CreateAppOptions): express.Express {
       return res.status(500).json({ error: "Lookup failed" });
     }
     res.json(data || []);
+  });
+
+  // ── Send recommendation email (Phase 1G / Task 27) ────────────────────────
+  // Fired when a participant completes the onboarding survey. The recommendation
+  // string is computed client-side (see surveyConfig.getRecommendation) and
+  // passed in; the server enriches with prenom + portalUrl and sends via the
+  // templated renderer. requireAuth ensures the JWT email matches a real user;
+  // we then verify a participant row exists for that email before emailing.
+  const SendRecommendationBody = z.object({
+    recommendation: z.string().min(1).max(2000),
+  });
+
+  app.post("/api/portal/send-recommendation", requireAuth, async (req, res) => {
+    if (!supabaseAdmin) {
+      return res.status(503).json({ error: "Database not configured" });
+    }
+    const parsed = SendRecommendationBody.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "validation" });
+
+    const userEmail = (req as { userEmail?: string | null }).userEmail;
+    if (!userEmail) return res.status(401).json({ error: "Unauthorized" });
+
+    const { data: participant } = await supabaseAdmin
+      .from("participants")
+      .select("prenom")
+      .eq("email", userEmail.toLowerCase().trim())
+      .order("confirmed_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (!participant) return res.status(404).json({ error: "no_participant" });
+
+    const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
+    try {
+      await sendEmail(
+        {
+          ...renderEmail(recommendationFollowup, {
+            prenom: (participant as { prenom: string }).prenom,
+            recommendation: parsed.data.recommendation,
+            portalUrl: `${siteUrl}/portal`,
+          }),
+          to: userEmail,
+        },
+        {
+          resendApiKey: process.env.RESEND_API_KEY ?? "",
+          from: process.env.EMAIL_FROM ?? "RMK Conseils <noreply@rmk-conseils.com>",
+        },
+      );
+    } catch (err) {
+      console.error("[send-recommendation] email send failed:", err);
+      return res.status(502).json({ error: "email_send_failed" });
+    }
+
+    res.json({ ok: true });
   });
 
   // ── Magic-link send (Phase 1C / Task 12) ─────────────────────────────────

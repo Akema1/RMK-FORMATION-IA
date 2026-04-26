@@ -13,10 +13,11 @@ import {
   NAVY, GOLD, GOLD_DARK, SURFACE, WHITE, RED, GREEN,
   cardBase, goldButton, navyButton, generateId, getInitials,
 } from './portal/tokens';
-import type { PortalSection, OnboardingProfile, SurveyAnswer, CommunityPost } from './portal/tokens';
-import { SURVEY_QUESTIONS, getRecommendation } from './portal/surveyConfig';
+import type { PortalSection, OnboardingProfile, CommunityPost } from './portal/tokens';
 import { FORMATION_CONTENT } from './portal/formationContent';
 import PortalSurvey from './portal/PortalSurvey';
+import { FirstVisitSurveyModal } from './portal/FirstVisitSurveyModal';
+import { SurveyBanner } from './portal/SurveyBanner';
 import PortalCommunity from './portal/PortalCommunity';
 import PortalCoaching from './portal/PortalCoaching';
 import PortalProgramme from './portal/PortalProgramme';
@@ -51,14 +52,9 @@ export default function ClientPortal() {
   const [activeSection, setActiveSection] = useState<PortalSection>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ── Survey state ──
-  const [surveyStep, setSurveyStep] = useState(0);
-  const [surveyStarted, setSurveyStarted] = useState(false);
-  const [surveyComplete, setSurveyComplete] = useState(false);
-  const [surveyAnswers, setSurveyAnswers] = useState<SurveyAnswer>({
-    secteur: '', collaborateurs: '', aiUsage: '', defi: '', attentes: [], source: '',
-  });
-  const [showEncouragement, setShowEncouragement] = useState(false);
+  // ── First-visit survey UX ──
+  const [showSurveyModal, setShowSurveyModal] = useState(false);
+  const [surveyDismissed, setSurveyDismissed] = useState(false);
 
   // ── Community state (loaded from Supabase) ──
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
@@ -155,6 +151,33 @@ export default function ClientPortal() {
     return () => subscription.unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ─── Refresh the loaded participant row from Supabase ───
+  // Used after the survey completes so onboarding_completed_at flips and the
+  // first-visit modal/banner can dismiss themselves on the next render.
+  const refreshParticipant = useCallback(async () => {
+    if (!participant?.email) return;
+    const { data } = await supabase
+      .from('participants')
+      .select('*')
+      .eq('email', participant.email.trim().toLowerCase())
+      .limit(1)
+      .maybeSingle();
+    if (data) setParticipant(data);
+  }, [participant?.email]);
+
+  // ─── First-visit survey modal: open once when participant lands without
+  //     having completed onboarding. surveyDismissed gates re-opens (the user
+  //     clicked "Plus tard"; show a banner instead).
+  useEffect(() => {
+    if (
+      participant?.status === 'confirmed' &&
+      !participant.onboarding_completed_at &&
+      !surveyDismissed
+    ) {
+      setShowSurveyModal(true);
+    }
+  }, [participant?.status, participant?.onboarding_completed_at, surveyDismissed]);
 
   // ─── Send magic link via /api/auth/send-magic-link ───
   // Backend is anti-enumeration: 200 means "request accepted", NOT "email exists".
@@ -880,6 +903,13 @@ export default function ClientPortal() {
         </p>
       </div>
 
+      {/* First-visit survey banner — only after dismiss, only until completion */}
+      {participant.status === 'confirmed' &&
+        !participant.onboarding_completed_at &&
+        surveyDismissed && (
+          <SurveyBanner onOpen={() => setShowSurveyModal(true)} />
+        )}
+
       {/* Status card */}
       <div style={{ ...cardBase, padding: 28, marginBottom: 28 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
@@ -1185,12 +1215,33 @@ export default function ClientPortal() {
               Identifiez la formation ideale pour vos besoins.
             </p>
             <div style={cardBase}>
-              <PortalSurvey surveyStarted={surveyStarted} setSurveyStarted={setSurveyStarted} surveyComplete={surveyComplete} setSurveyComplete={setSurveyComplete} surveyStep={surveyStep} setSurveyStep={setSurveyStep} surveyAnswers={surveyAnswers} setSurveyAnswers={setSurveyAnswers} showEncouragement={showEncouragement} setShowEncouragement={setShowEncouragement} setActiveSection={setActiveSection} />
+              <PortalSurvey
+                participantId={participant.id}
+                setActiveSection={setActiveSection}
+                onComplete={() => refreshParticipant()}
+              />
             </div>
           </div>
         )}
         {activeSection === 'profile' && renderProfile()}
       </main>
+
+      {/* First-visit modal — overlays any section. Auto-opens for confirmed
+          participants whose onboarding flag is still null and who haven't
+          dismissed yet this session. */}
+      {showSurveyModal && (
+        <FirstVisitSurveyModal
+          participantId={participant.id}
+          onComplete={() => {
+            setShowSurveyModal(false);
+            refreshParticipant();
+          }}
+          onDismiss={() => {
+            setShowSurveyModal(false);
+            setSurveyDismissed(true);
+          }}
+        />
+      )}
 
       {/* ─── RESPONSIVE CSS ─── */}
       <style>{`
