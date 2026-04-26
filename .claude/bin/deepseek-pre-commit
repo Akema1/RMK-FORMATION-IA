@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Fourth-opinion pre-commit sanity check via deepseek-v4-pro.
+# Scans staged changes for secrets, debug code, and obvious mistakes.
+# NOTE: sends diff/context content to OpenRouter via the `llm` CLI. Do not run on
+# code that is not authorized to leave the local environment.
+
+set -euo pipefail
+DIFF=$(git diff --staged)
+if [ -z "$DIFF" ]; then
+  echo "deepseek-pre-commit: no staged changes" >&2
+  exit 0
+fi
+printf '%s' "$DIFF" | llm -m openrouter/deepseek/deepseek-v4-pro -s \
+"You are a pre-commit reviewer. Scan this staged diff for:
+1. Secrets (API keys, tokens, passwords, private keys, connection strings with credentials)
+2. Debug code left behind (console.log, print, debugger, TODO-before-merge, commented-out blocks)
+3. Obvious mistakes (wrong variable, missing await, unhandled error, typos in identifiers)
+Cite file:line. Ignore style nits. Be terse.
+End with 'SAFE TO COMMIT' or 'BLOCK' + reason."

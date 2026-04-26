@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Fourth-opinion test critique via deepseek-v4-pro.
+# Usage: deepseek-test-critique [base-ref]
+# NOTE: sends diff/context content to OpenRouter via the `llm` CLI. Do not run on
+# code that is not authorized to leave the local environment.
+
+set -euo pipefail
+BASE="${1:-main}"
+DIFF=$(git diff "$BASE...HEAD" -- '*.test.*' '*.spec.*' 'e2e/' '__tests__/' 2>/dev/null || git diff --staged -- '*.test.*' '*.spec.*' 'e2e/' '__tests__/')
+if [ -z "$DIFF" ]; then
+  echo "deepseek-test-critique: no test changes to review (base=$BASE)" >&2
+  exit 0
+fi
+printf '%s' "$DIFF" | llm -m openrouter/deepseek/deepseek-v4-pro -s \
+"You are critiquing these test changes as a fourth opinion.
+For each test, decide: does it test BEHAVIOR (good) or IMPLEMENTATION (bad)?
+Flag:
+- Tests that would still pass if the feature were broken
+- Tests asserting on internals (private methods, exact call counts, internal state) instead of outcomes
+- Missing edge cases (null, empty, boundary values, error paths)
+- Flaky patterns (timing dependencies, shared state, non-deterministic ordering)
+- Over-mocking that disconnects tests from reality
+Cite file:line. Be terse.
+End with 'MEANINGFUL' or 'WEAK + reasons'."

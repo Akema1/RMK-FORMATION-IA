@@ -41,7 +41,7 @@ vi.mock("@supabase/supabase-js", () => ({
 }));
 
 // Must import AFTER mocks.
-import { createApp } from "../app.js";
+import { createApp } from "../_app.js";
 
 let app: Express;
 

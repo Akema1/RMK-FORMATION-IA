@@ -3,68 +3,76 @@
 // ─────────────────────────────────────────────
 import type { SurveyAnswer } from './tokens';
 
-export const SURVEY_QUESTIONS = [
+export type SurveyOption = string | { value: string; label: string };
+
+export interface SurveyQuestion {
+  id: 'secteur' | 'collaborateurs' | 'niveau' | 'defi' | 'attentes';
+  label: string;
+  type: 'select' | 'text' | 'multi';
+  options: readonly SurveyOption[];
+  encouragement: string;
+}
+
+export const SURVEY_QUESTIONS: readonly SurveyQuestion[] = [
   {
-    id: 'secteur' as const,
-    label: "Quel est votre secteur d'activite ?",
-    type: 'select' as const,
+    id: 'secteur',
+    label: "Quel est votre secteur d'activité ?",
+    type: 'select',
     options: ['Banque', 'Assurance', 'Immobilier', 'Juridique', 'RH', 'Technologie', 'Autre'],
     encouragement: 'Excellent choix !',
   },
   {
-    id: 'collaborateurs' as const,
+    id: 'collaborateurs',
     label: 'Combien de collaborateurs avez-vous ?',
-    type: 'select' as const,
+    type: 'select',
     options: ['1-10', '10-50', '50-200', '200+'],
     encouragement: 'Merci !',
   },
   {
-    id: 'aiUsage' as const,
-    label: "Utilisez-vous deja des outils d'IA ?",
-    type: 'select' as const,
-    options: ['Oui regulierement', 'Oui un peu', 'Pas encore'],
-    encouragement: "C'est tres bien !",
+    id: 'niveau',
+    label: "Quel est votre niveau d'expertise en IA ?",
+    type: 'select',
+    options: [
+      { value: 'Débutant', label: "Débutant — je découvre, peu ou pas d'utilisation" },
+      { value: 'Intermédiaire', label: "Intermédiaire — j'utilise occasionnellement quelques outils" },
+      { value: 'Avancé', label: "Avancé — j'utilise régulièrement et maîtrise plusieurs outils" },
+    ],
+    encouragement: "C'est très bien !",
   },
   {
-    id: 'defi' as const,
-    label: 'Quel est votre principal defi quotidien ?',
-    type: 'text' as const,
-    options: [] as string[],
-    encouragement: 'Merci pour cette precision !',
+    id: 'defi',
+    label: 'Quel est votre principal défi quotidien ?',
+    type: 'text',
+    options: [],
+    encouragement: 'Merci pour cette précision !',
   },
   {
-    id: 'attentes' as const,
-    label: "Qu'esperez-vous de cette formation ?",
-    type: 'multi' as const,
-    options: ['Gagner du temps', 'Mieux decider', 'Former mon equipe', "Explorer l'IA", 'Autre'],
-    encouragement: 'Parfait, nous avons bien note !',
-  },
-  {
-    id: 'source' as const,
-    label: 'Comment avez-vous connu RMK Conseils ?',
-    type: 'select' as const,
-    options: ['Recommandation', 'LinkedIn', 'Google', 'Autre'],
-    encouragement: "Merci d'avoir partage !",
+    id: 'attentes',
+    label: "Qu'espérez-vous de cette formation ?",
+    type: 'multi',
+    options: ['Gagner du temps', 'Mieux décider', 'Former mon équipe', "Explorer l'IA", 'Autre'],
+    encouragement: 'Parfait, nous avons bien noté !',
   },
 ];
 
 export function getRecommendation(answers: SurveyAnswer): string {
-  const { secteur, aiUsage, attentes } = answers;
+  const { secteur, niveau, attentes } = answers;
+  const isBeginner = niveau === 'Débutant';
 
   if (secteur === 'Banque' || secteur === 'Assurance') {
-    return 'S2 - IA appliquee a la Finance : parfait pour analyser les bilans, gerer les risques et automatiser vos processus financiers.';
+    return 'S2 — IA appliquée à la Finance : parfait pour analyser les bilans, gérer les risques et automatiser vos processus financiers.';
   }
   if (secteur === 'Juridique') {
-    return "S3 - IA pour les Notaires : ideal pour moderniser votre pratique juridique avec l'IA.";
+    return "S3 — IA pour les Notaires : idéal pour moderniser votre pratique juridique avec l'IA.";
   }
   if (secteur === 'RH') {
-    return 'S4 - IA pour les Ressources Humaines : transformez votre fonction RH avec des outils IA performants.';
+    return 'S4 — IA pour les Ressources Humaines : transformez votre fonction RH avec des outils IA performants.';
   }
-  if (aiUsage === 'Pas encore' || attentes.includes("Explorer l'IA")) {
-    return "S1 - IA Strategique pour Dirigeants : la formation ideale pour decouvrir l'IA et construire votre vision strategique.";
+  if (isBeginner || attentes.includes("Explorer l'IA")) {
+    return "S1 — IA Stratégique pour Dirigeants : la formation idéale pour découvrir l'IA et construire votre vision stratégique.";
   }
-  if (attentes.includes('Former mon equipe')) {
-    return "S1 - IA Strategique pour Dirigeants + un Coaching Personnalise pour accompagner votre equipe dans l'adoption de l'IA.";
+  if (attentes.includes('Former mon équipe')) {
+    return "S1 — IA Stratégique pour Dirigeants + un Coaching Personnalisé pour accompagner votre équipe dans l'adoption de l'IA.";
   }
-  return "S1 - IA Strategique pour Dirigeants : le point de depart ideal pour integrer l'IA dans votre organisation.";
+  return "S1 — IA Stratégique pour Dirigeants : le point de départ idéal pour intégrer l'IA dans votre organisation.";
 }

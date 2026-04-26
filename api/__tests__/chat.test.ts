@@ -12,7 +12,7 @@ vi.mock("@ai-sdk/gateway", () => ({
 }));
 
 // Import AFTER mocks so the app picks them up.
-import { createApp } from "../app.js";
+import { createApp } from "../_app.js";
 
 let app: Express;
 

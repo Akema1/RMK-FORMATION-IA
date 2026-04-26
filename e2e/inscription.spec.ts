@@ -1,90 +1,250 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from "@playwright/test";
 
 /**
- * Inscription (registration) flow
- * Tests the form UX and mocked API submission on the landing page.
+ * Phase 1D registration flow + new public routes
+ * Covers the LandingPage form wired to /api/register and the
+ * /inscription/confirmee, /paiement, /cgu, /confidentialite pages.
  */
 
-test.describe('Inscription form', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+const VALID_REGISTER_RESPONSE = {
+  participant_id: "00000000-0000-0000-0000-000000000001",
+  payment_reference: "RMK-A8B3-7E92",
+};
+
+async function openInscriptionForm(page: Page) {
+  await page.goto("/");
+  const cta = page.getByRole("button", { name: /s'inscrire/i }).first();
+  await expect(cta).toBeVisible();
+  await cta.click();
+  await expect(page.locator("#field-email")).toBeVisible({ timeout: 8000 });
+}
+
+async function fillRequiredFields(page: Page) {
+  await page.locator("#field-civilite").selectOption("M.");
+  await page.locator("#field-nom").fill("Doe");
+  await page.locator("#field-prenom").fill("Jane");
+  await page.locator("#field-email").fill("jane@example.com");
+  // tel pre-filled with "+225 " — append the rest
+  await page.locator("#field-tel").fill("+225 07 02 61 15 82");
+  await page.locator("#field-societe").fill("Acme");
+  await page.locator("#field-fonction").fill("CFO");
+  // First non-pack option in the seminar select
+  const seminarSelect = page.locator("#field-seminaire");
+  const firstId = await seminarSelect
+    .locator('option[value]:not([value=""]):not([value="pack2"]):not([value="pack4"])')
+    .first()
+    .getAttribute("value");
+  if (!firstId) throw new Error("no seminar option found");
+  await seminarSelect.selectOption(firstId);
+  await page.locator("#referral_channel").selectOption("LinkedIn");
+  await page.locator("#consent").check();
+}
+
+test.describe("Inscription form — Phase 1D /api/register flow", () => {
+  test("S'inscrire CTA opens the form", async ({ page }) => {
+    await openInscriptionForm(page);
+    await expect(page.locator("#field-email")).toBeVisible();
   });
 
-  test('clicking S\'inscrire opens the inscription form', async ({ page }) => {
-    // Click the first "S'inscrire" CTA — should navigate to the inscription section/page
-    const cta = page.getByRole('button', { name: /s'inscrire/i }).first();
-    await expect(cta).toBeVisible();
-    await cta.click();
-
-    // After click, an email input should appear (inscription form)
-    const emailInput = page.locator('input[type="email"]').first();
-    await expect(emailInput).toBeVisible({ timeout: 8000 });
+  test("HTML5 validation blocks empty submission", async ({ page }) => {
+    await openInscriptionForm(page);
+    const submit = page.getByRole("button", { name: /envoyer/i }).first();
+    await submit.click();
+    // Custom JS validate() runs first and renders inline errors.
+    await expect(page.getByText(/civilité est obligatoire/i)).toBeVisible();
   });
 
-  test('form validates required fields before submission', async ({ page }) => {
-    // Navigate directly to the inscription section
-    await page.goto('/?page=inscription');
+  test("happy path: 201 → navigates to /inscription/confirmee with reference", async ({
+    page,
+  }) => {
+    await page.route("**/api/register", (route) =>
+      route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(VALID_REGISTER_RESPONSE),
+      }),
+    );
 
-    // Try to find and submit an empty form
-    const submitBtn = page.getByRole('button', { name: /envoyer|soumettre|confirmer/i }).first();
-    if (await submitBtn.isVisible()) {
-      await submitBtn.click();
-      // Either a browser validation message or a custom error should appear
-      // Browser native validation prevents submission — no server call
-      const emailInput = page.locator('input[type="email"]').first();
-      if (await emailInput.isVisible()) {
-        const validationMessage = await emailInput.evaluate(
-          (el: HTMLInputElement) => el.validationMessage
-        );
-        expect(validationMessage.length).toBeGreaterThan(0);
-      }
-    }
+    await openInscriptionForm(page);
+    await fillRequiredFields(page);
+    await page.getByRole("button", { name: /envoyer/i }).click();
+
+    await expect(page).toHaveURL(/\/inscription\/confirmee/);
+    await expect(
+      page.getByRole("heading", { name: /inscription enregistrée/i }),
+    ).toBeVisible();
+    await expect(page.getByLabel(/référence de paiement/i)).toContainText(
+      "RMK-A8B3-7E92",
+    );
+    // sessionStorage was seeded for refresh resilience
+    const stored = await page.evaluate(() =>
+      sessionStorage.getItem("rmk:lastReg"),
+    );
+    expect(stored).toContain("RMK-A8B3-7E92");
   });
 
-  test('inscription form fields accept user input', async ({ page }) => {
-    // Mock the notify-registration API so we don't send real emails
-    await page.route('**/api/notify-registration', route => {
-      route.fulfill({ status: 200, body: JSON.stringify({ success: true }) });
-    });
+  test("409 resent_confirmation: shows the renvoyé banner", async ({ page }) => {
+    await page.route("**/api/register", (route) =>
+      route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: "duplicate_registration",
+          state: "pending_unpaid",
+          payment_reference: "RMK-X",
+          action_taken: "resent_confirmation",
+        }),
+      }),
+    );
 
-    // Mock Supabase insert
-    await page.route('**/rest/v1/participants*', route => {
-      if (route.request().method() === 'POST') {
-        route.fulfill({ status: 201, body: JSON.stringify([{ id: 'test-id' }]) });
-      } else {
-        route.continue();
-      }
-    });
+    await openInscriptionForm(page);
+    await fillRequiredFields(page);
+    await page.getByRole("button", { name: /envoyer/i }).click();
+    await expect(page.getByText(/renvoyer votre confirmation/i)).toBeVisible();
+    await expect(page).toHaveURL(/^(?!.*confirmee)/);
+  });
 
-    await page.goto('/');
+  test("409 sent_magic_link: shows the magic-link banner", async ({ page }) => {
+    await page.route("**/api/register", (route) =>
+      route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: "duplicate_registration",
+          state: "confirmed",
+          payment_reference: "RMK-X",
+          action_taken: "sent_magic_link",
+        }),
+      }),
+    );
 
-    // Click first S'inscrire button
-    const cta = page.getByRole('button', { name: /s'inscrire/i }).first();
-    if (await cta.isVisible()) {
-      await cta.click();
-    }
+    await openInscriptionForm(page);
+    await fillRequiredFields(page);
+    await page.getByRole("button", { name: /envoyer/i }).click();
+    await expect(page.getByText(/lien magique/i)).toBeVisible();
+  });
 
-    // Fill nom
-    const nomInput = page.locator('input[placeholder*="Nom"], input[name="nom"]').first();
-    if (await nomInput.isVisible({ timeout: 5000 })) {
-      await nomInput.fill('Dupont');
-    }
+  test("400: server validation issues map back to field-level errors", async ({
+    page,
+  }) => {
+    await page.route("**/api/register", (route) =>
+      route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: "validation",
+          issues: [
+            { path: ["email"], message: "Email serveur invalide" },
+            { path: ["fonction"], message: "Fonction trop courte" },
+          ],
+        }),
+      }),
+    );
 
-    // Fill prenom
-    const prenomInput = page.locator('input[placeholder*="Prénom"], input[name="prenom"]').first();
-    if (await prenomInput.isVisible()) {
-      await prenomInput.fill('Jean');
-    }
+    await openInscriptionForm(page);
+    await fillRequiredFields(page);
+    await page.getByRole("button", { name: /envoyer/i }).click();
+    await expect(page.getByText(/email serveur invalide/i)).toBeVisible();
+    await expect(page.getByText(/fonction trop courte/i)).toBeVisible();
+  });
 
-    // Fill email
-    const emailInput = page.locator('input[type="email"]').first();
-    if (await emailInput.isVisible()) {
-      await emailInput.fill('jean.dupont@entreprise.ci');
-    }
+  test("5xx: shows the generic error banner", async ({ page }) => {
+    await page.route("**/api/register", (route) =>
+      route.fulfill({ status: 500, body: "boom" }),
+    );
 
-    // Verify values were entered
-    if (await nomInput.isVisible()) {
-      await expect(nomInput).toHaveValue('Dupont');
-    }
+    await openInscriptionForm(page);
+    await fillRequiredFields(page);
+    await page.getByRole("button", { name: /envoyer/i }).click();
+    await expect(page.getByText(/une erreur est survenue/i)).toBeVisible();
+  });
+
+  test("ChannelField reveals 'Recommandation' sub-field on demand", async ({
+    page,
+  }) => {
+    await openInscriptionForm(page);
+    await page.locator("#referral_channel").selectOption("Recommandation");
+    await expect(page.locator("#referrer_name")).toBeVisible();
+    await page.locator("#referral_channel").selectOption("LinkedIn");
+    await expect(page.locator("#referrer_name")).toBeHidden();
+  });
+
+  test("ChannelField reveals 'Autre' sub-field on demand", async ({ page }) => {
+    await openInscriptionForm(page);
+    await page.locator("#referral_channel").selectOption("Autre");
+    await expect(page.locator("#channel_other")).toBeVisible();
   });
 });
+
+test.describe("Phase 1D public routes", () => {
+  test("/paiement renders generic payment instructions", async ({ page }) => {
+    await page.goto("/paiement");
+    await expect(
+      page.getByRole("heading", { name: /^paiement$/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /modalités de paiement/i }),
+    ).toBeVisible();
+    // No reference rendered in generic mode.
+    await expect(page.getByLabel(/référence de paiement/i)).toHaveCount(0);
+  });
+
+  test("/cgu renders the CGU placeholder", async ({ page }) => {
+    await page.goto("/cgu");
+    await expect(
+      page.getByRole("heading", { name: /conditions générales/i }),
+    ).toBeVisible();
+  });
+
+  test("/confidentialite renders the privacy placeholder", async ({ page }) => {
+    await page.goto("/confidentialite");
+    await expect(
+      page.getByRole("heading", { name: /politique de confidentialité/i }),
+    ).toBeVisible();
+  });
+
+  test("/inscription/confirmee redirects home when no state and no sessionStorage", async ({
+    page,
+  }) => {
+    await page.goto("/inscription/confirmee");
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  test("/inscription/confirmee renders from sessionStorage fallback", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.evaluate(() => {
+      sessionStorage.setItem(
+        "rmk:lastReg",
+        JSON.stringify({
+          paymentReference: "RMK-CACHE-9999",
+          participantId: "00000000-0000-0000-0000-000000000002",
+          seminarId: "S1",
+        }),
+      );
+    });
+    await page.goto("/inscription/confirmee");
+    await expect(
+      page.getByRole("heading", { name: /inscription enregistrée/i }),
+    ).toBeVisible();
+    await expect(page.getByLabel(/référence de paiement/i)).toContainText(
+      "RMK-CACHE-9999",
+    );
+  });
+
+  test("CGU link from the inscription form opens /cgu", async ({ page, context }) => {
+    await openInscriptionForm(page);
+    const link = page.getByRole("link", { name: /^cgu$/i });
+    await expect(link).toHaveAttribute("href", "/cgu");
+    await expect(link).toHaveAttribute("target", "_blank");
+    const [popup] = await Promise.all([
+      context.waitForEvent("page"),
+      link.click(),
+    ]);
+    await popup.waitForLoadState();
+    await expect(popup).toHaveURL(/\/cgu$/);
+    await popup.close();
+  });
+});
+

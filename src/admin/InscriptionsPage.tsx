@@ -19,6 +19,7 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ nom: "", prenom: "", email: "", tel: "", societe: "", fonction: "", seminar: "", amount: 0, status: "pending", payment: "", notes: "" });
   const [filter, setFilter] = useState("all");
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
   const upd = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [k]: e.target.value });
 
   const addParticipant = async () => {
@@ -49,6 +50,40 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
   const updateStatus = async (id: string, status: string) => {
     await supabase.from('participants').update({ status }).eq('id', id);
     refreshParticipants();
+  };
+
+  const markPaid = async (id: string) => {
+    if (markingPaidId) return;
+    const provider = window.prompt(
+      "Méthode de paiement (wave / orange_money / bank_transfer / cash) — Annuler pour omettre",
+      "wave",
+    );
+    setMarkingPaidId(id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        window.alert("Session expirée. Reconnectez-vous puis réessayez.");
+        return;
+      }
+      const res = await fetch(`/api/admin/participants/${id}/mark-paid`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(provider ? { payment_provider: provider } : {}),
+      });
+      if (res.ok) {
+        await refreshParticipants();
+      } else {
+        window.alert("Erreur lors de la confirmation. Réessayez.");
+      }
+    } catch (err) {
+      console.error("[mark-paid] request failed:", err);
+      window.alert("Connexion impossible. Vérifiez votre réseau et réessayez.");
+    } finally {
+      setMarkingPaidId(null);
+    }
   };
 
   const deleteParticipant = async (id: string) => {
@@ -214,8 +249,8 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
       </div>
 
       <div style={{ ...card, padding: 0, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding: "12px 16px", borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
-          {["Participant", "Société / Fonction", "Atelier", "Paiement", "Montant", "Statut", ""].map(h => (
+        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1.6fr 0.9fr 1fr 0.9fr 1fr 0.8fr 1fr 0.9fr 1.2fr", padding: "12px 16px", borderBottom: "1px solid rgba(0,0,0,0.08)" }}>
+          {["Participant", "Société / Fonction", "Atelier", "Paiement", "Montant", "Statut", "Canal", "Réf. paiement", "Paiement", "Actions"].map(h => (
             <div key={h} style={{ fontSize: 10, color: '#1B2A4A', textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>{h}</div>
           ))}
         </div>
@@ -223,7 +258,7 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
         {filtered.map(p => {
           const s = seminars.find(x => x.id === p.seminar);
           return (
-            <div key={p.id} style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1.2fr 1.2fr 1fr 1fr 0.8fr", padding: "14px 16px", borderBottom: "1px solid rgba(0,0,0,0.04)", alignItems: "center" }}>
+            <div key={p.id} style={{ display: "grid", gridTemplateColumns: "1.6fr 1.6fr 0.9fr 1fr 0.9fr 1fr 0.8fr 1fr 0.9fr 1.2fr", padding: "14px 16px", borderBottom: "1px solid rgba(0,0,0,0.04)", alignItems: "center" }}>
               <div><div style={{ color: "#1B2A4A", fontSize: 13, fontWeight: 600 }}>{p.nom} {p.prenom}</div><div style={{ color: '#1B2A4A', fontSize: 11 }}>{p.email}</div></div>
               <div><div style={{ color: '#1B2A4A', fontSize: 13 }}>{p.societe}</div><div style={{ color: '#1B2A4A', fontSize: 11 }}>{p.fonction}</div></div>
               <div style={{ fontSize: 12, color: s?.color || "#fff", fontWeight: 600 }}>{s?.code} {ICON_EMOJI[s?.icon || ""] || "📋"}</div>
@@ -243,7 +278,37 @@ export function InscriptionsPage({ participants, seminars, refreshParticipants }
                   <option value="cancelled">Annulé</option>
                 </select>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ fontSize: 12, color: '#1B2A4A' }}>{p.referral_channel ?? "—"}</div>
+              <div style={{ fontFamily: "Menlo, monospace", fontSize: 11, color: '#1B2A4A' }}>
+                {p.payment_reference ?? "—"}
+              </div>
+              <div>
+                <span style={{
+                  padding: "3px 8px", borderRadius: 999, fontSize: 11,
+                  background: p.payment === "paid" ? "rgba(34,139,34,0.12)" : "rgba(180,180,180,0.12)",
+                  color: p.payment === "paid" ? "#228B22" : "#666",
+                  fontWeight: 600,
+                }}>
+                  {p.payment === "paid" ? "Payé" : "—"}
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                {!(p.status === "confirmed" && p.payment === "paid") && (
+                  <button
+                    onClick={() => markPaid(p.id)}
+                    disabled={markingPaidId !== null}
+                    style={{
+                      background: "#C9A84C", color: "#1B2A4A", border: 0,
+                      padding: "5px 10px", borderRadius: 6, fontSize: 11,
+                      fontWeight: 700,
+                      cursor: markingPaidId !== null ? "not-allowed" : "pointer",
+                      opacity: markingPaidId !== null ? 0.55 : 1,
+                    }}
+                    title="Marquer payé et envoyer email de bienvenue"
+                  >
+                    {markingPaidId === p.id ? "Envoi…" : "Marquer payé"}
+                  </button>
+                )}
                 <button onClick={() => startEdit(p)} style={{ background: "none", border: "none", color: ORANGE, cursor: "pointer", fontSize: 16 }} title="Modifier">✏️</button>
                 {p.status === "confirmed" && s && (
                   <button onClick={() => exportAttestation(p, s)} style={{ background: "none", border: "none", color: "#3498DB", cursor: "pointer", fontSize: 16 }} title="Exporter Attestation">🎓</button>

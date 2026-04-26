@@ -1,5 +1,15 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Per CLAUDE.md, activate Serena now: call mcp__plugin_serena_serena__activate_project with project=\"/Users/erickatta/Documents/Formation/RMK-FORMATION-IA\". Use Serena symbolic tools (find_symbol, get_symbols_overview, find_referencing_symbols, search_for_pattern) instead of Grep/Glob for TS/TSX source.'"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",

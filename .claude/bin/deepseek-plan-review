@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Fourth-opinion plan review via deepseek-v4-pro.
+# Usage: deepseek-plan-review <path-to-plan.md>
+# NOTE: sends diff/context content to OpenRouter via the `llm` CLI. Do not run on
+# code that is not authorized to leave the local environment.
+
+set -euo pipefail
+PLAN="${1:-}"
+if [ -z "$PLAN" ] || [ ! -f "$PLAN" ]; then
+  echo "deepseek-plan-review: usage: deepseek-plan-review <path-to-plan.md>" >&2
+  exit 1
+fi
+cat "$PLAN" | llm -m openrouter/deepseek/deepseek-v4-pro -s \
+"You are reviewing an implementation plan as a fourth opinion alongside Gemini and Qwen.
+Critique:
+- Architecture soundness — does the design fit the constraints?
+- Missing edge cases, failure modes, or rollback plans
+- Step ordering — hidden dependencies, risky sequences, things that should be parallel
+- Test strategy — gaps in coverage, wrong abstraction level
+- Scope — is it too broad (risky) or too narrow (incomplete)?
+- Security implications that weren't addressed
+Be terse. One-page max. Structure as: STRENGTHS / RISKS / MISSING / RECOMMENDATIONS.
+End with 'APPROVE' / 'APPROVE WITH CHANGES' / 'REJECT + reason'."

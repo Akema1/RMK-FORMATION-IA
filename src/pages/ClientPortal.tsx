@@ -6,16 +6,19 @@ import { SEMINARS, type Seminar, fmt, PRICE, EARLY_BIRD_PRICE, COACHING_PRICE } 
 import type { Participant } from '../admin/types';
 import { LogoRMK } from '../components/LogoRMK';
 import { ChatWidget } from '../components/ChatWidget';
+import { sendPortalMagicLink } from '../lib/portalAuth';
+import { PaymentInstructions } from '../components/PaymentInstructions';
 
 // ── Extracted portal modules ──
 import {
   NAVY, GOLD, GOLD_DARK, SURFACE, WHITE, RED, GREEN,
   cardBase, goldButton, navyButton, generateId, getInitials,
 } from './portal/tokens';
-import type { PortalSection, OnboardingProfile, SurveyAnswer, CommunityPost } from './portal/tokens';
-import { SURVEY_QUESTIONS, getRecommendation } from './portal/surveyConfig';
+import type { PortalSection, OnboardingProfile, CommunityPost } from './portal/tokens';
 import { FORMATION_CONTENT } from './portal/formationContent';
 import PortalSurvey from './portal/PortalSurvey';
+import { FirstVisitSurveyModal } from './portal/FirstVisitSurveyModal';
+import { SurveyBanner } from './portal/SurveyBanner';
 import PortalCommunity from './portal/PortalCommunity';
 import PortalCoaching from './portal/PortalCoaching';
 import PortalProgramme from './portal/PortalProgramme';
@@ -50,14 +53,9 @@ export default function ClientPortal() {
   const [activeSection, setActiveSection] = useState<PortalSection>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ── Survey state ──
-  const [surveyStep, setSurveyStep] = useState(0);
-  const [surveyStarted, setSurveyStarted] = useState(false);
-  const [surveyComplete, setSurveyComplete] = useState(false);
-  const [surveyAnswers, setSurveyAnswers] = useState<SurveyAnswer>({
-    secteur: '', collaborateurs: '', aiUsage: '', defi: '', attentes: [], source: '',
-  });
-  const [showEncouragement, setShowEncouragement] = useState(false);
+  // ── First-visit survey UX ──
+  const [showSurveyModal, setShowSurveyModal] = useState(false);
+  const [surveyDismissed, setSurveyDismissed] = useState(false);
 
   // ── Community state (loaded from Supabase) ──
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
@@ -155,23 +153,50 @@ export default function ClientPortal() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Send magic link OTP ───
+  // ─── Refresh the loaded participant row from Supabase ───
+  // Used after the survey completes so onboarding_completed_at flips and the
+  // first-visit modal/banner can dismiss themselves on the next render.
+  const refreshParticipant = useCallback(async () => {
+    if (!participant?.email) return;
+    const { data } = await supabase
+      .from('participants')
+      .select('*')
+      .eq('email', participant.email.trim().toLowerCase())
+      .limit(1)
+      .maybeSingle();
+    if (data) setParticipant(data);
+  }, [participant?.email]);
+
+  // ─── First-visit survey modal: open once when participant lands without
+  //     having completed onboarding. surveyDismissed gates re-opens (the user
+  //     clicked "Plus tard"; show a banner instead).
+  useEffect(() => {
+    if (
+      participant?.status === 'confirmed' &&
+      !participant.onboarding_completed_at &&
+      !surveyDismissed
+    ) {
+      setShowSurveyModal(true);
+    }
+  }, [participant?.status, participant?.onboarding_completed_at, surveyDismissed]);
+
+  // ─── Send magic link via /api/auth/send-magic-link ───
+  // Backend is anti-enumeration: 200 means "request accepted", NOT "email exists".
+  // We always advance to the 'sent' screen on 200 — never leak whether the email
+  // matches a confirmed participant. Real delivery happens server-side via Resend.
   const sendMagicLink = useCallback(async (targetEmail?: string) => {
     const trimmedEmail = (targetEmail ?? email).trim().toLowerCase();
     if (!trimmedEmail) return;
     setLoading(true);
     setError('');
-    try {
-      const { error: otpErr } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: { emailRedirectTo: `${window.location.origin}/portal` },
-      });
-      if (otpErr) {
-        setError("Impossible d'envoyer le lien. Verifiez votre email et reessayez.");
-      } else {
-        setAuthStep('sent');
-      }
-    } catch {
+    const result = await sendPortalMagicLink(trimmedEmail);
+    if (result.ok) {
+      setAuthStep('sent');
+    } else if (result.reason === 'invalid_email') {
+      setError("Email invalide. Verifiez le format et reessayez.");
+    } else if (result.reason === 'rate_limited') {
+      setError('Trop de tentatives. Veuillez patienter quelques minutes.');
+    } else {
       setError('Erreur reseau. Veuillez reessayer.');
     }
     setLoading(false);
@@ -797,6 +822,116 @@ export default function ClientPortal() {
   // ═══════════════════════════════════════════
   if (!participant) return null;
 
+  // ── Gate: portal is only available after admin confirms payment ──
+  // Three states matter here:
+  //   - status === 'cancelled' → registration was withdrawn; show terminal copy
+  //   - status !== 'confirmed' AND payment === 'paid' → bank/Wave/OM credit
+  //     hit our account but admin hasn't ticked "Marquer payé" yet. Validation
+  //     window is the 24h ouvrées SLA. Don't show payment instructions; the
+  //     participant has already paid.
+  //   - status !== 'confirmed' AND payment !== 'paid' → still owes us. Show
+  //     the PaymentInstructions block with their reference + Wave/OM details
+  //     so they can self-serve from the portal without digging up the email.
+  if (participant.status !== 'confirmed') {
+    const isCancelled = participant.status === 'cancelled';
+    const isWaitingValidation = !isCancelled && participant.payment === 'paid';
+    const statusLabel =
+      isCancelled ? 'Annulée' :
+      isWaitingValidation ? 'Paiement reçu — en cours de validation' :
+      'En attente de paiement';
+    const badgeBg =
+      isCancelled ? 'rgba(231,76,60,0.10)' :
+      isWaitingValidation ? 'rgba(39,174,96,0.12)' :
+      'rgba(201,168,76,0.12)';
+    const badgeFg =
+      isCancelled ? RED :
+      isWaitingValidation ? GREEN :
+      GOLD;
+    return (
+      <div style={{
+        minHeight: '100vh', background: SURFACE, color: NAVY,
+        fontFamily: "'DM Sans', sans-serif", padding: 24,
+      }}>
+        <main style={{ maxWidth: 720, margin: '48px auto' }}>
+          <div style={{
+            background: WHITE, padding: 32, borderRadius: 16,
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.05)',
+          }}>
+            <h1 style={{ marginTop: 0, color: NAVY, fontSize: 24, fontWeight: 800 }}>
+              Bonjour {participant.prenom},
+            </h1>
+
+            <div style={{
+              display: 'inline-block', padding: '6px 14px', borderRadius: 999,
+              background: badgeBg, color: badgeFg,
+              fontSize: 13, fontWeight: 600, marginBottom: 20,
+            }}>
+              {statusLabel}
+            </div>
+
+            {isCancelled ? (
+              <p style={{ color: 'rgba(27,42,74,0.75)', fontSize: 15, lineHeight: 1.7 }}>
+                Votre inscription a été annulée. Si vous souhaitez vous réinscrire,
+                contactez-nous à{' '}
+                <a href="mailto:contact@rmkconsulting.pro" style={{ color: GOLD, fontWeight: 600 }}>
+                  contact@rmkconsulting.pro
+                </a>.
+              </p>
+            ) : isWaitingValidation ? (
+              <p style={{ color: 'rgba(27,42,74,0.75)', fontSize: 15, lineHeight: 1.7 }}>
+                Votre paiement est bien arrivé. Notre équipe le valide et vous
+                recevrez votre accès participant sous 24h ouvrées.
+              </p>
+            ) : (
+              <>
+                <p style={{ color: 'rgba(27,42,74,0.75)', fontSize: 15, lineHeight: 1.7, marginBottom: 20 }}>
+                  Votre inscription est enregistrée. Pour finaliser votre place,
+                  effectuez votre paiement avec les instructions ci-dessous —
+                  votre espace sera activé dès réception.
+                </p>
+                <PaymentInstructions
+                  reference={participant.payment_reference ?? undefined}
+                  amountFcfa={participant.amount}
+                  supportPhone="+225 07 02 61 15 82"
+                />
+              </>
+            )}
+
+            <div style={{
+              marginTop: 32, display: 'flex', gap: 12, flexWrap: 'wrap',
+            }}>
+              {!isCancelled && (
+                <a
+                  href="/brochure.pdf"
+                  download
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    background: GOLD, color: NAVY, textDecoration: 'none',
+                    padding: '12px 20px', borderRadius: 10,
+                    fontSize: 14, fontWeight: 700,
+                  }}
+                >
+                  📄 Télécharger la brochure
+                </a>
+              )}
+              <button
+                onClick={signOut}
+                style={{
+                  background: 'none', border: '1px solid rgba(0,0,0,0.12)',
+                  color: 'rgba(27,42,74,0.7)', fontSize: 14, cursor: 'pointer',
+                  padding: '12px 20px', borderRadius: 10,
+                }}
+              >
+                Se déconnecter
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const isDirigeants = seminar?.code === 'S1' || seminar?.id === 's1';
   const sidebarItems: { key: PortalSection; label: string; icon: string; locked?: boolean; tag?: string }[] = [
     { key: 'dashboard', label: 'Tableau de bord', icon: '◆' },
@@ -821,6 +956,13 @@ export default function ClientPortal() {
           Bienvenue dans votre espace de formation RMK Conseils.
         </p>
       </div>
+
+      {/* First-visit survey banner — only after dismiss, only until completion */}
+      {participant.status === 'confirmed' &&
+        !participant.onboarding_completed_at &&
+        surveyDismissed && (
+          <SurveyBanner onOpen={() => setShowSurveyModal(true)} />
+        )}
 
       {/* Status card */}
       <div style={{ ...cardBase, padding: 28, marginBottom: 28 }}>
@@ -1127,12 +1269,33 @@ export default function ClientPortal() {
               Identifiez la formation ideale pour vos besoins.
             </p>
             <div style={cardBase}>
-              <PortalSurvey surveyStarted={surveyStarted} setSurveyStarted={setSurveyStarted} surveyComplete={surveyComplete} setSurveyComplete={setSurveyComplete} surveyStep={surveyStep} setSurveyStep={setSurveyStep} surveyAnswers={surveyAnswers} setSurveyAnswers={setSurveyAnswers} showEncouragement={showEncouragement} setShowEncouragement={setShowEncouragement} setActiveSection={setActiveSection} />
+              <PortalSurvey
+                participantId={participant.id}
+                setActiveSection={setActiveSection}
+                onComplete={() => refreshParticipant()}
+              />
             </div>
           </div>
         )}
         {activeSection === 'profile' && renderProfile()}
       </main>
+
+      {/* First-visit modal — overlays any section. Auto-opens for confirmed
+          participants whose onboarding flag is still null and who haven't
+          dismissed yet this session. */}
+      {showSurveyModal && (
+        <FirstVisitSurveyModal
+          participantId={participant.id}
+          onComplete={() => {
+            setShowSurveyModal(false);
+            refreshParticipant();
+          }}
+          onDismiss={() => {
+            setShowSurveyModal(false);
+            setSurveyDismissed(true);
+          }}
+        />
+      )}
 
       {/* ─── RESPONSIVE CSS ─── */}
       <style>{`
