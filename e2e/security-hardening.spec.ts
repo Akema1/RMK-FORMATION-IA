@@ -7,7 +7,6 @@
  *  - /api/ai/generate rejects invalid templateId (400)
  *  - /api/ai/generate rejects legacy { systemPrompt } request shape
  *  - /api/portal/lookup validates input + rate-limits (3/min)
- *  - /api/notify-registration rejects missing/invalid fields
  *  - Webhook endpoints require HMAC signature
  *  - CORS rejects non-allowlisted origins
  *  - Landing page renders without console errors
@@ -141,40 +140,6 @@ test.describe('/api/portal/lookup — input validation + rate limit', () => {
     // finding #9 (needs Upstash Redis for distributed state). The strict
     // `max=3` is only guaranteed on a single Node process (dev server).
     expect(statuses.filter((s) => s === 429).length).toBeGreaterThanOrEqual(1);
-  });
-});
-
-test.describe('/api/notify-registration — Zod validation', () => {
-  test('400 on empty body', async ({ request }) => {
-    const res = await request.post(`${API_BASE}/api/notify-registration`, {
-      data: {},
-    });
-    expect(res.status()).toBe(400);
-  });
-
-  test('400 on invalid email format', async ({ request }) => {
-    const res = await request.post(`${API_BASE}/api/notify-registration`, {
-      data: {
-        email: 'bad',
-        prenom: 'Alice',
-        nom: 'Test',
-        seminar: 's1',
-      },
-    });
-    expect(res.status()).toBe(400);
-  });
-
-  test('400 when phone format is invalid', async ({ request }) => {
-    const res = await request.post(`${API_BASE}/api/notify-registration`, {
-      data: {
-        email: 'alice@example.com',
-        prenom: 'Alice',
-        nom: 'Test',
-        seminar: 's1',
-        tel: 'not-a-phone-@@@',
-      },
-    });
-    expect(res.status()).toBe(400);
   });
 });
 

@@ -3,9 +3,9 @@
  * Improved structure: 6 pages with certification cover, "Ce que vous vivrez" pillars,
  * day-by-day program, seminar grid, formateur bio, and pricing.
  */
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { SEMINARS, PRICE, EARLY_BIRD_PRICE, COACHING_PRICE, fmt } from '../data/seminars';
+import { SEMINARS, PRICE, EARLY_BIRD_PRICE, COACHING_PRICE } from '../data/seminars';
 import type { Seminar as BaseSeminar } from '../data/seminars';
 
 // ---- Color constants ----
@@ -37,7 +37,7 @@ function drawHeaderBar(doc: jsPDF, pageNum: number, totalPages: number): void {
   doc.setFontSize(8);
   const [gr, gg, gb] = hexToRgb(GOLD);
   doc.setTextColor(gr, gg, gb);
-  doc.text('RMK CONSEILS  x  CABEXIA', MARGIN, 9);
+  doc.text('RMK CONSEILS  x  CABEXIA', PW / 2, 9, { align: 'center' });
   doc.text(`${pageNum} / ${totalPages}`, PW - MARGIN, 9, { align: 'right' });
 }
 
@@ -66,7 +66,7 @@ function drawFooterBar(doc: jsPDF): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(nr, ng, nb);
-  doc.text('contact@rmkconsulting.pro  |  +225 07 02 61 15 82  |  rmkconsulting.pro', PW / 2, PH - 6, { align: 'center' });
+  doc.text('contact@rmkconsulting.pro  |  +225 07 02 61 15 82  |  rmk-conseils.com', PW / 2, PH - 6, { align: 'center' });
 }
 
 // ---- Page 1: Cover ----
@@ -87,9 +87,7 @@ function buildCoverPage(doc: jsPDF): void {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(gr, gg, gb);
-  doc.setCharSpace(2);
   doc.text('RMK CONSEILS  ×  CABEXIA', PW / 2, 22, { align: 'center' });
-  doc.setCharSpace(0);
 
   // Thin separator
   doc.setDrawColor(gr, gg, gb);
@@ -119,7 +117,7 @@ function buildCoverPage(doc: jsPDF): void {
   doc.setFontSize(11);
   doc.setTextColor(200, 210, 225);
   doc.text('Transformez votre pratique professionnelle', PW / 2, 110, { align: 'center' });
-  doc.text('grace a l\'IA generative', PW / 2, 117, { align: 'center' });
+  doc.text('grâce à l\'IA générative', PW / 2, 117, { align: 'center' });
 
   // Gold divider
   doc.setDrawColor(gr, gg, gb);
@@ -164,10 +162,10 @@ function buildCoverPage(doc: jsPDF): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(nr, ng, nb);
-  doc.text('Format Hybride  ·  3 jours Presentiel  +  2 jours En Ligne', PW / 2, sy + 15.5, { align: 'center' });
+  doc.text('Format Hybride  ·  3 jours Présentiel  +  2 jours En Ligne', PW / 2, sy + 15.5, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.text('Abidjan, Cote d\'Ivoire  —  Mai / Juin 2026  —  20 participants max par atelier', PW / 2, sy + 21.5, { align: 'center' });
+  doc.text('Abidjan, Côte d\'Ivoire  —  Mai / Juin 2026  —  20 participants max par atelier', PW / 2, sy + 21.5, { align: 'center' });
 
   sy += 36;
 
@@ -198,7 +196,7 @@ function buildCoverPage(doc: jsPDF): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(nr, ng, nb);
-  doc.text('contact@rmkconsulting.pro  |  +225 07 02 61 15 82  |  rmkconsulting.pro', PW / 2, PH - 4.5, { align: 'center' });
+  doc.text('contact@rmkconsulting.pro  |  +225 07 02 61 15 82  |  rmk-conseils.com', PW / 2, PH - 4.5, { align: 'center' });
 }
 
 // ---- Page 2: Ce que vous vivrez (5 piliers) ----
@@ -216,7 +214,7 @@ function buildPillarsPage(doc: jsPDF): void {
   doc.setFontSize(9.5);
   doc.setTextColor(80, 90, 105);
   doc.text(
-    'Un programme intensif de 5 jours concu pour transformer votre rapport a l\'intelligence artificielle.',
+    'Un programme intensif de 5 jours conçu pour transformer votre rapport à l\'intelligence artificielle.',
     MARGIN, y,
     { maxWidth: PW - 2 * MARGIN }
   );
@@ -231,7 +229,7 @@ function buildPillarsPage(doc: jsPDF): void {
   doc.text('MODULE COMMUN — Matin du Jour 1', MARGIN + 6, y + 7);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text('Introduction generale a l\'IA generative — partagee entre toutes les formations', MARGIN + 6, y + 13);
+  doc.text('Introduction générale à l\'IA générative — partagée entre toutes les formations', MARGIN + 6, y + 13);
   y += 24;
 
   // 5 pillars
@@ -239,32 +237,32 @@ function buildPillarsPage(doc: jsPDF): void {
     {
       num: '01',
       icon: '◉',
-      title: 'Ateliers Academiques Intensifs',
-      desc: '3 jours de sessions presentielles encadrees par des experts certifies CABEXIA avec pedagogie active et mises en situation reelles.',
+      title: 'Ateliers Académiques Intensifs',
+      desc: '3 jours de sessions présentielles encadrées par des experts certifiés CABEXIA avec pédagogie active et mises en situation réelles.',
     },
     {
       num: '02',
       icon: '◎',
       title: 'Immersions Pratiques',
-      desc: 'Ateliers de cas concrets adaptes a votre metier : analyse de donnees, creation d\'agents IA, automatisation de workflows professionnels.',
+      desc: 'Ateliers de cas concrets adaptés à votre métier : analyse de données, création d\'agents IA, automatisation de workflows professionnels.',
     },
     {
       num: '03',
       icon: '⊕',
-      title: 'Networking & Echanges',
-      desc: 'Rencontres avec des decideurs de votre secteur. Partages d\'experiences et construction d\'un reseau professionnel actif en IA.',
+      title: 'Networking & Échanges',
+      desc: 'Rencontres avec des décideurs de votre secteur. Partages d\'expériences et construction d\'un réseau professionnel actif en IA.',
     },
     {
       num: '04',
       icon: '✦',
       title: 'Sessions en Ligne (J4–J5)',
-      desc: '2 jours de sessions virtuelles pour ancrer les apprentissages, presenter vos projets et recevoir un feedback personnalise du formateur.',
+      desc: '2 jours de sessions virtuelles pour ancrer les apprentissages, présenter vos projets et recevoir un feedback personnalisé du formateur.',
     },
     {
       num: '05',
       icon: '★',
       title: 'Attestation & Certification',
-      desc: 'Attestation officielle de formation delivree par RMK Conseils x CABEXIA, reconnue par les entreprises partenaires en Afrique de l\'Ouest.',
+      desc: 'Attestation officielle de formation délivrée par RMK Conseils x CABEXIA, reconnue par les entreprises partenaires en Afrique de l\'Ouest.',
     },
   ];
 
@@ -324,31 +322,31 @@ function buildProgrammePage(doc: jsPDF): void {
     {
       day: 'JOUR 1',
       label: 'Mardi',
-      type: 'Presentiel',
+      type: 'Présentiel',
       color: NAVY,
       sessions: [
-        { time: '09:00 – 12:00', label: 'MATIN', content: 'Module Commun — Introduction IA Generative (tous ateliers)', highlight: true },
-        { time: '13:30 – 17:30', label: 'APRES-MIDI', content: 'Approfondissement par seminar : fondations metier + cadre theorique specifique', highlight: false },
+        { time: '09:00 – 12:00', label: 'MATIN', content: 'Module Commun — Introduction IA Générative (tous ateliers)', highlight: true },
+        { time: '13:30 – 17:30', label: 'APRÈS-MIDI', content: 'Approfondissement par séminaire : fondations métier + cadre théorique spécifique', highlight: false },
       ],
     },
     {
       day: 'JOUR 2',
       label: 'Mercredi',
-      type: 'Presentiel',
+      type: 'Présentiel',
       color: NAVY,
       sessions: [
-        { time: '09:00 – 12:30', label: 'MATIN', content: 'Prompt Engineering avance — cas pratiques par metier avec exercices sur outils IA', highlight: false },
-        { time: '13:30 – 17:30', label: 'APRES-MIDI', content: 'Atelier Immersion : creation d\'agents, automatisation, analyse de documents avec IA', highlight: false },
+        { time: '09:00 – 12:30', label: 'MATIN', content: 'Prompt Engineering avancé — cas pratiques par métier avec exercices sur outils IA', highlight: false },
+        { time: '13:30 – 17:30', label: 'APRÈS-MIDI', content: 'Atelier Immersion : création d\'agents, automatisation, analyse de documents avec IA', highlight: false },
       ],
     },
     {
       day: 'JOUR 3',
       label: 'Jeudi',
-      type: 'Presentiel',
+      type: 'Présentiel',
       color: NAVY,
       sessions: [
-        { time: '09:00 – 12:30', label: 'MATIN', content: 'Applications avancees : connecteurs MCP, Claude Projects, outils IA metier specifiques', highlight: false },
-        { time: '13:30 – 17:00', label: 'APRES-MIDI', content: 'Presentation des projets individuels, feedback expert, plan d\'action personnel IA', highlight: false },
+        { time: '09:00 – 12:30', label: 'MATIN', content: 'Applications avancées : connecteurs MCP, Claude Projects, outils IA métier spécifiques', highlight: false },
+        { time: '13:30 – 17:00', label: 'APRÈS-MIDI', content: 'Présentation des projets individuels, feedback expert, plan d\'action personnel IA', highlight: false },
       ],
     },
     {
@@ -358,7 +356,7 @@ function buildProgrammePage(doc: jsPDF): void {
       color: '#2980B9',
       sessions: [
         { time: '09:00 – 12:00', label: 'SESSION VIRTUELLE', content: 'Consolidation des apprentissages — Q&A collectif avec le formateur', highlight: false },
-        { time: '14:00 – 16:00', label: 'COACHING', content: 'Suivi de l\'avancement du projet personnel IA — retours individualises', highlight: false },
+        { time: '14:00 – 16:00', label: 'COACHING', content: 'Suivi de l\'avancement du projet personnel IA — retours individualisés', highlight: false },
       ],
     },
     {
@@ -367,8 +365,8 @@ function buildProgrammePage(doc: jsPDF): void {
       type: 'En Ligne',
       color: '#2980B9',
       sessions: [
-        { time: '09:00 – 11:00', label: 'SESSION FINALE', content: 'Presentations finales par groupe — evaluation des projets et livrables IA', highlight: false },
-        { time: '11:00 – 12:00', label: 'CLOTURE', content: 'Remise des attestations, ouverture sur le reseau alumni RMK x CABEXIA', highlight: true },
+        { time: '09:00 – 11:00', label: 'SESSION FINALE', content: 'Présentations finales par groupe — évaluation des projets et livrables IA', highlight: false },
+        { time: '11:00 – 12:00', label: 'CLÔTURE', content: 'Remise des attestations, ouverture sur le réseau alumni RMK x CABEXIA', highlight: true },
       ],
     },
   ];
@@ -483,10 +481,12 @@ function buildSeminarsPage(doc: jsPDF, selectedSeminars: BaseSeminar[]): void {
     doc.setFontSize(7);
     doc.setTextColor(nr, ng, nb);
     const highlights = sem.highlights.slice(0, 4);
+    const bulletIndent = 6;
     for (const hl of highlights) {
-      const truncated = hl.length > 55 ? hl.substring(0, 52) + '...' : hl;
-      doc.text(`  – ${truncated}`, cx + 4, innerY);
-      innerY += 4.5;
+      const lines = doc.splitTextToSize(hl, cardW - 8 - bulletIndent);
+      doc.text('–', cx + 4, innerY);
+      doc.text(lines, cx + 4 + bulletIndent, innerY);
+      innerY += 4.5 * lines.length;
     }
 
     innerY += 2;
@@ -532,7 +532,7 @@ function buildFormateurPage(doc: jsPDF): void {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(gr, gg, gb);
-  doc.text('Expert-Consultant & Formateur en IA Generative', MARGIN + 46, y + 24);
+  doc.text('Expert-Consultant & Formateur en IA Générative', MARGIN + 46, y + 24);
   doc.setFontSize(8);
   doc.setTextColor(160, 180, 210);
   doc.text('CABEXIA — Cabinet d\'Expertise en Intelligence Artificielle', MARGIN + 46, y + 31);
@@ -541,15 +541,15 @@ function buildFormateurPage(doc: jsPDF): void {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(140, 165, 200);
-  doc.text('contact@cabex-ia.com  |  +235 61 47 91 19  |  Langues : Francais, Arabe', MARGIN + 46, y + 40);
+  doc.text('contact@cabex-ia.com  |  +235 61 47 91 19  |  Langues : Français, Arabe', MARGIN + 46, y + 40);
 
   y += 58;
 
   // Key stats
   const stats = [
-    { value: '10+', label: 'Entreprises\naccompagnees' },
-    { value: '230+', label: 'Professionnels\nformes' },
-    { value: '400+', label: 'Ateliers\ianimes' },
+    { value: '10+', label: 'Entreprises\naccompagnées' },
+    { value: '230+', label: 'Professionnels\nformés' },
+    { value: '400+', label: 'Ateliers\nanimés' },
     { value: '10 000+', label: 'Participants\ngrand public' },
   ];
 
@@ -578,7 +578,7 @@ function buildFormateurPage(doc: jsPDF): void {
   // Biography
   y = drawSectionTitle(doc, 'Biographie', y);
 
-  const bio = 'Expert-consultant, formateur et conferencier en intelligence artificielle generative, reconnu pour sa capacite a rendre l\'IA concrete, accessible et immediatement utile aux professionnels, aux institutions et aux entreprises. A travers CABEXIA, il accompagne la transformation des pratiques de travail en mettant l\'intelligence artificielle au service de la productivite, de la performance et de la qualite des livrables. Son approche est resolument pratique, orientee resultats et concue pour repondre aux realites du terrain africain.';
+  const bio = 'Expert-consultant, formateur et conférencier en intelligence artificielle générative, reconnu pour sa capacité à rendre l\'IA concrète, accessible et immédiatement utile aux professionnels, aux institutions et aux entreprises. À travers CABEXIA, il accompagne la transformation des pratiques de travail en mettant l\'intelligence artificielle au service de la productivité, de la performance et de la qualité des livrables. Son approche est résolument pratique, orientée résultats et conçue pour répondre aux réalités du terrain africain.';
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
@@ -588,7 +588,7 @@ function buildFormateurPage(doc: jsPDF): void {
   y += bioLines.length * 5 + 10;
 
   // Expertise tags
-  const expertise = ['IA Generative', 'Prompt Engineering Avance', 'Conseil Strategique IA', 'Transformation Digitale', 'Conferences Internationales'];
+  const expertise = ['IA Générative', 'Prompt Engineering Avancé', 'Conseil Stratégique IA', 'Transformation Digitale', 'Conférences Internationales'];
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(nr, ng, nb);
@@ -618,7 +618,7 @@ function buildFormateurPage(doc: jsPDF): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(nr, ng, nb);
-  doc.text('Formateur Referent RMK Conseils — Fondateur CABEXIA', PW / 2, y + 9, { align: 'center' });
+  doc.text('Formateur Référent RMK Conseils — Fondateur CABEXIA', PW / 2, y + 9, { align: 'center' });
 
   drawFooterBar(doc);
 }
@@ -634,39 +634,51 @@ function buildPricingPage(doc: jsPDF): void {
   let y = 28;
   y = drawSectionTitle(doc, 'Tarifs & Inscription', y);
 
+  const pdfFmt = (n: number) => n.toLocaleString('fr-FR').replace(/ | /g, ' ');
+
   autoTable(doc, {
     startY: y,
     margin: { left: MARGIN, right: MARGIN },
     head: [['Formule', 'Tarif', 'Details']],
     body: [
-      ['Early Bird', `${fmt(EARLY_BIRD_PRICE)} FCFA`, '-10% si inscription 15 jours avant le debut de l\'atelier'],
-      ['Standard', `${fmt(PRICE)} FCFA`, 'Tarif de base par atelier'],
+      ['Early Bird', `${pdfFmt(EARLY_BIRD_PRICE)} FCFA`, "-10% si inscription 15 jours avant le début de l'atelier"],
+      ['Standard', `${pdfFmt(PRICE)} FCFA`, 'Tarif de base par atelier'],
       ...SEMINARS.filter(s => s.price !== PRICE).map(s => [
         `${s.code} - ${s.title}`,
-        `${fmt(s.price)} FCFA`,
-        `Tarif specifique (early bird : ${fmt(s.earlyBirdPrice)} FCFA)`,
+        `${pdfFmt(s.price)} FCFA`,
+        `Tarif spécifique (early bird : ${pdfFmt(s.earlyBirdPrice)} FCFA)`,
       ]),
-      ['Coaching individuel', `${fmt(COACHING_PRICE)} FCFA`, 'Session individuelle de 2h (optionnel)'],
+      ['Coaching individuel', `${pdfFmt(COACHING_PRICE)} FCFA`, 'Session individuelle de 2h (optionnel)'],
     ],
     headStyles: {
       fillColor: hexToRgb(NAVY),
       textColor: [255, 255, 255],
-      font: 'times',
+      font: 'helvetica',
       fontStyle: 'bold',
       fontSize: 10,
     },
     bodyStyles: {
       font: 'helvetica',
-      fontSize: 9,
+      fontStyle: 'normal',
+      fontSize: 10,
       textColor: hexToRgb(NAVY),
     },
     alternateRowStyles: {
       fillColor: [250, 249, 246],
     },
     styles: {
+      font: 'helvetica',
+      fontSize: 10,
       cellPadding: 4,
       lineWidth: 0.2,
       lineColor: [200, 200, 200],
+      overflow: 'linebreak',
+      valign: 'middle',
+    },
+    columnStyles: {
+      0: { cellWidth: 65 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 'auto' },
     },
   });
 
@@ -677,7 +689,7 @@ function buildPricingPage(doc: jsPDF): void {
   const packs = [
     ['2 ateliers', '-10% sur le total'],
     ['3 ateliers', '-15% sur le total'],
-    ['4 ateliers (Pack Integral)', '-20% — Acces a tous les ateliers'],
+    ['4 ateliers (Pack Intégral)', '-20% — Accès à tous les ateliers'],
   ];
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
@@ -705,9 +717,9 @@ function buildPricingPage(doc: jsPDF): void {
   doc.text('Comment S\'inscrire ?', PW / 2, y + 14, { align: 'center' });
 
   const steps = [
-    '1.  Contactez-nous par email ou WhatsApp',
-    '2.  Remplissez le formulaire d\'inscription en ligne sur rmkconsulting.pro',
-    '3.  Recevez votre confirmation et les details pratiques sous 24h',
+    '1.  Contactez-nous par email ou WhatsApp au +225 07 02 61 15 82',
+    '2.  Remplissez le formulaire d\'inscription en ligne sur rmk-conseils.com',
+    '3.  Recevez votre confirmation et les détails pratiques sous 24h',
   ];
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
@@ -731,12 +743,12 @@ function buildPricingPage(doc: jsPDF): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(nr, ng, nb);
-  doc.text('(c) 2026 RMK Conseils x CABEXIA  —  Tous droits reserves', PW / 2, PH - 6, { align: 'center' });
+  doc.text('© 2026 RMK Conseils x CABEXIA  —  Tous droits réservés', PW / 2, PH - 6, { align: 'center' });
 }
 
 // ---- Public API ----
 
-export function generateBrochurePdf(selectedIds: Set<string>): void {
+export function buildBrochurePdfDoc(selectedIds: Set<string>): jsPDF {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const selected = SEMINARS.filter(s => selectedIds.has(s.id));
 
@@ -765,5 +777,10 @@ export function generateBrochurePdf(selectedIds: Set<string>): void {
   doc.addPage();
   buildPricingPage(doc);
 
+  return doc;
+}
+
+export function generateBrochurePdf(selectedIds: Set<string>): void {
+  const doc = buildBrochurePdfDoc(selectedIds);
   doc.save('Brochure_RMK_CABEXIA_Formations_IA_2026.pdf');
 }

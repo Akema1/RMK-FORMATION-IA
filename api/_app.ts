@@ -15,13 +15,26 @@ import cors from "cors";
 import crypto from "crypto";
 import { generateText } from "ai";
 import { gateway } from "@ai-sdk/gateway";
-import { Resend } from "resend";
-import twilio from "twilio";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { z } from "zod";
-import { SEMINARS } from "../src/data/seminars.js";
-import { renderSystemPrompt, PROMPT_TEMPLATES, type TemplateId } from "./prompts.js";
+import { SEMINARS, EARLY_BIRD_DAYS_BEFORE, getSeminarPricing } from "../src/data/seminars.js";
+import { renderSystemPrompt, PROMPT_TEMPLATES, type TemplateId } from "./_prompts.js";
+import { renderEmail } from "./_lib/render-email.js";
+import { sendEmail } from "./_lib/send-email.js";
+import { generateMagicLinkUrl } from "./_lib/magic-link.js";
+import {
+  RegisterBodySchema,
+  registerOrDedup,
+  type RegisterBody,
+} from "./_lib/registration.js";
+import { magicLink } from "./_email-templates/magic-link.js";
+import { registrationConfirmation } from "./_email-templates/registration-confirmation.js";
+import { adminNewRegistration } from "./_email-templates/admin-new-registration.js";
+import { welcomeConfirmed } from "./_email-templates/welcome-confirmed.js";
+import { adminSlaReminder } from "./_email-templates/admin-sla-reminder.js";
+import { recommendationFollowup } from "./_email-templates/recommendation-followup.js";
+import { brochureRequest } from "./_email-templates/brochure-request.js";
 
 export interface CreateAppOptions {
   supabaseUrl?: string;
@@ -44,15 +57,6 @@ const VERCEL_PREVIEW_RE = /^https:\/\/rmk-formation(-ia)?-[a-z0-9-]+-akemas-proj
 
 // ── Sanitization helpers ────────────────────────────────────────────────────
 
-function escapeHtml(str: string): string {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 function escapeXml(str: string): string {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -71,18 +75,6 @@ function escapeLike(str: string): string {
 }
 
 // ── Validation schemas ──────────────────────────────────────────────────────
-
-const registrationSchema = z.object({
-  email: z.string().email().max(254),
-  civilite: z.enum(["M.", "Mme"]).optional(),
-  prenom: z.string().min(1).max(100),
-  nom: z.string().min(1).max(100),
-  tel: z.string().min(1).max(20).regex(/^\+?[\d\s()-]{8,20}$/, "Invalid phone format"),
-  societe: z.string().max(200).optional(),
-  fonction: z.string().max(200).optional(),
-  seminar: z.string().min(1).max(50),
-  amount: z.number().int().min(0).optional(),
-});
 
 const portalLookupSchema = z.object({
   email: z.string().email().max(254),
@@ -273,15 +265,8 @@ export function createApp(opts: CreateAppOptions): express.Express {
     standardHeaders: true,
     legacyHeaders: false,
   });
-  const notifyLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 10,
-    message: { error: "Too many notification requests." },
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-  // Separate bucket from notifyLimiter: public lead-capture surface shouldn't
-  // starve the registration-notification budget on a shared limiter.
+  // Separate bucket from registerLimiter: public lead-capture surface shouldn't
+  // starve the registration budget on a shared limiter.
   const leadLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 5,
@@ -312,7 +297,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
   // NOTE: express-rate-limit uses an in-memory store by default. On Vercel
   // Fluid Compute this is per-instance, not shared across concurrent instances.
   // A Redis-backed store is a cross-cutting follow-up (also affects leadLimiter,
-  // notifyLimiter, etc). Tracked as a separate commit.
+  // registerLimiter, etc). Tracked as a separate commit.
   const communityLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 3,
@@ -328,6 +313,31 @@ export function createApp(opts: CreateAppOptions): express.Express {
     windowMs: 60 * 1000,
     max: 5,
     message: { error: "Too many coaching requests. Try again in a minute." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // POST /api/register limiter: 5 req / 10 min / IP. /api/register owns the
+  // participant INSERT, so abuse means real DB writes and real Resend quota
+  // burn. The dedup branch short-circuits before INSERT, but each request
+  // still hits the DB.
+  const registerLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 5,
+    message: { error: "Too many registration submissions. Try again in a few minutes." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Magic-link send: per-IP+email key, 3 req / 5 min. Anti-enumeration is
+  // handled in the route (always 200), so this limiter only blocks abuse
+  // (mass-mailbomb of one address, or one IP probing many addresses).
+  const magicLinkLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 3,
+    keyGenerator: (req) =>
+      `${ipKeyGenerator(req.ip ?? "unknown")}:${String(req.body?.email ?? "").toLowerCase()}`,
+    message: { error: "Too many magic-link requests. Try again in a few minutes." },
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -436,7 +446,6 @@ export function createApp(opts: CreateAppOptions): express.Express {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  // ── Registration notification (email + WhatsApp) ──────────────────────────
   // ── Registration duplicate check (Sprint 7 Phase 4) ──────────────────────
   // Idempotency guard for the public LandingPage registration form. Anon
   // SELECT is blocked by participants RLS, so the client can't do this
@@ -484,141 +493,6 @@ export function createApp(opts: CreateAppOptions): express.Express {
     }
   );
 
-  app.post("/api/notify-registration", notifyLimiter, async (req, res) => {
-    try {
-      const parsed = registrationSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({
-          error: "Invalid input",
-          details: parsed.error.issues.map((i) => i.message),
-        });
-      }
-      const participant = parsed.data;
-
-      if (supabaseAdmin) {
-        const { data: exists } = await supabaseAdmin
-          .from("participants")
-          .select("id")
-          .eq("email", participant.email.toLowerCase().trim())
-          .eq("seminar", participant.seminar)
-          .single();
-        if (!exists) {
-          return res.status(400).json({ error: "Participant not found" });
-        }
-
-        // Blocker #2a — auto-task creation. Moved from the anon client on
-        // LandingPage to here so it survives the is_admin()-scoped RLS: the
-        // service-role key bypasses RLS and anon inserts into `tasks` are
-        // now blocked. Best-effort — a task insert failure must not roll
-        // back the registration, which is already committed.
-        try {
-          const fullName = `${participant.prenom} ${participant.nom}`;
-          const onboardingTask = `[Onboarding] Vérifier dossier & appeler ${fullName}`;
-          const financeTask = `[Finance] Confirmer paiement de ${fullName}`;
-
-          // Idempotency guard: skip if onboarding tasks already exist for this
-          // participant+seminar. Prevents duplicate tasks on client retry
-          // (network timeout, back-button, double-click).
-          const { data: existingTasks } = await supabaseAdmin
-            .from("tasks")
-            .select("id")
-            .eq("seminar", participant.seminar)
-            .in("task", [onboardingTask, financeTask])
-            .limit(1);
-
-          if (!existingTasks || existingTasks.length === 0) {
-            await supabaseAdmin.from("tasks").insert([
-              {
-                task: onboardingTask,
-                owner: "alexis",
-                priority: "high",
-                seminar: participant.seminar,
-                status: "todo",
-              },
-              {
-                task: financeTask,
-                owner: "alexis",
-                priority: "medium",
-                seminar: participant.seminar,
-                status: "todo",
-              },
-            ]);
-          }
-        } catch (taskErr) {
-          console.error("Auto-task insert failed (non-fatal):", taskErr);
-        }
-      }
-
-      const seminarTitle =
-        SEMINARS.find((s) => s.id === participant.seminar)?.title ||
-        participant.seminar;
-
-      if (process.env.RESEND_API_KEY) {
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        const salutation = participant.civilite
-          ? `${escapeHtml(participant.civilite)} ${escapeHtml(participant.nom)}`
-          : escapeHtml(participant.prenom);
-        await resend.emails.send({
-          from: "RMK Conseils <noreply@rmk-conseils.com>",
-          to: [participant.email],
-          subject:
-            "Confirmation de votre demande d'inscription - RMK Conseils",
-          html: `
-            <h2>Bonjour ${salutation},</h2>
-            <p>Nous avons bien reçu votre demande d'inscription pour l'atelier <strong>${escapeHtml(seminarTitle)}</strong>.</p>
-            <p>Notre équipe vous contactera sous 24h pour confirmer votre inscription et vous communiquer les modalités de règlement.</p>
-            <br/>
-            <p>Cordialement,</p>
-            <p>L'équipe RMK Conseils</p>
-          `,
-        });
-
-        await resend.emails.send({
-          from: "RMK Conseils <noreply@rmk-conseils.com>",
-          to: (process.env.ADMIN_NOTIFY_EMAILS || "ericatta@gmail.com,donzigre@gmail.com").split(",").map(e => e.trim()).filter(Boolean),
-          subject: `[Nouvelle inscription] ${escapeHtml(participant.civilite || "")} ${escapeHtml(participant.prenom)} ${escapeHtml(participant.nom)} — ${escapeHtml(seminarTitle)}`,
-          html: `
-            <h2>Nouvelle demande d'inscription</h2>
-            <table style="border-collapse:collapse;font-size:14px">
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Civilité</td><td>${escapeHtml(participant.civilite || "—")}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Nom</td><td>${escapeHtml(participant.nom)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Prénom</td><td>${escapeHtml(participant.prenom)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Email</td><td>${escapeHtml(participant.email)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Téléphone</td><td>${escapeHtml(participant.tel)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Société</td><td>${escapeHtml(participant.societe || "—")}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Fonction</td><td>${escapeHtml(participant.fonction || "—")}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Atelier</td><td><strong>${escapeHtml(seminarTitle)}</strong></td></tr>
-            </table>
-          `,
-        });
-      }
-
-      // Skip WhatsApp send if participant did not provide a phone number —
-      // otherwise we'd POST `whatsapp:undefined` to Twilio and get a 400.
-      if (
-        participant.tel &&
-        process.env.TWILIO_ACCOUNT_SID &&
-        process.env.TWILIO_AUTH_TOKEN &&
-        process.env.TWILIO_WHATSAPP_NUMBER
-      ) {
-        const client = twilio(
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN
-        );
-        await client.messages.create({
-          body: `Bonjour ${sanitizeText(participant.prenom, 50)}, nous avons bien reçu votre demande d'inscription pour l'atelier ${sanitizeText(seminarTitle, 100)}. L'équipe RMK vous contactera sous 24h.`,
-          from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-          to: `whatsapp:${participant.tel}`,
-        });
-      }
-
-      res.json({ success: true });
-    } catch (err) {
-      console.error("Notification error:", err);
-      res.status(500).json({ error: "Failed to send notifications" });
-    }
-  });
-
   // ── Client portal lookup ──────────────────────────────────────────────────
   app.post("/api/portal/lookup", portalLimiter, async (req, res) => {
     if (!supabaseAdmin) {
@@ -642,6 +516,294 @@ export function createApp(opts: CreateAppOptions): express.Express {
       return res.status(500).json({ error: "Lookup failed" });
     }
     res.json(data || []);
+  });
+
+  // ── Send recommendation email (Phase 1G / Task 27) ────────────────────────
+  // Fired when a participant completes the onboarding survey. The recommendation
+  // string is computed client-side (see surveyConfig.getRecommendation) and
+  // passed in; the server enriches with prenom + portalUrl and sends via the
+  // templated renderer. requireAuth ensures the JWT email matches a real user;
+  // we then verify a participant row exists for that email before emailing.
+  const SendRecommendationBody = z.object({
+    recommendation: z.string().min(1).max(2000),
+  });
+
+  app.post("/api/portal/send-recommendation", requireAuth, async (req, res) => {
+    if (!supabaseAdmin) {
+      return res.status(503).json({ error: "Database not configured" });
+    }
+    const parsed = SendRecommendationBody.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "validation" });
+
+    const userEmail = (req as { userEmail?: string | null }).userEmail;
+    if (!userEmail) return res.status(401).json({ error: "Unauthorized" });
+
+    const { data: participant } = await supabaseAdmin
+      .from("participants")
+      .select("prenom")
+      .eq("email", userEmail.toLowerCase().trim())
+      .order("confirmed_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (!participant) return res.status(404).json({ error: "no_participant" });
+
+    const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
+    try {
+      await sendEmail(
+        {
+          ...renderEmail(recommendationFollowup, {
+            prenom: (participant as { prenom: string }).prenom,
+            recommendation: parsed.data.recommendation,
+            portalUrl: `${siteUrl}/portal`,
+          }),
+          to: userEmail,
+        },
+        {
+          resendApiKey: process.env.RESEND_API_KEY ?? "",
+          from: process.env.EMAIL_FROM ?? "RMK Conseils <noreply@rmk-conseils.com>",
+        },
+      );
+    } catch (err) {
+      console.error("[send-recommendation] email send failed:", err);
+      return res.status(502).json({ error: "email_send_failed" });
+    }
+
+    res.json({ ok: true });
+  });
+
+  // ── Magic-link send (Phase 1C / Task 12) ─────────────────────────────────
+  // Anti-enumeration: ALWAYS responds 200 {ok:true} regardless of whether the
+  // email matches a confirmed participant. Distinguishing 200/404 here would
+  // leak who has registered. Email is sent only when (a) participant exists,
+  // (b) status='confirmed', (c) Supabase generateLink() succeeds.
+  app.post("/api/auth/send-magic-link", magicLinkLimiter, async (req, res) => {
+    const respond = () => res.json({ ok: true });
+
+    const email = String(req.body?.email ?? "").trim().toLowerCase();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return res.status(400).json({ error: "invalid_email" });
+    }
+
+    if (!supabaseAdmin) {
+      // Fail-open into anti-enumeration shape so dev (graceful-degradation)
+      // and misconfigured prod don't leak DB-availability state.
+      return respond();
+    }
+
+    // A user can be confirmed for multiple seminars under the same email — the
+    // unique index is (email, seminar). Without limit(1) the maybeSingle() call
+    // would PGRST116 and lock the user out of the magic-link flow. Order by
+    // most recent confirmation so the magic link points at the seminar they're
+    // most plausibly trying to access.
+    const { data: participant } = await supabaseAdmin
+      .from("participants")
+      .select("prenom, seminar, confirmed_at")
+      .eq("email", email)
+      .eq("status", "confirmed")
+      .order("confirmed_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!participant) return respond();
+
+    const { data: seminar } = await supabaseAdmin
+      .from("seminars")
+      .select("title")
+      .eq("id", participant.seminar)
+      .maybeSingle();
+
+    const url = await generateMagicLinkUrl(email, supabaseAdmin);
+    if (!url) return respond();
+
+    try {
+      const rendered = renderEmail(magicLink, {
+        prenom: participant.prenom,
+        seminarTitle: seminar?.title ?? "votre formation",
+        magicLinkUrl: url,
+        supportPhone: process.env.SUPPORT_PHONE ?? "+225 07 02 61 15 82",
+      });
+      await sendEmail(
+        { ...rendered, to: email },
+        {
+          resendApiKey: process.env.RESEND_API_KEY ?? "",
+          from: process.env.EMAIL_FROM ?? "RMK Conseils <noreply@rmk-conseils.com>",
+        },
+      );
+    } catch (err) {
+      // Email failure must not break anti-enumeration. Log and respond 200.
+      console.error("[magic-link] sendEmail failed for", email, err);
+    }
+
+    respond();
+  });
+
+  // ── Registration v2 (Phase 1C / Task 11) ─────────────────────────────────
+  // Owns the participant INSERT. Dedup-aware:
+  //   201 created   — new (email, seminar) pair, sends 2 emails (participant + admin)
+  //   409 duplicate — existing row; behaviour depends on state:
+  //     pending_unpaid → resend confirmation
+  //     pending_paid   → no email (admin already saw, awaiting confirmation)
+  //     confirmed      → send fresh magic link
+  // Email failures do NOT roll back the DB row — the row is the source of truth.
+  app.post("/api/register", registerLimiter, async (req, res) => {
+    const parsed = RegisterBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "validation", issues: parsed.error.issues });
+    }
+    const body: RegisterBody = parsed.data;
+
+    const seminarMeta = SEMINARS.find((s) => s.id === body.seminar);
+    if (!seminarMeta) {
+      return res.status(400).json({ error: "unknown_seminar" });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(503).json({ error: "Database not configured" });
+    }
+
+    // Early-bird pricing — owned server-side so the client cannot trick the
+    // backend into a discount it hasn't earned. Pack ids ("pack2"/"pack4") have
+    // no single start date, so they fall back to the EARLY_BIRD_DEADLINE-style
+    // rule: only standard-priced seminars (S1..S4) are eligible.
+    const pricing = getSeminarPricing(body.seminar);
+    let amountFcfa = pricing.standard;
+    if (seminarMeta.dates?.start) {
+      const startMs = new Date(seminarMeta.dates.start + "T00:00:00Z").getTime();
+      const cutoffMs = startMs - EARLY_BIRD_DAYS_BEFORE * 86_400_000;
+      if (Date.now() <= cutoffMs) amountFcfa = pricing.earlyBird;
+    }
+
+    let result;
+    try {
+      result = await registerOrDedup(body, supabaseAdmin, amountFcfa);
+    } catch (e) {
+      console.error("[register] insert failed", e);
+      return res.status(500).json({ error: "internal" });
+    }
+
+    const supportPhone = process.env.SUPPORT_PHONE ?? "+225 07 02 61 15 82";
+    const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
+    const fromEmail = process.env.EMAIL_FROM ?? "RMK Conseils <noreply@rmk-conseils.com>";
+    const resendApiKey = process.env.RESEND_API_KEY ?? "";
+    const adminEmails = (process.env.ADMIN_NOTIFY_EMAILS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const seminarDates = seminarMeta.week;
+    const seminarTitle = seminarMeta.title;
+
+    if (result.status === "created") {
+      // Email failures must not block the 201 — DB row is source of truth.
+      const sends: Promise<unknown>[] = [
+        sendEmail(
+          {
+            ...renderEmail(registrationConfirmation, {
+              prenom: body.prenom,
+              civilite: body.civilite,
+              seminarTitle,
+              seminarDates,
+              amountFcfa,
+              paymentReference: result.paymentReference!,
+              supportPhone,
+              siteUrl,
+            }),
+            to: body.email,
+          },
+          { resendApiKey, from: fromEmail },
+        ),
+      ];
+      if (adminEmails.length) {
+        sends.push(
+          sendEmail(
+            {
+              ...renderEmail(adminNewRegistration, {
+                prenom: body.prenom,
+                nom: body.nom,
+                civilite: body.civilite,
+                email: body.email,
+                tel: body.tel,
+                societe: body.societe,
+                fonction: body.fonction,
+                seminarTitle,
+                amountFcfa,
+                referralChannel: body.referral_channel,
+                referrerName: body.referrer_name,
+                channelOther: body.channel_other,
+                paymentReference: result.paymentReference!,
+                participantId: result.participantId!,
+                adminUrl: siteUrl,
+              }),
+              to: adminEmails,
+            },
+            { resendApiKey, from: fromEmail },
+          ),
+        );
+      }
+      const settled = await Promise.allSettled(sends);
+      settled.forEach((r, i) => {
+        if (r.status === "rejected") {
+          console.error(`[register] email ${i} failed for ${body.email}:`, r.reason);
+        }
+      });
+      return res.status(201).json({
+        participant_id: result.participantId,
+        payment_reference: result.paymentReference,
+      });
+    }
+
+    // Duplicate branches
+    try {
+      if (result.state === "pending_unpaid") {
+        await sendEmail(
+          {
+            ...renderEmail(registrationConfirmation, {
+              prenom: body.prenom,
+              civilite: body.civilite,
+              seminarTitle,
+              seminarDates,
+              // Use the row's stored amount so the resent confirmation matches
+              // what the participant was originally invoiced (early-bird if they
+              // qualified at registration time, standard otherwise). Falls back
+              // to the freshly computed amount if the row didn't store one.
+              amountFcfa: result.amountFcfa ?? amountFcfa,
+              paymentReference: result.paymentReference!,
+              supportPhone,
+              siteUrl,
+            }),
+            to: body.email,
+          },
+          { resendApiKey, from: fromEmail },
+        );
+      } else if (result.state === "confirmed") {
+        const url = await generateMagicLinkUrl(body.email, supabaseAdmin);
+        if (url) {
+          await sendEmail(
+            {
+              ...renderEmail(magicLink, {
+                prenom: body.prenom,
+                seminarTitle,
+                magicLinkUrl: url,
+                supportPhone,
+              }),
+              to: body.email,
+            },
+            { resendApiKey, from: fromEmail },
+          );
+        }
+      }
+    } catch (err) {
+      console.error("[register] dup-branch email failed:", err);
+    }
+
+    // Anti-enumeration: do NOT echo payment_reference in the 409 body. The
+    // duplicate registrant gets the reference via the resent confirmation
+    // email (action_taken === "resent_confirmation"); leaking it in the API
+    // response would let any caller probe known emails to harvest references.
+    return res.status(409).json({
+      error: "duplicate_registration",
+      state: result.state,
+      action_taken: result.actionTaken,
+    });
   });
 
   // ── Public lead capture (Blocker #2b) ─────────────────────────────────────
@@ -668,8 +830,54 @@ export function createApp(opts: CreateAppOptions): express.Express {
     const safeEntreprise = entreprise ? sanitizeText(entreprise, 200) : null;
     const safeNotes = notes ? sanitizeText(notes, 500) : null;
 
-    // Idempotency guard: skip if a lead with the same contact info already
-    // exists. Prevents duplicate leads on client retry or form re-submission.
+    // Best-effort brochure email. Pulled out so it fires on BOTH paths
+    // below — fresh-lead AND already-known contact. The user clicked
+    // "M'envoyer la brochure" expecting the brochure; whether they're
+    // already in our CRM is irrelevant from their perspective. Dedup
+    // still keeps the leads table clean (no second row), but the email
+    // and follow-up task only fire on the fresh-lead path. The contact
+    // field accepts phone OR email, so we only send when it parses as
+    // an email; phone-only leads rely on the manual callback task.
+    // Failures are non-fatal: a Resend outage must not fail capture.
+    const sendBrochureIfEmail = async () => {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safeContact)) return;
+      try {
+        const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
+        // Reject email-shaped or otherwise non-name input so we don't greet
+        // "Bonjour ericatta@gmail.com" when a user pastes their email into
+        // the Nom field. Falls through to an empty string, which the
+        // template renders as a generic "Bonjour,".
+        const looksLikeName = (s: string) =>
+          s.length >= 2 && !s.includes("@") && /[A-Za-zÀ-ÿ]/.test(s);
+        const prenom = looksLikeName(safeNom)
+          ? (safeNom.split(/\s+/)[0] || safeNom)
+          : "";
+        await sendEmail(
+          {
+            ...renderEmail(brochureRequest, {
+              prenom,
+              brochureUrl: `${siteUrl}/brochure.pdf`,
+              contactEmail: "contact@rmkconsulting.pro",
+              contactPhone: "+225 07 02 61 15 82",
+              websiteUrl: "https://rmk-conseils.com",
+            }),
+            to: safeContact,
+          },
+          {
+            resendApiKey: process.env.RESEND_API_KEY ?? "",
+            from:
+              process.env.EMAIL_FROM ??
+              "RMK Conseils <noreply@rmk-conseils.com>",
+          },
+        );
+      } catch (emailErr) {
+        console.error("Brochure email send failed (non-fatal):", emailErr);
+      }
+    };
+
+    // Idempotency guard: skip the lead INSERT and follow-up task if a lead
+    // with the same contact info already exists. The brochure email still
+    // fires — the user asked for the brochure, give them the brochure.
     const { data: existingLead } = await supabaseAdmin
       .from("leads")
       .select("id")
@@ -677,6 +885,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
       .limit(1);
 
     if (existingLead && existingLead.length > 0) {
+      await sendBrochureIfEmail();
       return res.json({ success: true });
     }
 
@@ -707,6 +916,8 @@ export function createApp(opts: CreateAppOptions): express.Express {
       } catch (taskErr) {
         console.error("Lead follow-up task insert failed (non-fatal):", taskErr);
       }
+
+      await sendBrochureIfEmail();
 
       res.json({ success: true });
     } catch (err) {
@@ -924,6 +1135,187 @@ export function createApp(opts: CreateAppOptions): express.Express {
       }
     }
   );
+
+  // ── Admin mark-paid (Phase 1C / Task 13) ─────────────────────────────────
+  // Admin flips a participant from pending→confirmed in one call. Idempotent
+  // via conditional UPDATE: the .neq("status","confirmed") clause ensures
+  // already-confirmed rows are no-ops, and the affected-row count tells us
+  // whether to fire the welcome email. Same-shape 200 in both branches —
+  // distinguished by `was_already_confirmed`.
+  const MarkPaidBody = z.object({
+    payment_provider: z
+      .enum(["wave", "orange_money", "bank_transfer", "cash", "flutterwave"])
+      .optional(),
+    confirmation_notes: z.string().trim().max(2000).optional(),
+  });
+
+  app.post(
+    "/api/admin/participants/:id/mark-paid",
+    requireAuth,
+    requireAdmin,
+    async (req, res) => {
+      if (!supabaseAdmin) {
+        return res.status(503).json({ error: "Database not configured" });
+      }
+      const parsed = MarkPaidBody.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "validation" });
+
+      const { data: current } = await supabaseAdmin
+        .from("participants")
+        .select("id, email, prenom, seminar, status, payment")
+        .eq("id", req.params.id)
+        .maybeSingle();
+      if (!current) return res.status(404).json({ error: "not_found" });
+
+      const { data: updated, error } = await supabaseAdmin
+        .from("participants")
+        .update({
+          status: "confirmed",
+          payment: "paid",
+          confirmed_at: new Date().toISOString(),
+          confirmation_notes: parsed.data.confirmation_notes ?? null,
+          payment_provider: parsed.data.payment_provider ?? null,
+        })
+        .eq("id", req.params.id)
+        .neq("status", "confirmed")
+        .select("id");
+
+      if (error) {
+        console.error("[mark-paid] update failed:", error);
+        return res.status(500).json({ error: "update_failed" });
+      }
+      const wasAlreadyConfirmed = !updated || updated.length === 0;
+
+      if (!wasAlreadyConfirmed) {
+        try {
+          const seminarMeta = SEMINARS.find((s) => s.id === (current as { seminar: string }).seminar);
+          const seminarTitle = seminarMeta?.title ?? "votre formation";
+          const seminarDates = seminarMeta?.week ?? "";
+          const url = await generateMagicLinkUrl(
+            (current as { email: string }).email,
+            supabaseAdmin,
+          );
+          if (url) {
+            const supportPhone = process.env.SUPPORT_PHONE ?? "+225 07 02 61 15 82";
+            const siteUrl = process.env.SITE_URL ?? "https://rmk-conseils.com";
+            await sendEmail(
+              {
+                ...renderEmail(welcomeConfirmed, {
+                  prenom: (current as { prenom: string }).prenom,
+                  seminarTitle,
+                  seminarDates,
+                  magicLinkUrl: url,
+                  portalUrl: `${siteUrl}/portal`,
+                  supportPhone,
+                }),
+                to: (current as { email: string }).email,
+              },
+              {
+                resendApiKey: process.env.RESEND_API_KEY ?? "",
+                from:
+                  process.env.EMAIL_FROM ??
+                  "RMK Conseils <noreply@rmk-conseils.com>",
+              },
+            );
+          }
+        } catch (err) {
+          console.error("[mark-paid] welcome email failed (non-fatal):", err);
+        }
+      }
+
+      res.json({ ok: true, was_already_confirmed: wasAlreadyConfirmed });
+    },
+  );
+
+  // ── SLA reminder cron (Phase 1C / Task 14) ───────────────────────────────
+  // Runs daily via Vercel Cron. Emails admins about pending registrations
+  // older than 48h that have not yet been paid. Auth via CRON_SECRET bearer
+  // token (Vercel Cron sets the Authorization header automatically when
+  // configured in vercel.json).
+  app.post("/api/cron/sla-reminder", async (req, res) => {
+    const auth = req.header("authorization") ?? "";
+    const expected = `Bearer ${process.env.CRON_SECRET ?? ""}`;
+    if (!process.env.CRON_SECRET || auth !== expected) {
+      return res.sendStatus(401);
+    }
+    if (!supabaseAdmin) {
+      return res.status(503).json({ error: "Database not configured" });
+    }
+
+    // Bracketed window: only registrations between 48h and 72h old. Without
+    // an upper bound the cron would re-include the same row every day forever
+    // — admins would get reminded daily about the same stale registration.
+    // The 24h window aligns with the daily cron schedule so each row fires
+    // exactly one reminder over its lifetime.
+    const lower = new Date(Date.now() - 72 * 3600 * 1000).toISOString();
+    const upper = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+    const { data: stale, error } = await supabaseAdmin
+      .from("participants")
+      .select("id, prenom, nom, email, seminar, payment_reference, created_at")
+      .eq("status", "pending")
+      .eq("payment", "pending")
+      .gte("created_at", lower)
+      .lt("created_at", upper);
+
+    if (error) {
+      console.error("[sla-reminder] query failed:", error);
+      return res.status(500).json({ error: "query_failed" });
+    }
+    if (!stale || stale.length === 0) {
+      return res.json({ count: 0 });
+    }
+
+    const rows = (stale as Array<{
+      prenom: string;
+      nom: string;
+      email: string;
+      seminar: string;
+      payment_reference: string | null;
+      created_at: string;
+    }>).map((r) => {
+      const seminarMeta = SEMINARS.find((s) => s.id === r.seminar);
+      return {
+        prenom: r.prenom,
+        nom: r.nom,
+        email: r.email,
+        seminarTitle: seminarMeta?.title ?? r.seminar,
+        paymentReference: r.payment_reference ?? "—",
+        hoursWaiting: Math.floor(
+          (Date.now() - new Date(r.created_at).getTime()) / 3_600_000,
+        ),
+      };
+    });
+
+    const adminEmails = (process.env.ADMIN_NOTIFY_EMAILS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (adminEmails.length) {
+      try {
+        await sendEmail(
+          {
+            ...renderEmail(adminSlaReminder, {
+              rows,
+              adminUrl: process.env.SITE_URL ?? "https://rmk-conseils.com",
+            }),
+            to: adminEmails,
+          },
+          {
+            resendApiKey: process.env.RESEND_API_KEY ?? "",
+            from:
+              process.env.EMAIL_FROM ??
+              "RMK Conseils <noreply@rmk-conseils.com>",
+          },
+        );
+      } catch (err) {
+        console.error("[sla-reminder] email failed:", err);
+        // Still return count — cron observability is more useful than 500.
+      }
+    }
+
+    res.json({ count: stale.length });
+  });
 
   // ── AI generation (admin only) ────────────────────────────────────────────
   app.post("/api/ai/generate", aiLimiter, requireAuth, requireAdmin, async (req, res) => {

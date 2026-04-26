@@ -37,7 +37,7 @@ All page components are lazy-loaded.
 ### Backend API Endpoints (server.ts)
 
 - `POST /api/ai/generate` — Gemini 2.5-flash text generation (email drafts, WhatsApp replies, LinkedIn posts)
-- `POST /api/notify-registration` — Send email (Resend) + WhatsApp (Twilio) notifications
+- `POST /api/register` — Dedup-aware registration: owns the participant INSERT, sends participant + admin emails
 - `POST /webhook/prospect` — Cold email generation webhook
 - `POST /webhook/whatsapp` — WhatsApp closer AI webhook
 - CRON: Daily LinkedIn post generation at 08:00 UTC
@@ -73,6 +73,7 @@ See `.env.example`. Required: `GEMINI_API_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPAB
 
 Active plugins: **gstack**, **superpowers-gemini-plugin**, **serena**.
 Third-opinion reviewer: **qwen3.6-plus via OpenRouter** (`llm` CLI, already configured).
+Fourth-opinion reviewer: **deepseek-v4-pro via OpenRouter** (`llm` CLI). Wrappers in `.claude/bin/deepseek-*`. Run in parallel with Gemini + Qwen at every review gate.
 
 ### Gemini model routing
 
@@ -86,9 +87,26 @@ For deep manual reviews, use **gemini-3-pro-preview** via `.claude/bin/gemini-de
 git diff | .claude/bin/gemini-deep-review - # pipe a diff in directly
 ```
 
+For an OpenRouter-routed deep pass (no preview-quota dependency, runs in parallel with Gemini), use `.claude/bin/deepseek-deep-review` — same flag shape, backed by deepseek-v4-pro. Useful for diffs >5k lines where qwen's pre-push cap drops coverage.
+
 ### Code navigation
 
-Use serena's symbolic tools (`find_symbol`, `get_symbols_overview`, `find_referencing_symbols`, `search_for_pattern`) instead of Grep/Glob for TS/TSX source code. Only fall back to Grep/Glob for non-code files (config, SQL, markdown, `.env`).
+Activate serena at the start of every session. Use serena for **all in-repo file work** — reads, searches, edits — regardless of file type. Two tool families:
+
+- **Symbolic** (`find_symbol`, `get_symbols_overview`, `find_referencing_symbols`, `replace_symbol_body`, `rename_symbol`) — for TS/TSX and Python source. Use these instead of Grep/Glob/Edit-by-line-number when navigating or refactoring code.
+- **File-level** (`read_file`, `find_file`, `search_for_pattern`, `replace_content`, `create_text_file`, `list_dir`) — file-agnostic; works on `.sql`, `.md`, `.env`, `.json`, `.yml`, anything text. Use these instead of Read/Grep/Glob/cat for any file inside the repo.
+
+Bash is only for shell operations: git, npm, curl, supabase CLI, and binaries outside the repo. Never use Grep/Glob on repo files when `search_for_pattern` and `find_file` are available.
+
+#### Serena 1.1.x parameter renames (model training-data drift)
+Several Serena tools renamed their parameters. The MCP server validates strictly, so old names error out. Use the new names:
+
+| Tool | OLD param | NEW param |
+|---|---|---|
+| `find_symbol` | `name_path` | `name_path_pattern` |
+| `replace_content` | `regex` / `content` | `needle` / `repl` (+ required `mode: "literal"\|"regex"`) |
+
+If any Serena tool errors with `Field required`, fetch the live schema via `ToolSearch select:mcp__plugin_serena_serena__<tool_name>` before retrying. Don't trust cached parameter names — Serena 1.1.x is the source of truth.
 
 ## Workflow
 
@@ -112,25 +130,25 @@ Skip planning entirely for mechanical fixes (typos, config flips, single-file tw
   - `.claude/bin/qwen-debug <context-file>`
 - **Parallelism**: 2+ independent tasks → `dispatching-parallel-agents` + `using-git-worktrees`.
 
-### Review gates — qwen is MANDATORY at every gemini review point
+### Review gates — qwen AND deepseek are MANDATORY at every gemini review point
 
-Every time the superpowers plugin invokes Gemini for a review, run Qwen in parallel on the same input. Both reviewers run in a single message (two parallel tool calls). Do not act on the diff until both have responded.
+Every time the superpowers plugin invokes Gemini for a review, run Qwen AND DeepSeek in parallel on the same input. All three reviewers run in a single message (three parallel tool calls). Do not act on the diff until all three have responded.
 
-| Gate | Gemini | Qwen (mandatory parallel) | Trigger |
-|---|---|---|---|
-| Pre-commit | `gemini-pre-commit-review` | `.claude/bin/qwen-pre-commit` | Every commit (auto) |
-| Code review | `gemini-code-review` | `.claude/bin/qwen-review` | >100 LOC diff, or on request |
-| Security scan | `gemini-security-scan` | `.claude/bin/qwen-security` | Edits to `api/`, `server.ts`, auth, schema |
-| Plan review | `gemini-plan-review` | `.claude/bin/qwen-plan-review` | After `writing-plans` |
-| Debug consult | `gemini-debug-consult` | `.claude/bin/qwen-debug` | Stuck 3+ hypotheses |
-| Test critique | `gemini-test-critique` | `.claude/bin/qwen-test-critique` | After test file edits |
-| Design review | `gemini-design-review` | `.claude/bin/qwen-design-review` | After brainstorming |
+| Gate | Gemini | Qwen (mandatory parallel) | DeepSeek (mandatory parallel) | Trigger |
+|---|---|---|---|---|
+| Pre-commit | `gemini-pre-commit-review` | `.claude/bin/qwen-pre-commit` | `.claude/bin/deepseek-pre-commit` | Every commit (auto) |
+| Code review | `gemini-code-review` | `.claude/bin/qwen-review` | `.claude/bin/deepseek-review` | >100 LOC diff, or on request |
+| Security scan | `gemini-security-scan` | `.claude/bin/qwen-security` | `.claude/bin/deepseek-security` | Edits to `api/`, `server.ts`, auth, schema |
+| Plan review | `gemini-plan-review` | `.claude/bin/qwen-plan-review` | `.claude/bin/deepseek-plan-review` | After `writing-plans` |
+| Debug consult | `gemini-debug-consult` | `.claude/bin/qwen-debug` | `.claude/bin/deepseek-debug` | Stuck 3+ hypotheses |
+| Test critique | `gemini-test-critique` | `.claude/bin/qwen-test-critique` | `.claude/bin/deepseek-test-critique` | After test file edits |
+| Design review | `gemini-design-review` | `.claude/bin/qwen-design-review` | `.claude/bin/deepseek-design-review` | After brainstorming |
 
 ### Presenting parallel reviews — synthesis mode
 
-After running Gemini + Qwen in parallel, **do not dump both outputs verbatim**. Synthesize:
+After running Gemini + Qwen + DeepSeek in parallel, **do not dump all three outputs verbatim**. Synthesize:
 
-1. **Agreements** — one sentence: "Both flag X."
+1. **Agreements** — one sentence per cluster: "All three flag X." / "Gemini and DeepSeek flag Y; Qwen disagrees."
 2. **Disagreements** — name each reviewer, summarize their position, state which one I find more credible and why (cite the code).
 3. **My recommendation** — one paragraph. What I think matters, what I'd act on, what I'd override.
 4. Then wait for the user's decision.

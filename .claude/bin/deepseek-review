@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Fourth-opinion code review via deepseek-v4-pro on OpenRouter.
+# Runs alongside Gemini + Qwen for additional coverage on the same diff.
+# Usage: deepseek-review [base-ref]
+# Default base: main
+# NOTE: sends diff/context content to OpenRouter via the `llm` CLI. Do not run on
+# code that is not authorized to leave the local environment.
+
+set -euo pipefail
+BASE="${1:-main}"
+DIFF=$(git diff "$BASE...HEAD" 2>/dev/null || git diff --staged)
+if [ -z "$DIFF" ]; then
+  echo "deepseek-review: no diff to review (base=$BASE)" >&2
+  exit 0
+fi
+printf '%s' "$DIFF" | llm -m openrouter/deepseek/deepseek-v4-pro -s \
+"You are a senior code reviewer providing a fourth-opinion review alongside Claude, Gemini, and Qwen.
+Focus on: logic errors, race conditions, security issues (injection, authz, data exposure), resource leaks, error handling gaps, and missed edge cases.
+Cite file:line for each finding. Be terse. Do not restate the diff.
+End with either 'LGTM' or a 'BLOCKERS' section listing must-fix items."
