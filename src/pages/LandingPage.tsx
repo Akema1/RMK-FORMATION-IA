@@ -537,20 +537,32 @@ export function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacit
       }
 
       if (res.status === 400) {
-        const data = (await res.json()) as { issues: Array<{ path: (string | number)[]; message: string }> };
+        // Two shapes can land here: Zod validation failures (issues array)
+        // and semantic 400s like { error: "unknown_seminar" } that have no
+        // issues. Iterating issues blindly would TypeError on the latter
+        // and dump the user into the generic network banner.
+        const data = (await res.json()) as {
+          error?: string;
+          issues?: Array<{ path: (string | number)[]; message: string }>;
+        };
         const fieldErrors: Record<string, string> = {};
-        for (const issue of data.issues) {
-          const key = String(issue.path[0] ?? "");
-          const mapped =
-            key === "referral_channel" ? "channel" :
-            key === "referrer_name" ? "referrerName" :
-            key === "channel_other" ? "channelOther" :
-            key === "seminar" ? "seminaire" :
-            key;
-          if (mapped) fieldErrors[mapped] = issue.message;
+        if (Array.isArray(data.issues)) {
+          for (const issue of data.issues) {
+            const key = String(issue.path[0] ?? "");
+            const mapped =
+              key === "referral_channel" ? "channel" :
+              key === "referrer_name" ? "referrerName" :
+              key === "channel_other" ? "channelOther" :
+              key === "seminar" ? "seminaire" :
+              key;
+            if (mapped) fieldErrors[mapped] = issue.message;
+          }
         }
         if (Object.keys(fieldErrors).length === 0) {
-          fieldErrors._global = "Certains champs sont invalides. Vérifiez vos informations.";
+          fieldErrors._global =
+            data.error === "unknown_seminar"
+              ? "Atelier inconnu. Sélectionnez l'atelier de votre choix dans la liste."
+              : "Certains champs sont invalides. Vérifiez vos informations.";
         }
         setErrors(fieldErrors);
         return;
@@ -616,8 +628,6 @@ export function InscriptionPage({ selectedSem, seminars, fullSeminars, onCapacit
                   </option>
                 );
               })}
-              <option value="pack2" style={{ color: "#000" }}>📦 Pack 2 ateliers (au choix)</option>
-              <option value="pack4" style={{ color: "#000" }}>📦 Pack 4 ateliers (-20%)</option>
             </select>
             {errors.seminaire && <div style={errorStyle}>{errors.seminaire}</div>}
           </div>
