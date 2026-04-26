@@ -15,8 +15,6 @@ import cors from "cors";
 import crypto from "crypto";
 import { generateText } from "ai";
 import { gateway } from "@ai-sdk/gateway";
-import { Resend } from "resend";
-import twilio from "twilio";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { z } from "zod";
@@ -57,15 +55,6 @@ const VERCEL_PREVIEW_RE = /^https:\/\/rmk-formation(-ia)?-[a-z0-9-]+-akemas-proj
 
 // ── Sanitization helpers ────────────────────────────────────────────────────
 
-function escapeHtml(str: string): string {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 function escapeXml(str: string): string {
   return String(str)
     .replace(/&/g, "&amp;")
@@ -84,18 +73,6 @@ function escapeLike(str: string): string {
 }
 
 // ── Validation schemas ──────────────────────────────────────────────────────
-
-const registrationSchema = z.object({
-  email: z.string().email().max(254),
-  civilite: z.enum(["M.", "Mme"]).optional(),
-  prenom: z.string().min(1).max(100),
-  nom: z.string().min(1).max(100),
-  tel: z.string().min(1).max(20).regex(/^\+?[\d\s()-]{8,20}$/, "Invalid phone format"),
-  societe: z.string().max(200).optional(),
-  fonction: z.string().max(200).optional(),
-  seminar: z.string().min(1).max(50),
-  amount: z.number().int().min(0).optional(),
-});
 
 const portalLookupSchema = z.object({
   email: z.string().email().max(254),
@@ -286,15 +263,8 @@ export function createApp(opts: CreateAppOptions): express.Express {
     standardHeaders: true,
     legacyHeaders: false,
   });
-  const notifyLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 10,
-    message: { error: "Too many notification requests." },
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-  // Separate bucket from notifyLimiter: public lead-capture surface shouldn't
-  // starve the registration-notification budget on a shared limiter.
+  // Separate bucket from registerLimiter: public lead-capture surface shouldn't
+  // starve the registration budget on a shared limiter.
   const leadLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 5,
@@ -325,7 +295,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
   // NOTE: express-rate-limit uses an in-memory store by default. On Vercel
   // Fluid Compute this is per-instance, not shared across concurrent instances.
   // A Redis-backed store is a cross-cutting follow-up (also affects leadLimiter,
-  // notifyLimiter, etc). Tracked as a separate commit.
+  // registerLimiter, etc). Tracked as a separate commit.
   const communityLimiter = rateLimit({
     windowMs: 60 * 1000,
     max: 3,
@@ -345,11 +315,10 @@ export function createApp(opts: CreateAppOptions): express.Express {
     legacyHeaders: false,
   });
 
-  // POST /api/register limiter: 5 req / 10 min / IP. Tighter than the legacy
-  // notify-registration (which only fires after a successful anon INSERT) —
-  // /api/register owns the INSERT itself, so abuse means real DB writes and
-  // real Resend quota burn. The dedup branch short-circuits before INSERT, but
-  // each request still hits the DB.
+  // POST /api/register limiter: 5 req / 10 min / IP. /api/register owns the
+  // participant INSERT, so abuse means real DB writes and real Resend quota
+  // burn. The dedup branch short-circuits before INSERT, but each request
+  // still hits the DB.
   const registerLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
     max: 5,
@@ -475,7 +444,6 @@ export function createApp(opts: CreateAppOptions): express.Express {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  // ── Registration notification (email + WhatsApp) ──────────────────────────
   // ── Registration duplicate check (Sprint 7 Phase 4) ──────────────────────
   // Idempotency guard for the public LandingPage registration form. Anon
   // SELECT is blocked by participants RLS, so the client can't do this
@@ -522,141 +490,6 @@ export function createApp(opts: CreateAppOptions): express.Express {
       return res.json({ exists });
     }
   );
-
-  app.post("/api/notify-registration", notifyLimiter, async (req, res) => {
-    try {
-      const parsed = registrationSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({
-          error: "Invalid input",
-          details: parsed.error.issues.map((i) => i.message),
-        });
-      }
-      const participant = parsed.data;
-
-      if (supabaseAdmin) {
-        const { data: exists } = await supabaseAdmin
-          .from("participants")
-          .select("id")
-          .eq("email", participant.email.toLowerCase().trim())
-          .eq("seminar", participant.seminar)
-          .single();
-        if (!exists) {
-          return res.status(400).json({ error: "Participant not found" });
-        }
-
-        // Blocker #2a — auto-task creation. Moved from the anon client on
-        // LandingPage to here so it survives the is_admin()-scoped RLS: the
-        // service-role key bypasses RLS and anon inserts into `tasks` are
-        // now blocked. Best-effort — a task insert failure must not roll
-        // back the registration, which is already committed.
-        try {
-          const fullName = `${participant.prenom} ${participant.nom}`;
-          const onboardingTask = `[Onboarding] Vérifier dossier & appeler ${fullName}`;
-          const financeTask = `[Finance] Confirmer paiement de ${fullName}`;
-
-          // Idempotency guard: skip if onboarding tasks already exist for this
-          // participant+seminar. Prevents duplicate tasks on client retry
-          // (network timeout, back-button, double-click).
-          const { data: existingTasks } = await supabaseAdmin
-            .from("tasks")
-            .select("id")
-            .eq("seminar", participant.seminar)
-            .in("task", [onboardingTask, financeTask])
-            .limit(1);
-
-          if (!existingTasks || existingTasks.length === 0) {
-            await supabaseAdmin.from("tasks").insert([
-              {
-                task: onboardingTask,
-                owner: "alexis",
-                priority: "high",
-                seminar: participant.seminar,
-                status: "todo",
-              },
-              {
-                task: financeTask,
-                owner: "alexis",
-                priority: "medium",
-                seminar: participant.seminar,
-                status: "todo",
-              },
-            ]);
-          }
-        } catch (taskErr) {
-          console.error("Auto-task insert failed (non-fatal):", taskErr);
-        }
-      }
-
-      const seminarTitle =
-        SEMINARS.find((s) => s.id === participant.seminar)?.title ||
-        participant.seminar;
-
-      if (process.env.RESEND_API_KEY) {
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        const salutation = participant.civilite
-          ? `${escapeHtml(participant.civilite)} ${escapeHtml(participant.nom)}`
-          : escapeHtml(participant.prenom);
-        await resend.emails.send({
-          from: "RMK Conseils <noreply@rmk-conseils.com>",
-          to: [participant.email],
-          subject:
-            "Confirmation de votre demande d'inscription - RMK Conseils",
-          html: `
-            <h2>Bonjour ${salutation},</h2>
-            <p>Nous avons bien reçu votre demande d'inscription pour l'atelier <strong>${escapeHtml(seminarTitle)}</strong>.</p>
-            <p>Notre équipe vous contactera sous 24h pour confirmer votre inscription et vous communiquer les modalités de règlement.</p>
-            <br/>
-            <p>Cordialement,</p>
-            <p>L'équipe RMK Conseils</p>
-          `,
-        });
-
-        await resend.emails.send({
-          from: "RMK Conseils <noreply@rmk-conseils.com>",
-          to: (process.env.ADMIN_NOTIFY_EMAILS || "ericatta@gmail.com,donzigre@gmail.com").split(",").map(e => e.trim()).filter(Boolean),
-          subject: `[Nouvelle inscription] ${escapeHtml(participant.civilite || "")} ${escapeHtml(participant.prenom)} ${escapeHtml(participant.nom)} — ${escapeHtml(seminarTitle)}`,
-          html: `
-            <h2>Nouvelle demande d'inscription</h2>
-            <table style="border-collapse:collapse;font-size:14px">
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Civilité</td><td>${escapeHtml(participant.civilite || "—")}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Nom</td><td>${escapeHtml(participant.nom)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Prénom</td><td>${escapeHtml(participant.prenom)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Email</td><td>${escapeHtml(participant.email)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Téléphone</td><td>${escapeHtml(participant.tel)}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Société</td><td>${escapeHtml(participant.societe || "—")}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Fonction</td><td>${escapeHtml(participant.fonction || "—")}</td></tr>
-              <tr><td style="padding:4px 12px 4px 0;color:#666">Atelier</td><td><strong>${escapeHtml(seminarTitle)}</strong></td></tr>
-            </table>
-          `,
-        });
-      }
-
-      // Skip WhatsApp send if participant did not provide a phone number —
-      // otherwise we'd POST `whatsapp:undefined` to Twilio and get a 400.
-      if (
-        participant.tel &&
-        process.env.TWILIO_ACCOUNT_SID &&
-        process.env.TWILIO_AUTH_TOKEN &&
-        process.env.TWILIO_WHATSAPP_NUMBER
-      ) {
-        const client = twilio(
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN
-        );
-        await client.messages.create({
-          body: `Bonjour ${sanitizeText(participant.prenom, 50)}, nous avons bien reçu votre demande d'inscription pour l'atelier ${sanitizeText(seminarTitle, 100)}. L'équipe RMK vous contactera sous 24h.`,
-          from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-          to: `whatsapp:${participant.tel}`,
-        });
-      }
-
-      res.json({ success: true });
-    } catch (err) {
-      console.error("Notification error:", err);
-      res.status(500).json({ error: "Failed to send notifications" });
-    }
-  });
 
   // ── Client portal lookup ──────────────────────────────────────────────────
   app.post("/api/portal/lookup", portalLimiter, async (req, res) => {
@@ -750,16 +583,13 @@ export function createApp(opts: CreateAppOptions): express.Express {
   });
 
   // ── Registration v2 (Phase 1C / Task 11) ─────────────────────────────────
-  // Owns the participant INSERT (replaces client-side anon INSERT + post-hoc
-  // /api/notify-registration). Dedup-aware:
+  // Owns the participant INSERT. Dedup-aware:
   //   201 created   — new (email, seminar) pair, sends 2 emails (participant + admin)
   //   409 duplicate — existing row; behaviour depends on state:
   //     pending_unpaid → resend confirmation
   //     pending_paid   → no email (admin already saw, awaiting confirmation)
   //     confirmed      → send fresh magic link
   // Email failures do NOT roll back the DB row — the row is the source of truth.
-  // The legacy /api/notify-registration handler stays in place during Phase 1D
-  // until LandingPage is migrated to call /api/register.
   app.post("/api/register", registerLimiter, async (req, res) => {
     const parsed = RegisterBodySchema.safeParse(req.body);
     if (!parsed.success) {

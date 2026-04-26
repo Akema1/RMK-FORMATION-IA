@@ -37,7 +37,7 @@ All page components are lazy-loaded.
 ### Backend API Endpoints (server.ts)
 
 - `POST /api/ai/generate` — Gemini 2.5-flash text generation (email drafts, WhatsApp replies, LinkedIn posts)
-- `POST /api/notify-registration` — Send email (Resend) + WhatsApp (Twilio) notifications
+- `POST /api/register` — Dedup-aware registration: owns the participant INSERT, sends participant + admin emails
 - `POST /webhook/prospect` — Cold email generation webhook
 - `POST /webhook/whatsapp` — WhatsApp closer AI webhook
 - CRON: Daily LinkedIn post generation at 08:00 UTC
