@@ -10,13 +10,15 @@
  *  - dev: `app.listen()` + cron scheduled by caller
  *  - prod: strict startup guard, OIDC for AI Gateway, `export default app`
  */
-import express from "express";
+import express, { type RequestHandler } from "express";
 import cors from "cors";
 import crypto from "crypto";
 import { generateText } from "ai";
 import { gateway } from "@ai-sdk/gateway";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 import { z } from "zod";
 import { SEMINARS, EARLY_BIRD_DAYS_BEFORE, getSeminarPricing } from "../src/data/seminars.js";
 import { renderSystemPrompt, PROMPT_TEMPLATES, type TemplateId } from "./_prompts.js";
@@ -248,98 +250,139 @@ export function createApp(opts: CreateAppOptions): express.Express {
   // Routes through Vercel AI Gateway — auth via OIDC (auto on Vercel) or AI_GATEWAY_API_KEY.
   const AI_MODEL = gateway("anthropic/claude-haiku-4.5");
 
-  // ── Rate limiters ─────────────────────────────────────────────────────────
-  // Portal lookups: 5/min is 7200/day — enough to seed an email enumeration.
-  // 3/min = 4320/day and won't inconvenience a legitimate user.
-  const portalLimiter = rateLimit({
+  // ── Rate limiters (Upstash Redis-backed, cross-instance on Vercel) ────────
+  // Upstash for Redis is provisioned via the Vercel Marketplace and exposes
+  // legacy `KV_*` env vars (not `UPSTASH_*`), so `Redis.fromEnv()` can't
+  // auto-detect — the URL + token are passed explicitly. When the env vars
+  // are absent (local dev without `.env.local`), each limiter falls back to
+  // in-memory `express-rate-limit` so dev still works without Upstash.
+  //
+  // Algorithm: `Ratelimit.slidingWindow(max, window)` — fairer than fixed
+  // window at boundaries (no thundering herd at the second tick) and
+  // cheaper than token bucket for our request shape.
+  //
+  // Failure mode: **fail-open**. A Redis outage logs and lets the request
+  // through. Public marketing site degrading to "no rate limiting" beats
+  // degrading to "site offline" for a dependency that's tangential to
+  // serving content.
+  const upstashUrl = process.env.KV_REST_API_URL;
+  const upstashToken = process.env.KV_REST_API_TOKEN;
+  const redis =
+    upstashUrl && upstashToken
+      ? new Redis({ url: upstashUrl, token: upstashToken })
+      : null;
+
+  interface LimiterOpts {
+    windowMs: number;
+    max: number;
+    message: { error: string };
+    keyGenerator?: (req: express.Request) => string;
+  }
+
+  function createLimiter(opts: LimiterOpts): RequestHandler {
+    if (!redis) {
+      return rateLimit({
+        windowMs: opts.windowMs,
+        max: opts.max,
+        message: opts.message,
+        keyGenerator: opts.keyGenerator,
+        standardHeaders: true,
+        legacyHeaders: false,
+      });
+    }
+    const ratelimiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(opts.max, `${opts.windowMs} ms`),
+      analytics: false,
+      prefix: "rmk:rl",
+    });
+    return async (req, res, next) => {
+      try {
+        const key = opts.keyGenerator
+          ? opts.keyGenerator(req)
+          : ipKeyGenerator(req.ip ?? "unknown");
+        const { success, limit, remaining, reset } = await ratelimiter.limit(key);
+        res.setHeader("RateLimit-Limit", String(limit));
+        res.setHeader("RateLimit-Remaining", String(Math.max(0, remaining)));
+        res.setHeader("RateLimit-Reset", String(Math.max(0, Math.ceil((reset - Date.now()) / 1000))));
+        if (!success) {
+          return res.status(429).json(opts.message);
+        }
+        return next();
+      } catch (err) {
+        // Fail-open: Upstash outage shouldn't take down the app.
+        console.error("[ratelimit] Upstash error (failing open):", err);
+        return next();
+      }
+    };
+  }
+
+  // Portal lookups: 3/min — slow enough to make email enumeration impractical
+  // (4320/day) without inconveniencing a legitimate user.
+  const portalLimiter = createLimiter({
     windowMs: 60 * 1000,
     max: 3,
     message: { error: "Too many requests. Try again in a minute." },
-    standardHeaders: true,
-    legacyHeaders: false,
   });
-  const aiLimiter = rateLimit({
+  const aiLimiter = createLimiter({
     windowMs: 60 * 1000,
     max: 20,
     message: { error: "Too many AI requests. Try again in a minute." },
-    standardHeaders: true,
-    legacyHeaders: false,
   });
   // Separate bucket from registerLimiter: public lead-capture surface shouldn't
   // starve the registration budget on a shared limiter.
-  const leadLimiter = rateLimit({
+  const leadLimiter = createLimiter({
     windowMs: 60 * 1000,
     max: 5,
     message: { error: "Too many lead submissions. Try again in a minute." },
-    standardHeaders: true,
-    legacyHeaders: false,
   });
 
   // Sprint 7 Phase 4 — registration duplicate check. Called from LandingPage
   // BEFORE the anon insert into participants. This endpoint reveals whether
   // a given (email, seminar) tuple has an existing row, which is an email-
-  // enumeration primitive by design — the real user needs the answer. A
-  // strict cap keeps the bulk-scraping surface small: 10/min/IP is ~4x the
-  // happy-path need (4 seminars to check + typo retries) while blocking
-  // automated sweeps. Review-fix: tightened from 30 on Gemini's flag.
-  const registrationCheckLimiter = rateLimit({
+  // enumeration primitive by design — the real user needs the answer. 10/min/IP
+  // is ~4x the happy-path need (4 seminars + typo retries) while blocking
+  // automated sweeps.
+  const registrationCheckLimiter = createLimiter({
     windowMs: 60 * 1000,
     max: 10,
     message: { error: "Too many registration checks. Try again in a minute." },
-    standardHeaders: true,
-    legacyHeaders: false,
   });
 
-  // Community posts: strict rate limit. Phase 3 anti-spam.
-  // Lower than leadLimiter (5/min) because a single confirmed participant
-  // should never need to post more than ~2 messages per minute.
-  //
-  // NOTE: express-rate-limit uses an in-memory store by default. On Vercel
-  // Fluid Compute this is per-instance, not shared across concurrent instances.
-  // A Redis-backed store is a cross-cutting follow-up (also affects leadLimiter,
-  // registerLimiter, etc). Tracked as a separate commit.
-  const communityLimiter = rateLimit({
+  // Community posts: 3/min. Lower than leadLimiter because a confirmed
+  // participant should never need to post more than ~2 messages per minute.
+  const communityLimiter = createLimiter({
     windowMs: 60 * 1000,
     max: 3,
     message: { error: "Too many community posts. Try again in a minute." },
-    standardHeaders: true,
-    legacyHeaders: false,
   });
 
   // Coaching AI: 5/min — higher than community (3/min) because AI responses
   // take longer and participants may retry on timeout. Lower than admin AI
   // (20/min) because the participant surface is public-facing.
-  const coachingLimiter = rateLimit({
+  const coachingLimiter = createLimiter({
     windowMs: 60 * 1000,
     max: 5,
     message: { error: "Too many coaching requests. Try again in a minute." },
-    standardHeaders: true,
-    legacyHeaders: false,
   });
 
-  // POST /api/register limiter: 5 req / 10 min / IP. /api/register owns the
-  // participant INSERT, so abuse means real DB writes and real Resend quota
-  // burn. The dedup branch short-circuits before INSERT, but each request
-  // still hits the DB.
-  const registerLimiter = rateLimit({
+  // POST /api/register: 5 req / 10 min / IP. Owns the participant INSERT, so
+  // abuse means real DB writes and real Resend quota burn.
+  const registerLimiter = createLimiter({
     windowMs: 10 * 60 * 1000,
     max: 5,
     message: { error: "Too many registration submissions. Try again in a few minutes." },
-    standardHeaders: true,
-    legacyHeaders: false,
   });
 
   // Magic-link send: per-IP+email key, 3 req / 5 min. Anti-enumeration is
   // handled in the route (always 200), so this limiter only blocks abuse
   // (mass-mailbomb of one address, or one IP probing many addresses).
-  const magicLinkLimiter = rateLimit({
+  const magicLinkLimiter = createLimiter({
     windowMs: 5 * 60 * 1000,
     max: 3,
     keyGenerator: (req) =>
       `${ipKeyGenerator(req.ip ?? "unknown")}:${String(req.body?.email ?? "").toLowerCase()}`,
     message: { error: "Too many magic-link requests. Try again in a few minutes." },
-    standardHeaders: true,
-    legacyHeaders: false,
   });
 
   // ── Auth middleware: verify Supabase JWT + admin allowlist ──────────────
@@ -1233,9 +1276,16 @@ export function createApp(opts: CreateAppOptions): express.Express {
   // token (Vercel Cron sets the Authorization header automatically when
   // configured in vercel.json).
   app.post("/api/cron/sla-reminder", async (req, res) => {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) return res.sendStatus(401);
     const auth = req.header("authorization") ?? "";
-    const expected = `Bearer ${process.env.CRON_SECRET ?? ""}`;
-    if (!process.env.CRON_SECRET || auth !== expected) {
+    const expected = `Bearer ${cronSecret}`;
+    const authBuf = Buffer.from(auth);
+    const expectedBuf = Buffer.from(expected);
+    if (
+      authBuf.length !== expectedBuf.length ||
+      !crypto.timingSafeEqual(authBuf, expectedBuf)
+    ) {
       return res.sendStatus(401);
     }
     if (!supabaseAdmin) {

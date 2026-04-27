@@ -199,6 +199,7 @@ gstack:ship → gstack:land-and-deploy → gstack:canary
 - Touching prod DB, force-push, or destructive ops → `gstack:guard` mode first.
 - Scoped refactors → `gstack:freeze <dir>` to prevent drift.
 - Long sessions → `gstack:checkpoint` before context compression.
+- Non-trivial code work → invoke `karpathy-guidelines` (think-before-coding, simplicity, surgical changes, verifiable goals).
 
 ## Skill routing
 
