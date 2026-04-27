@@ -1233,9 +1233,16 @@ export function createApp(opts: CreateAppOptions): express.Express {
   // token (Vercel Cron sets the Authorization header automatically when
   // configured in vercel.json).
   app.post("/api/cron/sla-reminder", async (req, res) => {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) return res.sendStatus(401);
     const auth = req.header("authorization") ?? "";
-    const expected = `Bearer ${process.env.CRON_SECRET ?? ""}`;
-    if (!process.env.CRON_SECRET || auth !== expected) {
+    const expected = `Bearer ${cronSecret}`;
+    const authBuf = Buffer.from(auth);
+    const expectedBuf = Buffer.from(expected);
+    if (
+      authBuf.length !== expectedBuf.length ||
+      !crypto.timingSafeEqual(authBuf, expectedBuf)
+    ) {
       return res.sendStatus(401);
     }
     if (!supabaseAdmin) {

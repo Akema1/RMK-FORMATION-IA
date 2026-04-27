@@ -154,15 +154,17 @@ export async function registerOrDedup(
     const code = (error as { code?: string } | null)?.code;
     if (code !== "23505") throw error;
 
-    const detail =
-      String((error as { message?: string } | null)?.message ?? "") +
-      String((error as { details?: string } | null)?.details ?? "");
+    // PG 23505 message format: 'duplicate key value violates unique constraint "<name>"'.
+    // Switching on the constraint name avoids false-positive substring hits on
+    // user-supplied values that happen to contain "email" or "seminar".
+    const message = String((error as { message?: string } | null)?.message ?? "");
+    const constraint = message.match(/constraint "([^"]+)"/)?.[1];
 
-    if (detail.includes("payment_reference")) {
+    if (constraint === "participants_payment_reference_udx") {
       // Birthday-paradox collision on generated reference. Retry with new id.
       continue;
     }
-    if (detail.includes("email") || detail.includes("seminar")) {
+    if (constraint === "participants_email_seminar_active_udx") {
       // TOCTOU race: another request inserted (email, seminar) between our
       // SELECT and INSERT. Re-run dedup lookup; the row exists now.
       const { data: raced } = await supabase
