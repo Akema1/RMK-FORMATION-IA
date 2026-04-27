@@ -14,3 +14,4 @@ playwright-report/
 test-results/
 .playwright-mcp/
 .gstack/
+.env*.local
