@@ -181,7 +181,7 @@ function Hero({ setPage, seminars }: { setPage: (p: string) => void, seminars: S
         <div style={{ marginBottom: 32, display: "flex", justifyContent: "center" }}><LogoRMK scale={1.8} variant="light" /></div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.25)", borderRadius: 100, padding: "6px 20px", marginBottom: 32 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#27AE60", animation: "pulse 2s infinite" }} />
-          <span style={{ color: "#C9A84C", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>MAI – JUIN 2026 · ABIDJAN · 4 ATELIERS</span>
+          <span style={{ color: "#C9A84C", fontSize: 13, fontWeight: 600, letterSpacing: 1 }}>JUILLET – SEPTEMBRE 2026 · ABIDJAN · 4 ATELIERS</span>
         </div>
         
         <h1 style={{ fontSize: "clamp(36px, 6vw, 64px)", fontWeight: 800, color: "#1B2A4A", lineHeight: 1.08, margin: "0 0 16px", letterSpacing: -1 }}>
@@ -885,9 +885,20 @@ export default function LandingPage() {
         // design/content fields that don't live in the schema (gradient,
         // highlights, modules, subtitle, target). Replacing wholesale drops
         // those TS-only fields and breaks tile rendering.
+        //
+        // Match on `code` (S1..S4), NOT `id`: DB rows use UUID `id`s, so the
+        // old `id === id` match never hit and this merge silently no-oped —
+        // the public page always rendered static seminars.ts, and admin edits
+        // never reached it. Keying on `code` makes admin date/title edits land.
+        // We deliberately keep the canonical `id` (s1..s4) and pricing from
+        // seminars.ts: registration + getSeminarPricing key on the id, the DB
+        // UUID would fail /api/register's validation, and price/earlyBirdPrice
+        // have no DB column so they must come from TS.
         setSeminars(SEMINARS.map((defaults) => {
-          const override = data.find((d: { id: string }) => d.id === defaults.id);
-          return override ? { ...defaults, ...override } : defaults;
+          const override = data.find((d: { code?: string }) => d.code === defaults.code);
+          return override
+            ? { ...defaults, ...override, id: defaults.id, price: defaults.price, earlyBirdPrice: defaults.earlyBirdPrice }
+            : defaults;
         }));
       }
     };

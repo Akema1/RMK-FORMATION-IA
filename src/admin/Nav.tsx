@@ -30,7 +30,7 @@ export function Nav({ page, setPage }: NavProps) {
           <LogoRMK scale={0.4} variant="dark" />
           <div>
             <div style={{ color: "#FAF9F6", fontWeight: 700, fontSize: 14 }}>RMK CONSEILS</div>
-            <div style={{ color: "rgba(250,249,246,0.6)", fontSize: 10, letterSpacing: 1 }}>ADMIN · MAI 2026</div>
+            <div style={{ color: "rgba(250,249,246,0.6)", fontSize: 10, letterSpacing: 1 }}>ADMIN · 2026</div>
           </div>
         </div>
       </div>
