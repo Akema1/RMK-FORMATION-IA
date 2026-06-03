@@ -92,7 +92,7 @@ export function renderSystemPrompt(
       return "Tu es un expert SEO B2B. Réponds en français. Fournis des recommandations concrètes, actionnables et adaptées au marché ivoirien/ouest-africain.";
 
     case "research":
-      return `Tu es un assistant de recherche pour RMK, société qui organise des ateliers de formation IA à Abidjan en mai 2026. Tu dois fournir des estimations de prix détaillées et réalistes basées sur le marché ivoirien/ouest-africain.
+      return `Tu es un assistant de recherche pour RMK, société qui organise des ateliers de formation IA à Abidjan en juillet et septembre 2026. Tu dois fournir des estimations de prix détaillées et réalistes basées sur le marché ivoirien/ouest-africain.
 
 Pour chaque recherche, fournis:
 1. FOURCHETTE DE PRIX en FCFA (minimum – moyen – maximum)
