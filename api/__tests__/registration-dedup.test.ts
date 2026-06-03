@@ -335,9 +335,9 @@ describe("POST /api/register — dedup matrix", () => {
     // Easier than mucking with system clock: use a seminar id that doesn't
     // exist (falls back to standard) and assert standard price flows through.
     // Actually the validator rejects unknown seminars, so instead we mock
-    // Date.now to be inside the cutoff for s1 (which starts 2026-05-26).
+    // Date.now to be inside the cutoff for s1 (which starts 2026-07-07).
     const realNow = Date.now;
-    Date.now = () => new Date("2026-05-20T00:00:00Z").getTime(); // 6 days before s1
+    Date.now = () => new Date("2026-07-01T00:00:00Z").getTime(); // 6 days before s1, inside the 15-day cutoff
     try {
       participantsQueue.push({ data: null, error: null });
       participantsQueue.push({ data: { id: "uuid-std" }, error: null });

@@ -38,8 +38,8 @@ export const SEMINARS: Seminar[] = [
     code: "S1",
     title: "IA Stratégique pour Dirigeants",
     subtitle: "Leadership & Transformation Digitale",
-    week: "26 – 30 Mai 2026",
-    dates: { start: "2026-05-26", presentiel: "Mar 26 – Jeu 28 Mai", online: "Ven 29 – Sam 30 Mai" },
+    week: "07 – 11 Juillet 2026",
+    dates: { start: "2026-07-07", presentiel: "Mar 7 – Jeu 9 Juillet", online: "Ven 10 – Sam 11 Juillet" },
     target: "Managers, Dirigeants, Administrateurs, Consultants, Entrepreneurs, Cadres Supérieurs et Professionnels",
     seats: 20,
     color: "#2980B9",
@@ -63,8 +63,8 @@ export const SEMINARS: Seminar[] = [
     code: "S2",
     title: "IA appliquée à la Finance",
     subtitle: "Analyse Financière & Gestion des Risques",
-    week: "2 – 6 Juin 2026",
-    dates: { start: "2026-06-02", presentiel: "Mar 2 – Jeu 4 Juin", online: "Ven 5 – Sam 6 Juin" },
+    week: "14 – 18 Juillet 2026",
+    dates: { start: "2026-07-14", presentiel: "Mar 14 – Jeu 16 Juillet", online: "Ven 17 – Sam 18 Juillet" },
     target: "DAF, Analystes financiers, Banquiers, Risk Managers, Contrôleurs de gestion",
     seats: 20,
     color: "#2980B9",
@@ -88,8 +88,8 @@ export const SEMINARS: Seminar[] = [
     code: "S3",
     title: "IA pour les Notaires",
     subtitle: "Modernisation des Études Notariales",
-    week: "9 – 13 Juin 2026",
-    dates: { start: "2026-06-09", presentiel: "Mar 9 – Jeu 11 Juin", online: "Ven 12 – Sam 13 Juin" },
+    week: "8 – 11 Septembre 2026",
+    dates: { start: "2026-09-08", presentiel: "Mar 8 – Jeu 10 Septembre", online: "Ven 11 Septembre" },
     target: "Notaires, Clercs de notaires, Collaborateurs d'études, Juristes",
     seats: 15,
     color: "#2980B9",
@@ -113,8 +113,8 @@ export const SEMINARS: Seminar[] = [
     code: "S4",
     title: "IA pour les Ressources Humaines",
     subtitle: "Transformer la Fonction RH",
-    week: "16 – 20 Juin 2026",
-    dates: { start: "2026-06-16", presentiel: "Mar 16 – Jeu 18 Juin", online: "Ven 19 – Sam 20 Juin" },
+    week: "15 – 18 Septembre 2026",
+    dates: { start: "2026-09-15", presentiel: "Mar 15 – Jeu 17 Septembre", online: "Ven 18 Septembre" },
     target: "DRH, Responsables RH, Chargés de recrutement, Responsables formation",
     seats: 15,
     color: "#2980B9",
@@ -148,10 +148,10 @@ export const SEMINAR_ICONS: Record<string, string> = {
 // Individual ateliers override these via `Seminar.price` / `Seminar.earlyBirdPrice`.
 export const PRICE = 600000;
 export const EARLY_BIRD_PRICE = 540000;
-// Early-bird: 10% off when purchased 15+ days before the first Atelier (S1 starts 2026-05-26).
+// Early-bird: 10% off when purchased 15+ days before the first Atelier (S1 starts 2026-07-07).
 // Anchored in UTC because the Atelier is held in Abidjan (UTC+0, no DST); a bare
 // local-time string would drift for diaspora visitors (Paris, Montréal, etc.).
-export const EARLY_BIRD_DEADLINE = new Date("2026-05-11T23:59:59Z");
+export const EARLY_BIRD_DEADLINE = new Date("2026-06-22T23:59:59Z");
 export const EARLY_BIRD_DAYS_BEFORE = 15;
 export const COACHING_PRICE = 100000; // par session de 2h (inclus pour dirigeants, optionnel pour les autres)
 

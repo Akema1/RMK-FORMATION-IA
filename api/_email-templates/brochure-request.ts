@@ -21,15 +21,15 @@ programme à cette adresse :
 ${p.brochureUrl}
 
 En bref :
-- À Abidjan, de fin mai à mi-juin 2026
-- Format hybride : 3 jours en présentiel + 2 jours en ligne
+- À Abidjan, en juillet et septembre 2026
+- Format hybride : 3 jours en présentiel + sessions en ligne
 - Organisé par CABEXIA × RMK Conseils
 
 Quatre parcours sur quatre semaines, choisissez celui qui vous correspond :
-- Dirigeants & Managers · 26 – 30 mai 2026
-- Finance & Institutions financières · 2 – 6 juin 2026
-- Notaires & Professions juridiques · 9 – 13 juin 2026
-- Ressources Humaines · 16 – 20 juin 2026
+- Dirigeants & Managers · 07 – 11 juillet 2026
+- Finance & Institutions financières · 14 – 18 juillet 2026
+- Notaires & Professions juridiques · 8 – 11 septembre 2026
+- Ressources Humaines · 15 – 18 septembre 2026
 
 Prêt à réserver votre place ? Répondez simplement à cet email avec
 le parcours qui vous intéresse. Notre équipe vous recontacte sous
@@ -55,17 +55,17 @@ Tél : ${p.contactPhone}`,
 
 <p style="margin-top:24px;"><strong>En bref :</strong></p>
 <ul style="padding-left:20px;margin:8px 0 16px;">
-  <li>À <strong>Abidjan</strong>, de fin mai à mi-juin 2026</li>
-  <li>Format <strong>hybride</strong> : 3 jours en présentiel + 2 jours en ligne</li>
+  <li>À <strong>Abidjan</strong>, en juillet et septembre 2026</li>
+  <li>Format <strong>hybride</strong> : 3 jours en présentiel + sessions en ligne</li>
   <li>Organisé par <strong>CABEXIA × RMK Conseils</strong></li>
 </ul>
 
 <p><strong>Quatre parcours sur quatre semaines, choisissez celui qui vous correspond :</strong></p>
 <ul style="padding-left:20px;margin:8px 0 16px;">
-  <li>Dirigeants &amp; Managers · <em>26 – 30 mai 2026</em></li>
-  <li>Finance &amp; Institutions financières · <em>2 – 6 juin 2026</em></li>
-  <li>Notaires &amp; Professions juridiques · <em>9 – 13 juin 2026</em></li>
-  <li>Ressources Humaines · <em>16 – 20 juin 2026</em></li>
+  <li>Dirigeants &amp; Managers · <em>07 – 11 juillet 2026</em></li>
+  <li>Finance &amp; Institutions financières · <em>14 – 18 juillet 2026</em></li>
+  <li>Notaires &amp; Professions juridiques · <em>8 – 11 septembre 2026</em></li>
+  <li>Ressources Humaines · <em>15 – 18 septembre 2026</em></li>
 </ul>
 
 <p style="background:#F5F1E4;border-left:3px solid #C9A84C;padding:14px 18px;margin:20px 0;color:#1B2A4A;">

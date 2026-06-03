@@ -3,8 +3,8 @@ Cabinet d'Expertise en Intelligence Artificielle & RMK Conseils
 
 STRATEGIE DE COMMERCIALISATION
 4 Ateliers Formation IA – Format Hybride
-3 jours présentiel + 2 sessions en ligne (4h)
-Mai – Juin 2026 – Abidjan, Côte d'Ivoire
+3 jours présentiel + sessions en ligne (4h)
+Juillet – Septembre 2026 – Abidjan, Côte d'Ivoire
 
 Organisateurs : RMK Conseils (Hôte) & CABEXIA (Expertise)
 Document de travail – Mars 2026 – CONFIDENTIEL
