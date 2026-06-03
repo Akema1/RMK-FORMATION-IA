@@ -1,0 +1,11 @@
+# Treat generated/binary assets as binary so git doesn't line-diff them as
+# text. The pre-push review hook reads the diff via strict UTF-8 and crashes
+# on raw PDF/image bytes; marking them binary makes git emit "Binary files
+# differ" instead. public/brochure.pdf is regenerated from src — never merge it.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

@@ -555,7 +555,7 @@ export function SeminarsManagement({ seminars, refreshSeminars, prices, setPrice
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                   <div><label style={label}>Titre de la formation</label><input style={inputS} value={w.form.title || ''} onChange={e => setWizard(prev => ({ ...prev, form: { ...prev.form, title: e.target.value } }))} /></div>
                   <div><label style={label}>Code interne (ex: S5)</label><input style={inputS} value={w.form.code || ''} onChange={e => setWizard(prev => ({ ...prev, form: { ...prev.form, code: e.target.value } }))} /></div>
-                  <div><label style={label}>Libellé dates (ex: 26 – 30 Mai 2026)</label><input style={inputS} value={w.form.week || ''} onChange={e => setWizard(prev => ({ ...prev, form: { ...prev.form, week: e.target.value } }))} /></div>
+                  <div><label style={label}>Libellé dates (ex: 07 – 11 Juillet 2026)</label><input style={inputS} value={w.form.week || ''} onChange={e => setWizard(prev => ({ ...prev, form: { ...prev.form, week: e.target.value } }))} /></div>
                   <div><label style={label}>Participants max</label><input type="number" style={inputS} value={w.form.seats || 15} onChange={e => setWizard(prev => ({ ...prev, form: { ...prev.form, seats: Number(e.target.value) } }))} /></div>
                   <div>
                     <label style={label}>Statut</label>
