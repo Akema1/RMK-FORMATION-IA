@@ -8,16 +8,16 @@ interface ResearchPageProps {
 }
 
 const presets = [
-  { cat: "avion", label: "Vol Paris → Abidjan", query: "prix billet avion aller-retour Paris Abidjan mai 2026 compagnies aériennes" },
-  { cat: "avion", label: "Vol Ndjamena → Abidjan", query: "prix billet avion aller-retour Ndjamena Abidjan mai 2026" },
+  { cat: "avion", label: "Vol Paris → Abidjan", query: "prix billet avion aller-retour Paris Abidjan juillet 2026 compagnies aériennes" },
+  { cat: "avion", label: "Vol Ndjamena → Abidjan", query: "prix billet avion aller-retour Ndjamena Abidjan juillet 2026" },
   { cat: "salle", label: "Salle de conférence Abidjan", query: "prix location salle de conférence atelier 20-25 personnes Abidjan Plateau Cocody 2026" },
   { cat: "traiteur", label: "Traiteur Abidjan", query: "prix traiteur pause café déjeuner atelier professionnel 20 personnes Abidjan" },
-  { cat: "hotel", label: "Hôtel formateur", query: "prix hôtel business Abidjan Plateau Cocody 4 nuits mai 2026" },
+  { cat: "hotel", label: "Hôtel formateur", query: "prix hôtel business Abidjan Plateau Cocody 4 nuits juillet 2026" },
   { cat: "zoom", label: "Zoom Pro", query: "prix abonnement Zoom Pro mensuel fonctionnalités webinaire 2026" },
 ];
 
 export function ResearchPage({ seminars: _seminars }: ResearchPageProps) {
-  const [query, setQuery] = useState("prix billet avion Paris Abidjan mai 2026");
+  const [query, setQuery] = useState("prix billet avion Paris Abidjan juillet 2026");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState("");
   const [history, setHistory] = useState<AgentHistoryEntry[]>(() => {

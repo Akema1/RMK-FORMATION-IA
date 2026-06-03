@@ -10,7 +10,7 @@ Organisateurs : RMK Conseils (Hôte) & CABEXIA (Expertise)
 Document de travail – Mars 2026 – CONFIDENTIEL
  
 1. Synthèse Exécutive
-RMK Conseils organise 4 ateliers de formation en Intelligence Artificielle à Abidjan entre le 26 mai et le 20 juin 2026, dispensés par CABEXIA. Chaque atelier suit un format hybride de 5 jours : 3 journées complètes en présentiel (lundi à mercredi) suivies de 2 sessions en ligne de 4 heures chacune (jeudi et vendredi).
+RMK Conseils organise 4 ateliers de formation en Intelligence Artificielle à Abidjan entre le 7 juillet et le 18 septembre 2026, dispensés par CABEXIA. Chaque atelier suit un format hybride : 3 journées complètes en présentiel suivies de sessions en ligne de 4 heures chacune.
 Objectif total : 60 à 80 participants (15 à 20 par atelier)
 CA prévisionnel : ~ 36 000 000 FCFA
 Invest. marketing : ~ 500 000 FCFA
@@ -18,15 +18,15 @@ Invest. marketing : ~ 500 000 FCFA
 2. Analyse du Marché Abidjanais
 Abidjan se positionne comme le hub technologique et financier de l'Afrique de l'Ouest francophone.
 Cibles par atelier :
-S1 Dirigeants (26-30 mai) : Managers, Dirigeants, Administrateurs, Consultants, Entrepreneurs, Cadres Supérieurs et Professionnels
-S2 Finance (2-6 juin) : DAF, Analystes, Risk, Trésoriers (Banque, Assurance)
-S3 Notaires (9-13 juin) : Notaires, Clercs, Collaborateurs (Profession notariale)
-S4 RH (16-20 juin) : DRH, Resp. Recrutement, Formation (Tous secteurs)
+S1 Dirigeants (7-11 juillet) : Managers, Dirigeants, Administrateurs, Consultants, Entrepreneurs, Cadres Supérieurs et Professionnels
+S2 Finance (14-18 juillet) : DAF, Analystes, Risk, Trésoriers (Banque, Assurance)
+S3 Notaires (8-11 septembre) : Notaires, Clercs, Collaborateurs (Profession notariale)
+S4 RH (15-18 septembre) : DRH, Resp. Recrutement, Formation (Tous secteurs)
 
 3. Stratégie Tarifaire
-Tarif unique de 600 000 FCFA par atelier (5 jours hybrides).
+Tarif unique de 600 000 FCFA par atelier (format hybride).
 Offres promotionnelles :
-- Early bird (-10%) : 540 000 FCFA pour toute inscription effectuée au moins 15 jours avant le début de l'atelier choisi (soit avant le 11 mai pour S1, le 18 mai pour S2, le 25 mai pour S3, le 1ᵉʳ juin pour S4).
+- Early bird (-10%) : 540 000 FCFA pour toute inscription effectuée au moins 15 jours avant le début de l'atelier choisi (soit avant le 22 juin pour S1, le 29 juin pour S2, le 24 août pour S3, le 31 août pour S4).
 - Tarif groupe : remises applicables selon le nombre d'inscrits.
 
 4. Plan de Commercialisation – 5 Canaux
