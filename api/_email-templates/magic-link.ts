@@ -17,7 +17,7 @@ Voici votre lien d'accès sécurisé à votre espace participant
 pour la formation :
 
   ${p.seminarTitle}
-  Abidjan — Mai 2026
+  Abidjan — 2026
 
 Accédez à votre espace :
 ${p.magicLinkUrl}
@@ -45,7 +45,7 @@ Question ? ${p.supportPhone} (Appel/WhatsApp)
 
 <div style="background:#F5F1E4;border-left:3px solid #C9A84C;padding:12px 16px;margin:16px 0;">
   <strong style="color:#1B2A4A;">${escapeHtml(p.seminarTitle)}</strong><br>
-  <span style="color:#666;">Abidjan — Mai 2026</span>
+  <span style="color:#666;">Abidjan — 2026</span>
 </div>
 
 <p style="text-align:center;margin:32px 0;">

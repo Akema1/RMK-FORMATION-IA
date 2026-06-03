@@ -129,8 +129,8 @@ function Nav({ page, setPage }: { page: string, setPage: (p: string) => void }) 
 function CountdownBlock({ seminars }: { seminars: Seminar[] }) {
   // Earliest-upcoming logic: anchor the countdown to whichever atelier's
   // start date is next-future. The program is a 4-week rolling schedule
-  // (s1 May 26 → s4 June 16), so a single hardcoded May 26 anchor would
-  // tell June-cohort prospects they've already missed it. Falls back to
+  // (s1 Jul 7 → s4 Sep 15), so a single hardcoded Jul 7 anchor would
+  // tell September-cohort prospects they've already missed it. Falls back to
   // the last atelier's start when all are past, which lets the countdown
   // read negative rather than crash. Anchored in UTC: ateliers run in
   // Abidjan (UTC+0) so 08:30Z is the true start — without the Z suffix,

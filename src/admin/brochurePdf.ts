@@ -126,10 +126,10 @@ function buildCoverPage(doc: jsPDF): void {
 
   // 4 seminars in pill-style cards
   const seminars = [
-    { code: 'S1', title: 'IA Strategique Dirigeants', color: '#2980B9', week: '26 – 30 Mai 2026' },
-    { code: 'S2', title: 'IA appliquee a la Finance', color: '#2980B9', week: '2 – 6 Juin 2026' },
-    { code: 'S3', title: 'IA pour les Notaires', color: '#2980B9', week: '9 – 13 Juin 2026' },
-    { code: 'S4', title: 'IA pour les Ressources Humaines', color: '#2980B9', week: '16 – 20 Juin 2026' },
+    { code: 'S1', title: 'IA Strategique Dirigeants', color: '#2980B9', week: '07 – 11 Juillet 2026' },
+    { code: 'S2', title: 'IA appliquee a la Finance', color: '#2980B9', week: '14 – 18 Juillet 2026' },
+    { code: 'S3', title: 'IA pour les Notaires', color: '#2980B9', week: '8 – 11 Septembre 2026' },
+    { code: 'S4', title: 'IA pour les Ressources Humaines', color: '#2980B9', week: '15 – 18 Septembre 2026' },
   ];
 
   let sy = 137;
@@ -162,10 +162,10 @@ function buildCoverPage(doc: jsPDF): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(nr, ng, nb);
-  doc.text('Format Hybride  ·  3 jours Présentiel  +  2 jours En Ligne', PW / 2, sy + 15.5, { align: 'center' });
+  doc.text('Format Hybride  ·  3 jours Présentiel  +  sessions En Ligne', PW / 2, sy + 15.5, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.text('Abidjan, Côte d\'Ivoire  —  Mai / Juin 2026  —  20 participants max par atelier', PW / 2, sy + 21.5, { align: 'center' });
+  doc.text('Abidjan, Côte d\'Ivoire  —  Juillet / Septembre 2026  —  20 participants max par atelier', PW / 2, sy + 21.5, { align: 'center' });
 
   sy += 36;
 
