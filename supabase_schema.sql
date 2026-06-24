@@ -247,3 +247,76 @@ DO $$ BEGIN
     ALTER TABLE public.expenses ADD COLUMN seminar TEXT;
   END IF;
 END $$;
+
+-- ============================================================
+-- Veille IA — Slice 1 (vertical Décideurs, secteur banque/finance)
+-- ============================================================
+-- Two tables only. veille_articles: curated, transformative synthesis
+-- (link + summary + per-sector "so what", NEVER full source text — copyright).
+-- veille_subscribers: opt-in simple capture. Public writes go through the
+-- service-role endpoint /api/veille/subscribe (anon has no direct access).
+-- Added by /plan-eng-review 2026-06-24. Apply via Supabase Management API.
+
+CREATE TABLE IF NOT EXISTS public.veille_articles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  title_fr TEXT NOT NULL,
+  summary_fr TEXT NOT NULL,
+  so_what JSONB DEFAULT '{}'::jsonb,           -- { "banque": "...", ... }
+  primary_sector TEXT NOT NULL,
+  sectors JSONB DEFAULT '[]'::jsonb,
+  source_url TEXT NOT NULL,                    -- attribution: link out, never reproduce
+  source_name TEXT,
+  image_url TEXT,
+  author TEXT NOT NULL DEFAULT 'human' CHECK (author IN ('agent','human')),
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','in_review','published','archived')),
+  reviewed_by TEXT,
+  formation_links JSONB DEFAULT '[]'::jsonb,
+  published_at TIMESTAMP WITH TIME ZONE
+);
+-- Feed query shape: published, filtered by sector, newest first.
+CREATE INDEX IF NOT EXISTS veille_articles_feed_idx
+  ON public.veille_articles (status, primary_sector, published_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.veille_subscribers (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  email TEXT NOT NULL,
+  role TEXT,
+  sectors JSONB DEFAULT '[]'::jsonb,
+  source_utm TEXT,
+  confirmed BOOLEAN NOT NULL DEFAULT false,    -- Slice 1 single opt-in; double opt-in in Slice 3
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','unsub','bounced')),
+  CONSTRAINT veille_subscribers_email_format CHECK (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$')
+);
+-- One row per email (case-insensitive); endpoint treats re-subscribe as idempotent.
+CREATE UNIQUE INDEX IF NOT EXISTS veille_subscribers_email_udx
+  ON public.veille_subscribers (lower(email));
+
+-- ── RLS: same posture as participants/leads ──────────────────────────────────
+ALTER TABLE public.veille_articles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.veille_subscribers ENABLE ROW LEVEL SECURITY;
+
+-- veille_articles: anyone may read ONLY published rows; admin has full access.
+DROP POLICY IF EXISTS "veille_articles public read published" ON public.veille_articles;
+CREATE POLICY "veille_articles public read published"
+  ON public.veille_articles FOR SELECT
+  TO anon, authenticated
+  USING (status = 'published');
+
+DROP POLICY IF EXISTS "veille_articles admin all" ON public.veille_articles;
+CREATE POLICY "veille_articles admin all"
+  ON public.veille_articles FOR ALL
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+-- veille_subscribers: admin only. No anon/authenticated read or write — public
+-- capture goes through the service-role endpoint, so the list can't be harvested.
+DROP POLICY IF EXISTS "veille_subscribers admin all" ON public.veille_subscribers;
+CREATE POLICY "veille_subscribers admin all"
+  ON public.veille_subscribers FOR ALL
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());

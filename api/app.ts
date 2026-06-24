@@ -172,6 +172,15 @@ const leadCaptureSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+// Veille IA newsletter subscribe (Slice 1, single opt-in). Only email is
+// required; role/sectors/source_utm are optional segmentation hints.
+const veilleSubscribeSchema = z.object({
+  email: z.string().email().max(254),
+  role: z.string().max(100).optional(),
+  sectors: z.array(z.string().max(50)).max(10).optional(),
+  source_utm: z.string().max(100).optional(),
+});
+
 // Community post body schema. ONLY text comes from the client. The endpoint
 // derives author, initials, participant_id, AND seminar_tag server-side from
 // the authenticated caller's participants row — never trust the client for
@@ -281,6 +290,14 @@ export function createApp(opts: CreateAppOptions): express.Express {
     windowMs: 60 * 1000,
     max: 5,
     message: { error: "Too many lead submissions. Try again in a minute." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  // Veille subscribe: public capture surface, same budget as leadLimiter.
+  const veilleLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    message: { error: "Too many subscription attempts. Try again in a minute." },
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -685,6 +702,53 @@ export function createApp(opts: CreateAppOptions): express.Express {
     } catch (err) {
       console.error("Lead capture error:", err);
       res.status(500).json({ error: "Lead capture failed" });
+    }
+  });
+
+  // ── Veille IA subscribe (Slice 1, single opt-in) ──────────────────────────
+  // Public capture surface for the Veille IA newsletter. Anon RLS inserts into
+  // veille_subscribers are blocked (admin-only policy), so this goes through the
+  // service-role key — same pattern as /api/lead/capture. Idempotent on the
+  // lowercased email so a double-submit or returning reader is a no-op success.
+  app.post("/api/veille/subscribe", veilleLimiter, async (req, res) => {
+    if (!supabaseAdmin) {
+      return res.status(503).json({ error: "Database not configured" });
+    }
+    const parsed = veilleSubscribeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Invalid input",
+        details: parsed.error.issues.map((i) => i.message),
+      });
+    }
+    const email = parsed.data.email.toLowerCase().trim();
+    const role = parsed.data.role ? sanitizeText(parsed.data.role, 100) : null;
+    const sectors = parsed.data.sectors ?? [];
+    const source_utm = parsed.data.source_utm
+      ? sanitizeText(parsed.data.source_utm, 100)
+      : null;
+
+    // Idempotency guard: re-subscribe with the same email returns success
+    // without inserting a duplicate. The lower(email) unique index is the
+    // hard backstop if two requests race past this check.
+    const { data: existing } = await supabaseAdmin
+      .from("veille_subscribers")
+      .select("id")
+      .eq("email", email)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      return res.json({ success: true });
+    }
+
+    try {
+      const { error: subErr } = await supabaseAdmin
+        .from("veille_subscribers")
+        .insert([{ email, role, sectors, source_utm, status: "active", confirmed: false }]);
+      if (subErr) throw subErr;
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("Veille subscribe error:", err);
+      return res.status(500).json({ error: "Subscription failed" });
     }
   });
 

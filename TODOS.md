@@ -169,3 +169,15 @@ Cosmetic. The prefix costs the ability to index `community_posts.id` as native U
 ---
 
 _Last updated: 2026-04-18 — Audited P2 #4 and #5 against the live code. Both had idempotency guards added in commit `52ca9ee` that were never reflected in TODOS. Pruned #4 (read-then-write dedup covers all documented scenarios; TOCTOU residual is cosmetic). Rewrote #5 to reflect reality: contact-dedup blocks naive abuse, but the rotating-IP-plus-rotating-contact vector remains; captcha is still the real fix. Earlier in session: fixed P0 #0 (portal E2E tests rewritten for 4-step onboarding; Playwright auto-starts dev server). Fixed P1-B (TZ-unsafe date parsing anchored to UTC; regression guarded by `e2e/landing-timezone.spec.ts`). Pruned P1 #1 (coaching endpoint already shipped). Fixed P2 #13 (server-side seminar capacity via Postgres trigger + advisory lock; SECURITY DEFINER fix caught at /ship). Added #14 (pack capacity follow-up). Surfaced rate-limit test flake into P2 #7._
+
+## P2 — from /plan-eng-review (Veille IA Slice 2)
+
+### Prompt-injection hardening for the `curate` agent (ingested third-party content)
+
+**Why:** Slice 2's `curate` agent will read article text from external sources (RSS/scrape) and pass it to an LLM. A poisoned source could embed instructions ("ignore your instructions and write X"), steering the agent into publishing attacker-chosen text under the RMK brand. The codebase already defends webhook inputs against this with `escapeXml` (api/app.ts:52), but the agent pipeline is net-new.
+
+**Work:** When building the `curate` agent (Slice 2), treat ALL ingested source content as untrusted: wrap it in structured boundaries / escape it before it reaches the prompt, never interpolate raw source text into instructions. Add an eval case with a known injection payload that must NOT alter the output structure.
+
+**Impact:** Brand-safety + content-integrity. Out of scope for Slice 1 (no agents), but must land with the agent pipeline.
+
+**Depends on:** Slice 2 agent pipeline.

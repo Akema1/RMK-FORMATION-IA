@@ -12,6 +12,8 @@ import LoadingSpinner from './components/LoadingSpinner';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
+const VeilleHome = lazy(() => import('./pages/veille/VeilleHome'));
+const VeilleArticle = lazy(() => import('./pages/veille/VeilleArticle'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 export default function App() {
@@ -24,6 +26,8 @@ export default function App() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/portal" element={<ClientPortal />} />
             <Route path="/portail" element={<Navigate to="/portal" replace />} />
+            <Route path="/veille" element={<VeilleHome />} />
+            <Route path="/veille/:slug" element={<VeilleArticle />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
